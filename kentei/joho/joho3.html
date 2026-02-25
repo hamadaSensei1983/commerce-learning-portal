@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>用語学習アプリ</title>
+<link rel="stylesheet" href="../../css/common.css">
+</head>
+<body>
+
+<div id="loadingScreen">
+  <div class="loaderBox">
+    <img src="../../images/logo.png" alt="chinzel" class="loadingLogo">
+    <div class="spinner"></div>
+    <p>読み込み中...</p>
+  </div>
+</div>
+
+<div id="timerBox">⏱ 10</div>
+
+<!-- ===== メニュー ===== -->
+<div class="card" id="setupCard">
+<h2>分野選択</h2>
+<div id="categorySelect"></div>
+<button onclick="selectAll()">全選択</button>
+
+<h2>モード選択</h2>
+<div class="grid-2">
+  <button onclick="setMode('normal')">通常モード</button>
+  <button onclick="setMode('review')">復習モード</button>
+  <button onclick="setMode('challenge')">チャレンジモード</button>
+  <button onclick="startStudyMode()">学習モード</button>
+</div>
+<p id="modeDisplay">モード未選択</p>
+<button onclick="startGame()">ゲーム開始</button>
+</div>
+
+<!-- ===== ゲーム画面 ===== -->
+<div class="card hidden" id="gameCard">
+<h3 id="scoreDisplay"></h3>
+<p id="progress"></p>
+<p id="question"></p>
+<div id="choices"></div>
+<p id="result"></p>
+<button onclick="nextQuestion()" id="nextBtn" class="hidden">次へ</button>
+<button onclick="backToMenu()" id="menuBtn" class="hidden">メニューへ戻る</button>
+</div>
+
+<!-- ===== 学習モード ===== -->
+<div class="card hidden" id="studyCard">
+<h3>📚 学習モード</h3>
+<div class="studyWord" id="studyWord"></div>
+<div class="studyDesc" id="studyDesc"></div>
+<button onclick="toggleDescription()">説明を表示/非表示</button>
+<button onclick="prevStudy()">← 前へ</button>
+<button onclick="nextStudy()">次へ →</button>
+<button onclick="backToMenu()">メニューへ戻る</button>
+</div>
+
+<a href="../../index.html">
+  <button class="portal-btn">ポータルへ戻る</button>
+</a>
+
+<footer>
+© 鎮西学院高等学校 商業科
+</footer>
+
+<script>
+
+// ===== CSVデータ =====
+var csvData=`
+分野,用語,説明
+ハードウェア,集積回路,半導体基板の上に、複数の電子部品を組み込んだ電子回路。
+ハードウェア,ＲＯＭ,電源を切っても記憶内容が消えない、読み取り専用のメモリ。
+ハードウェア,ＲＡＭ,電源を切ると記憶内容が消える、書き込みと読み取りが可能なメモリ。
+ハードウェア,ＣＰＵ,プログラムを解読して計算処理などを行ない、各装置を制御するコンピュータの中心部分。
+ハードウェア,制御装置,コンピュータにおける五大装置の中で、記憶装置の命令を取り出して解読し、各装置に指示を与える装置。
+ハードウェア,演算装置,コンピュータにおける五大装置の中で、データの四則計算や比較判断を行う装置。
+ハードウェア,記憶装置,コンピュータにおける五大装置の中で、プログラムやデータをためておく装置。
+ハードウェア,主記憶装置,コンピュータ本体に組み込まれ、ＣＰＵから直接データを読み書きできる装置。メモリ。
+ハードウェア,補助記憶装置,ＣＰＵから直接データを読み書きできない記憶装置。電源を切っても記憶内容は消えない。
+ハードウェア,ハードディスク,複数の金属製の円盤を回転させ、磁気を利用してデータの読み書きを行なう補助記憶装置。
+ハードウェア,ＳＳＤ,大容量の半導体メモリを用いた補助記憶装置。ハードディスクに比べ、省電力、衝撃耐久性、起動速度などに優れている。
+ハードウェア,ＤＶＤ装置,光ディスクに、赤色レーザ光線を用いて約4.7GB読み書きできる記憶媒体。映像の記録などに用いる。
+ハードウェア,ブルーレイディスク,光ディスクに、青紫色レーザ光線を用いて約25GB読み書きできる記憶媒体。高画質の映像を記録できる。
+ハードウェア,フラッシュメモリ,電源を切っても記憶内容が消えない不揮発性の半導体を用いて読み書きする補助記憶装置。
+ハードウェア,入力装置,コンピュータにおける五大装置の中で、プログラムやデータを主記憶装置に読み込む装置。
+ハードウェア,タッチパネル,ディスプレイ上のマークやボタンを指やペンで触れることによりデータを入力する装置。
+ハードウェア,イメージスキャナ,写真や絵、印刷物などを光学的に読み取り、デジタルデータとして入力する装置。
+ハードウェア,バーコードリーダ,白と黒の縞模様状のものを読み取る装置。
+ハードウェア,出力装置,コンピュータにおける五大装置の中で、データの処理結果を表示したり、印字したりする装置。
+ハードウェア,ＣＤ装置,光ディスク装置の一種。容量は約７００ＭＢ。
+ハードウェア,インクジェットプリンタ,細かな液状のインクを用紙に吹き付けて印字する出力装置。
+ハードウェア,レーザプリンタ,印字データをレーザ校により感光ドラムにあて、トナーを付着させてから用紙に転写する出力装置。
+ハードウェア,プロジェクタ,画像や映像をスクリーンに投影して表示する装置。
+ハードウェア,インタフェース,コンピュータ本体と情報機器を接続して、データをやり取りするための規格。
+ハードウェア,ＵＳＢ,一つの受け口で最大127台までの情報機器を接続できるインタフェース規格。
+ハードウェア,ＨＤＭＩ,デジタル家電やＡＶ機器で使われる映像や音声の入出力用のインタフェース規格。
+ハードウェア,Bluetooth,電波を使って、数mから数十m程度の近距離間でデータ通信に利用されるインタフェース規格。
+ソフトウェア等,ＯＳ,ハードウェアとアプリケーションソフトウェアの間で動作し、それぞれを管理、制御するソフトウェア。
+ソフトウェア等,アプリケーションソフトウェア,表計算ソフトなどのように、特定の目的に利用するためのソフトウェア。
+ソフトウェア等,インストール,アプリケーションソフトをコンピュータに導入する作業のこと。セットアップともいう。
+ソフトウェア等,アンインストール,コンピュータに入っているアプリケーションソフトを削除し、使用不可能な状態にすること。
+ソフトウェア等,アップデート,ソフトウェアを最新の状態に更新すること。
+ソフトウェア等,ＧＵＩ,コンピュータの操作を、ボタンやアイコンを選択することで直感的に簡単に行えるようにした操作環境。
+ソフトウェア等,アイコン,コンピュータを直感的に操作できるようにしたディスプレイ上の小さな絵文字。
+ソフトウェア等,カーソル,画面上でデータの入力一夜操作位置を示すしるし。
+ソフトウェア等,スクロール,画面上に表示しきれないおじや画像を見るために、表示範囲を移動させる操作。
+ﾊｰﾄﾞｳｳｪｱ・ｿﾌﾄｳｪｱに関する知識,２進数,「０」と「１」のみを用いて表現する方法。
+ﾊｰﾄﾞｳｳｪｱ・ｿﾌﾄｳｪｱに関する知識,ビット,コンピュータで扱う最小の情報単位。
+ﾊｰﾄﾞｳｳｪｱ・ｿﾌﾄｳｪｱに関する知識,バイト,２進数８桁で表される情報の基本単位。
+ﾊｰﾄﾞｳｳｪｱ・ｿﾌﾄｳｪｱに関する知識,キロバイト(KB),"約1,000バイトの記憶容量の単位。"
+ﾊｰﾄﾞｳｳｪｱ・ｿﾌﾄｳｪｱに関する知識,メガバイト(MB),"約1,000,000バイトの記憶容量の単位。"
+ﾊｰﾄﾞｳｳｪｱ・ｿﾌﾄｳｪｱに関する知識,ギガバイト(GB),"約1,000,000,000バイトの記憶容量の単位。"
+ﾊｰﾄﾞｳｳｪｱ・ｿﾌﾄｳｪｱに関する知識,テラバイト(TB),"約1,000,000,000,000バイトの記憶容量の単位。"
+ﾊｰﾄﾞｳｳｪｱ・ｿﾌﾄｳｪｱに関する知識,ミリセカンド(ms),"1,000分の1秒を表す時間の単位。"
+ﾊｰﾄﾞｳｳｪｱ・ｿﾌﾄｳｪｱに関する知識,マイクロセカンド(μs),"1,000,000分の1秒を表す時間の単位。"
+ﾊｰﾄﾞｳｳｪｱ・ｿﾌﾄｳｪｱに関する知識,ナノセカンド(ns),"1,000,000,000分の1秒を表す時間の単位。"
+ﾊｰﾄﾞｳｳｪｱ・ｿﾌﾄｳｪｱに関する知識,ピコセカンド(ps),"1,000,000,000,000分の1秒を表す時間の単位。"
+ﾊｰﾄﾞｳｳｪｱ・ｿﾌﾄｳｪｱに関する知識,フォーマット,初期化とも呼ばれ、記憶媒体を利用できるようにするための作業。
+ﾊｰﾄﾞｳｳｪｱ・ｿﾌﾄｳｪｱに関する知識,ファイル名,コンピュータのファイルシステム中に保存された、プログラムやデータを特定するためにつける名前。
+ﾊｰﾄﾞｳｳｪｱ・ｿﾌﾄｳｪｱに関する知識,フォルダ,記憶装置の中で、ファイルを分類して保存するために作られた記憶場所のこと。
+ﾊｰﾄﾞｳｳｪｱ・ｿﾌﾄｳｪｱに関する知識,ワイルドカード,ファイルを検索する際に、任意の文字列や１つの文字の代用として使うことのできる記号。
+ﾊｰﾄﾞｳｳｪｱ・ｿﾌﾄｳｪｱに関する知識,バッチ処理,発生したデータを一定期間ためておき、一括して処理する方式。
+ﾊｰﾄﾞｳｳｪｱ・ｿﾌﾄｳｪｱに関する知識,リアルタイム処理,工業用ロボットや航空管制システムのように、センサなどで監視し、状況に応じて即座に処理する方法。
+ﾊｰﾄﾞｳｳｪｱ・ｿﾌﾄｳｪｱに関する知識,ＥＯＳ,企業間の取引において、ネットワーク経由で受発注業務を行うシステム。
+ﾊｰﾄﾞｳｳｪｱ・ｿﾌﾄｳｪｱに関する知識,ＥＣ,インターネットなどのネットワークを利用した商取引。
+ﾊｰﾄﾞｳｳｪｱ・ｿﾌﾄｳｪｱに関する知識,インターネットバンキング,インターネット経由で銀行などの金融機関のサービスを利用すること。
+ﾊｰﾄﾞｳｳｪｱ・ｿﾌﾄｳｪｱに関する知識,オンラインショッピングサイト,インターネット上で商品を紹介し販売するＷｅｂページのこと。
+ﾊｰﾄﾞｳｳｪｱ・ｿﾌﾄｳｪｱに関する知識,ＰＯＳシステム,スーパーのレジなどで商品のバーコードを読み取り、販売情報を収集し、売り上げ管理や在庫管理に利用する仕組み。
+ﾊｰﾄﾞｳｳｪｱ・ｿﾌﾄｳｪｱに関する知識,バーコード,横方向に並んだ直線の太さや間隔などにより、データを表すもの。
+ﾊｰﾄﾞｳｳｪｱ・ｿﾌﾄｳｪｱに関する知識,ＪＡＮコード,日本工業規格に定められている、商品識別番号とバーコードの規格の１つ。
+ﾊｰﾄﾞｳｳｪｱ・ｿﾌﾄｳｪｱに関する知識,ＱＲコード,小さな正方形の点を縦横同じ数だけ並べた二次元のコード。
+ﾊｰﾄﾞｳｳｪｱ・ｿﾌﾄｳｪｱに関する知識,ＩＣカード,薄い半導体集積回路を埋め込み、情報を記録できるようにしたカード。
+ﾊｰﾄﾞｳｳｪｱ・ｿﾌﾄｳｪｱに関する知識,ＥＵＣ,企業内の業務システムの構築や運用を、業務を行う側が自らコンピュータを活用し、業務の効率化を図ること。
+ﾊｰﾄﾞｳｳｪｱ・ｿﾌﾄｳｪｱに関する知識,システムアドミニストレータ,ＥＵＣの考えに基づき、現場での情報化をコンピュータ利用者の側から推進するリーダー。
+通信ネットワークに関する知識,プロバイダ,インターネットへの接続サービスを提供する業者。電子メールサービスなどの提供もおこなう。
+通信ネットワークに関する知識,ＨＴＭＬ,Webページを作成するための言語。タグを使い、文書構造や画像の表示、文字飾りなどを定義する。
+通信ネットワークに関する知識,ブラウザ,インターネットでWebページを閲覧するためのソフトウェア。
+通信ネットワークに関する知識,ＵＲＬ,インターネットにおいて、HTML文書や画像など、保存されているファイルの場所を示すアドレス。
+通信ネットワークに関する知識,ドメイン名,電子メールアドレスの組織・団体などの所属を表す部分。
+通信ネットワークに関する知識,ハイパーリンク,Webページ上の文字列や画像をクリックすると、目的のWebページへジャンプする機能。
+通信ネットワークに関する知識,検索エンジン,インターネットにおいて、キーワードを入力することにより、目的のWebページを見つけることができるWebページ。
+通信ネットワークに関する知識,Webサーバ,ブラウザからの要求により、保存されているファイルを送信するなどのサービスを提供するコンピュータ。
+通信ネットワークに関する知識,メールサーバ,電子メールの送信や受信の管理を行うコンピュータ。
+通信ネットワークに関する知識,メーラ,電子メールを送受信するための専用のソフトウェア。
+通信ネットワークに関する知識,Webメール,Webブラウザで利用することができる電子メールのこと。
+通信ネットワークに関する知識,Ｔｏ,電子メールを送信する相手のメールアドレスを入力する欄。
+通信ネットワークに関する知識,Ｃｃ,同じ内容のメールを他の人にも同時に送信したいときに、メールアドレスを入力する欄。
+通信ネットワークに関する知識,Ｂｃｃ,電子メールを複数の相手に同時に送信する方法であり、他の受信者に通知されない。
+通信ネットワークに関する知識,添付ファイル,電子メールの本文とともに送受信される、送信者が指定したファイル。
+通信ネットワークに関する知識,メーリングリスト,グループ内のメールアドレスを１つにまとめ、グループ名を宛先に指定することで、同じメッセージをメンバー全員に送信する機能。
+通信ネットワークに関する知識,ファイルサーバ,ファイルを保存し、LANに接続された複数のクライアントで共有して利用するために用いるサーバ。
+通信ネットワークに関する知識,プリントサーバ,特定のプリンタを複数のコンピュータで利用できるようにプリントジョブを管理するサーバ。
+情報ﾓﾗﾙとｾｷｭﾘﾃｨに関する知識,プライバシーの侵害,電話番号や身長、体重など、他人に知られたくない個人の情報を無断で公開し、本人に精神的苦痛を与えること。
+情報ﾓﾗﾙとｾｷｭﾘﾃｨに関する知識,フィルタリング,有害なWebサイトなどへのアクセスを規制すること。
+情報ﾓﾗﾙとｾｷｭﾘﾃｨに関する知識,有害サイト,青少年の健全な育成をさまたげる情報や、犯罪につながる情報を掲載しているWebサイト。
+情報ﾓﾗﾙとｾｷｭﾘﾃｨに関する知識,迷惑メール,電子メールによって一方的に送られてくる悪質なメールのこと。
+情報ﾓﾗﾙとｾｷｭﾘﾃｨに関する知識,スパムメール,迷惑メールの一種で、不特定多数の受信者へ一方的に送られる、広告や勧誘を内容としたもの。
+情報ﾓﾗﾙとｾｷｭﾘﾃｨに関する知識,チェーンメール,迷惑メールのうち、受信者に受信内容を他の人へ送信するようにうながすメール。
+情報ﾓﾗﾙとｾｷｭﾘﾃｨに関する知識,ネット詐欺,インターネット上で行われる詐欺行為のこと。
+情報ﾓﾗﾙとｾｷｭﾘﾃｨに関する知識,フィッシング詐欺,本物のウェブサイトを装った偽のウェブサイトへのリンクを張ったメールを送りつけ、個人情報などを獲得する詐欺のこと。
+情報ﾓﾗﾙとｾｷｭﾘﾃｨに関する知識,ワンクリック詐欺,URLなどを１回クリックすると、「ご入会ありがとうございました」など一方的に多額の料金の支払いを求める詐欺のこと。
+情報ﾓﾗﾙとｾｷｭﾘﾃｨに関する知識,認証,ネットワークに接続する際、ユーザIDとパスワードを入力することで、利用者が本人であることを確認すること。
+情報ﾓﾗﾙとｾｷｭﾘﾃｨに関する知識,ユーザID,ネットワークシステムにおいて、利用者本人を識別するための番号や文字列。
+情報ﾓﾗﾙとｾｷｭﾘﾃｨに関する知識,パスワード,コンピュータシステムを利用する際、本人確認のためユーザIDとともに用いられる文字列。
+情報ﾓﾗﾙとｾｷｭﾘﾃｨに関する知識,アクセス制限,ファイルやシステム等の利用を特定の人だけに制限したり、有害なサイトへのアクセスを制限したりすること。
+情報ﾓﾗﾙとｾｷｭﾘﾃｨに関する知識,アクセス権,サーバなどの記憶装置に保存されたファイルやフォルダなどを利用するための権限。
+情報ﾓﾗﾙとｾｷｭﾘﾃｨに関する知識,不正アクセス,他人のコンピュータに侵入してデータを改ざんしたり、盗み出したりすること。
+情報ﾓﾗﾙとｾｷｭﾘﾃｨに関する知識,なりすまし,他人のユーザIDなどを不正に利用し、その人のふりをしてネットワーク上で活動すること。
+情報ﾓﾗﾙとｾｷｭﾘﾃｨに関する知識,コンピュータウイルス,コンピュータに対して、何らかの異常を引き起こす目的で作成された悪意のあるプログラム。
+情報ﾓﾗﾙとｾｷｭﾘﾃｨに関する知識,ウイルス対策ソフト,コンピュータウイルスを検出・消去するソフトウェア。
+情報ﾓﾗﾙとｾｷｭﾘﾃｨに関する知識,ウイルス定義ファイル,コンピュータウイルスを検出する際に使うファイル。
+情報ﾓﾗﾙとｾｷｭﾘﾃｨに関する知識,ワクチンプログラム,コンピュータウイルスの検出や駆除などを専門に行うソフトウェア。
+表の作成,ワークシート,表計算ソフトにおいて、データの入力や計算、グラフの作成を行う、複数の行と複数の列からなる領域。
+表の作成,セル,表計算ソフトにおいて、行と列により区切られた１つ１つのます目。
+表の作成,行,ワークシート上の横方向のます目の集まりで、数字で位置を表す。
+表の作成,列,ワークシート上の縦方向のます目の集まりで、アルファベットで位置を表す。
+表の作成,行高,ワークシート上の行の高さ。設定により変更できる。
+表の作成,列幅,ワークシート上の列の幅。設定により変更できる。
+表の作成,文字位置,文字は左詰め、数値は右詰で表示されるが、設定により、左、中央、右詰に変更することができる。
+表の作成,文字方向,文字は入力すると横方向に表示されるが、設定により縦方向に表示することができる。
+表の作成,セル結合,複数の行や列の中央にデータを表示させたいときは、セルと結合して中央揃えに設定する。
+表の作成,複写,元の場所にあるデータをそのまま残し、同じデータを別の場所にうつすこと。
+表の作成,移動,元の場所にあるデータを残さないで、同じデータを別の場所にうつすこと。
+表の作成,罫線,セルの周囲に引くことができる枠線。
+表の作成,比較演算子,数値などの大小比較を行う際に用いる演算子。
+表の作成,算術演算子,四則演算やべき乗などの計算を実行する演算子。
+表の作成,再計算,入力されているデータを変更すると、自動的に新しい計算結果を表示すること。
+表の作成,引数,表計算ソフトウェアの関数を利用する際に設定する情報。セル範囲やセル番地、数値などがある。
+表の作成,相対参照,計算式や関数を移動または複写した場合などに、セル番地が自動的に調整されるセルの参照。
+表の作成,絶対参照,固定されたセル番地で、移動または複写しても同じセル番地を示す。
+表の作成,並べ替え,基準となる項目をもとに、データの並び順を変更すること。
+表の作成,キー項目,データの並べ替えや検索などを行う際に、基準となる項目。
+表の作成,昇順,データの値が小さいものから順番に並んでいること。
+表の作成,降順,データの値が大きいものから順番に並んでいること。
+関数の利用,ＳＵＭ,指定した範囲の合計を求める関数。
+関数の利用,ＡＶＥＲＡＧＥ,指定した範囲の平均を求める関数。
+関数の利用,ＭＡＸ,指定した範囲の最大値を求める関数。
+関数の利用,ＭＩＮ,指定した範囲の最小値を求める関数。
+関数の利用,ＲＡＮＫ,指定した数値に、指定した範囲の中で順位をつける関数。
+関数の利用,ＩＦ,条件の判定を行う関数。
+関数の利用,ＣＯＵＮＴ,指定した範囲の数値のセルの個数を求める関数。
+関数の利用,ＣＯＵＮＴＡ,指定した範囲の空白でないセルの個数を求める関数。
+関数の利用,ＲＯＵＮＤ,指定した数値を、指定した桁数で四捨五入する関数。
+関数の利用,ＲＯＵＮＤＵＰ,指定した数値を、指定した桁数で切り上げる関数。
+関数の利用,ＲＯＵＮＤＤＯＷＮ,指定した数値を、指定した桁数で切り捨てる関数。
+関数の利用,ＬＥＮ,指定した文字列の文字数を求める関数。
+関数の利用,ＬＥＦＴ,指定した文字列の左端から、指定した文字数を抽出する関数。
+関数の利用,ＲＩＧＨＴ,指定した文字列の右端から、指定した文字数を抽出する関数。
+関数の利用,ＭＩＤ,指定した文字列の左端から数えて、指定した開始位置から、指定した文字数を抽出する関数。
+関数の利用,ＶＡＬＵＥ,文字列として入力されている数字を、数値に変換する関数。
+関数の利用,ＦＩＸＥＤ,入力されている数値を、文字列に変換する関数。
+関数の利用,ＮＯＷ,現在の日付と時刻を表示する関数。
+関数の利用,ＴＯＤＡＹ,現在の日付を表示する関数。
+関数の利用,関数のネスト,関数の中に関数を入れること。
+グラフの作成,棒グラフ,棒の長さで大きさを表すグラフ。横棒・縦棒などの種類がある。
+グラフの作成,集合棒グラフ,棒の長さで各項目の値の大小を比較する棒グラフ
+グラフの作成,積み上げ棒グラフ,各項目を積み重ねて、各項目の値と合計を比較する棒グラフ。
+グラフの作成,100%積み上げ棒グラフ,1つの棒を100%として、各項目の構成比率を比較する棒グラフ。
+グラフの作成,折れ線グラフ,時間の経過による値の変化を表すグラフ。
+グラフの作成,切り離し円グラフ,円グラフの一部分を分離して、特定のデータを強調して表すグラフ。
+グラフの作成,レーダーチャート,同じ中心点から伸びる軸上にある目盛りを結んでバランスを表すグラフ。
+グラフの作成,タイトル,グラフ全体の内容を表した見出し。
+グラフの作成,軸,グラフの基準となる線。Ｘ軸やＹ軸がある。
+グラフの作成,ラベル,軸の項目が示すものを表すボックス。
+グラフの作成,凡例,グラフのデータ系列に割り当てられている色や模様の意味を説明するボックス。
+`;
+
+var words=[];
+var categories={};
+var mode=null;
+var quizSet=[];
+var wrongList=[];
+var currentIndex=0;
+var score=0;
+
+var questionTimer;
+var timeLeft=10;
+var totalStartTime;
+
+var studyList=[];
+var studyIndex=0;
+var studyVisible=false;
+
+// ===== CSV解析 =====
+function parseCSV(){
+    var lines=csvData.trim().split("\n");
+    for(var i=1;i<lines.length;i++){
+        var p=lines[i].split(",");
+        var obj={category:p[0],word:p[1],description:p[2]};
+        words.push(obj);
+        if(!categories[obj.category]) categories[obj.category]=[];
+        categories[obj.category].push(obj);
+    }
+}
+parseCSV();
+
+// ===== 分野表示 =====
+var catDiv=document.getElementById("categorySelect");
+for(var c in categories){
+    catDiv.innerHTML+=
+    `<label><input type="checkbox" value="${c}"> ${c}</label><br>`;
+}
+
+function selectAll(){
+    document.querySelectorAll("#categorySelect input")
+    .forEach(c=>c.checked=true);
+}
+
+function setMode(m){
+    mode=m;
+    document.getElementById("modeDisplay").innerHTML="選択中："+m;
+}
+
+// ===== シャッフル =====
+function shuffle(a){
+    for(var i=a.length-1;i>0;i--){
+        var j=Math.floor(Math.random()*(i+1));
+        var t=a[i];a[i]=a[j];a[j]=t;
+    }
+}
+
+// ===== ゲーム開始 =====
+function startGame(){
+    if(!mode){alert("モードを選択してください");return;}
+
+    var selected=[];
+    document.querySelectorAll("#categorySelect input")
+    .forEach(c=>{if(c.checked)selected.push(c.value);});
+
+    if(selected.length===0){alert("分野を選択してください");return;}
+
+    var pool=[];
+    selected.forEach(c=>pool=pool.concat(categories[c]));
+    shuffle(pool);
+    quizSet=pool.slice(0,10);
+    wrongList=[];
+    currentIndex=0;
+    score=0;
+
+    totalStartTime=Date.now();
+    document.getElementById("timerBox").style.display="block";
+
+    document.getElementById("setupCard").classList.add("hidden");
+    document.getElementById("gameCard").classList.remove("hidden");
+
+    showQuestion();
+}
+
+// ===== 問題表示 =====
+function showQuestion(){
+
+    document.getElementById("result").innerHTML="";
+    clearInterval(questionTimer);
+
+    if(currentIndex>=quizSet.length){
+
+        var totalTime=Math.floor((Date.now()-totalStartTime)/1000);
+
+        document.getElementById("question").innerHTML=
+        "終了！<br>正解数："+score+
+        "<br>⏱ 通算時間："+totalTime+"秒";
+
+        document.getElementById("choices").innerHTML="";
+        document.getElementById("menuBtn").classList.remove("hidden");
+        document.getElementById("timerBox").style.display="none";
+        return;
+    }
+
+    var q=quizSet[currentIndex];
+
+    document.getElementById("scoreDisplay").innerHTML="スコア："+score;
+    document.getElementById("progress").innerHTML=(currentIndex+1)+" / 10";
+    document.getElementById("question").innerHTML=q.description;
+
+    timeLeft=10;
+    document.getElementById("timerBox").innerHTML="⏱ "+timeLeft;
+
+    questionTimer=setInterval(function(){
+        timeLeft--;
+        document.getElementById("timerBox").innerHTML="⏱ "+timeLeft;
+        if(timeLeft<=0){
+            clearInterval(questionTimer);
+            handleTimeUp();
+        }
+    },1000);
+
+    var same=categories[q.category];
+    var choices=[q.word];
+    var wrong=same.filter(w=>w.word!==q.word);
+    shuffle(wrong);
+    for(var i=0;i<3 && i<wrong.length;i++){
+        choices.push(wrong[i].word);
+    }
+    shuffle(choices);
+
+    var div=document.getElementById("choices");
+    div.innerHTML="";
+
+    choices.forEach(choice=>{
+        var btn=document.createElement("button");
+        btn.innerHTML=choice;
+
+        btn.onclick=function(){
+
+            clearInterval(questionTimer);
+
+            var all=document.querySelectorAll("#choices button");
+            all.forEach(b=>b.disabled=true);
+
+            if(choice===q.word){
+                btn.classList.add("correct");
+                document.getElementById("result").innerHTML="✅ 正解です！";
+                score++;
+            }else{
+                btn.classList.add("wrong");
+                all.forEach(b=>{
+                    if(b.innerHTML===q.word){
+                        b.classList.add("correct");
+                    }
+                });
+
+                if(mode==="challenge"){
+                    document.getElementById("result").innerHTML=
+                    "❌ 不正解！ゲームオーバー";
+                    setTimeout(()=>backToMenu(),1500);
+                    return;
+                }
+
+                if(mode==="review") wrongList.push(q);
+
+                document.getElementById("result").innerHTML=
+                "❌ 不正解です。正解は「"+q.word+"」です。";
+            }
+
+            document.getElementById("nextBtn").classList.remove("hidden");
+        };
+
+        div.appendChild(btn);
+    });
+}
+
+function handleTimeUp(){
+    var q=quizSet[currentIndex];
+    document.getElementById("result").innerHTML=
+    "⏰ 時間切れ！ 正解は「"+q.word+"」です。";
+    document.getElementById("nextBtn").classList.remove("hidden");
+}
+
+function nextQuestion(){
+    document.getElementById("nextBtn").classList.add("hidden");
+    currentIndex++;
+    showQuestion();
+}
+
+function backToMenu(){
+    clearInterval(questionTimer);
+    document.getElementById("timerBox").style.display="none";
+    document.getElementById("gameCard").classList.add("hidden");
+    document.getElementById("studyCard").classList.add("hidden");
+    document.getElementById("setupCard").classList.remove("hidden");
+}
+
+// ===== 学習モード =====
+function startStudyMode(){
+
+    var selected=[];
+    document.querySelectorAll("#categorySelect input")
+    .forEach(c=>{if(c.checked)selected.push(c.value);});
+
+    if(selected.length===0){alert("分野を選択してください");return;}
+
+    studyList=[];
+    selected.forEach(c=>studyList=studyList.concat(categories[c]));
+
+    shuffle(studyList);
+    studyIndex=0;
+    studyVisible=false;
+
+    document.getElementById("setupCard").classList.add("hidden");
+    document.getElementById("studyCard").classList.remove("hidden");
+
+    showStudy();
+}
+
+function showStudy(){
+    var item=studyList[studyIndex];
+    document.getElementById("studyWord").innerHTML=item.word;
+    document.getElementById("studyDesc").innerHTML="";
+    studyVisible=false;
+}
+
+function toggleDescription(){
+    var item=studyList[studyIndex];
+    if(studyVisible){
+        document.getElementById("studyDesc").innerHTML="";
+        studyVisible=false;
+    }else{
+        document.getElementById("studyDesc").innerHTML=item.description;
+        studyVisible=true;
+    }
+}
+
+function nextStudy(){
+    studyIndex++;
+    if(studyIndex>=studyList.length) studyIndex=0;
+    showStudy();
+}
+
+function prevStudy(){
+    studyIndex--;
+    if(studyIndex<0) studyIndex=studyList.length-1;
+    showStudy();
+}
+
+window.addEventListener("load", function(){
+    setTimeout(function(){
+        document.getElementById("loadingScreen").style.display="none";
+    }, 800);
+});
+
+</script>
+</body>
+</html>

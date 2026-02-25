@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="css/common.css">
+<title>鎮西学院高等学校 商業科 検定取得応援サイト</title>
+
+</head>
+
+<body>
+
+<header>
+  <div class="header-left">
+    <img src="images/logo.png" alt="マスコットキャラクター">
+    <h1>鎮西学院高等学校 商業科 検定取得応援サイト</h1>
+  </div>
+</header>
+
+<div class="container">
+
+<div class="card" id="examMenu">
+    <h2>検定を選択してください</h2>
+    <button onclick="selectExam('boki')">簿記検定</button>
+    <button onclick="selectExam('joho')">情報処理検定</button>
+    <button onclick="selectExam('keisan')">ビジネス計算検定</button>
+    <button onclick="selectExam('bunsho')">ビジネス文書検定</button>
+</div>
+
+<div class="card hidden" id="gradeMenu">
+    <h2 id="examTitle"></h2>
+    <h3>級を選択してください</h3>
+    <div id="gradeButtons"></div>
+    <button class="backBtn" onclick="goHome()">戻る</button>
+</div>
+
+<div class="card hidden" id="categoryMenu">
+    <h2 id="finalTitle"></h2>
+    <h3>分野を選択してください</h3>
+    <div id="categoryButtons"></div>
+    <button class="backBtn" onclick="goGrade()">戻る</button>
+</div>
+
+</div>
+
+<footer>
+© 鎮西学院高等学校 商業科
+</footer>
+
+<script>
+
+let currentExam="";
+let currentGrade="";
+
+function selectExam(exam){
+
+    currentExam=exam;
+
+    document.getElementById("examMenu").classList.add("hidden");
+    document.getElementById("gradeMenu").classList.remove("hidden");
+
+    let title="";
+    let grades=["1級","2級","3級"];
+
+    if(exam==="boki") title="簿記検定";
+    if(exam==="joho") title="情報処理検定";
+    if(exam==="keisan") title="ビジネス計算検定";
+    if(exam==="bunsho") title="ビジネス文書検定";
+
+    document.getElementById("examTitle").innerText=title;
+
+    let gradeDiv=document.getElementById("gradeButtons");
+    gradeDiv.innerHTML="";
+
+    grades.forEach(g=>{
+        let btn=document.createElement("button");
+        btn.innerText=g;
+        btn.onclick=function(){ selectGrade(g); };
+        gradeDiv.appendChild(btn);
+    });
+}
+
+function selectGrade(grade){
+
+    currentGrade=grade;
+
+    document.getElementById("gradeMenu").classList.add("hidden");
+    document.getElementById("categoryMenu").classList.remove("hidden");
+
+    document.getElementById("finalTitle").innerText=
+    currentExamName()+" "+grade;
+
+    let categories = [];
+
+    if(currentExam==="joho" && grade==="3級"){
+        categories=[
+            {name:"用語問題", link:"kentei/joho/joho3.html"},
+            {name:"計算問題", link:"#"}
+        ];
+    }
+    else if(currentExam==="boki"){
+        categories=[
+            {name:"仕訳問題", link:"#"},
+            {name:"理論問題", link:"#"}
+        ];
+    }
+    else if(currentExam==="keisan"){
+        categories=[
+            {name:"電卓問題", link:"#"},
+            {name:"理論問題", link:"#"}
+        ];
+    }
+    else if(currentExam==="bunsho"){
+        categories=[
+            {name:"文書作成", link:"#"},
+            {name:"敬語問題", link:"#"}
+        ];
+    }
+
+    let catDiv=document.getElementById("categoryButtons");
+    catDiv.innerHTML="";
+
+    categories.forEach(c=>{
+        let btn=document.createElement("button");
+        btn.innerText=c.name;
+
+        btn.onclick=function(){
+            if(c.link!=="#"){
+                window.location.href=c.link;
+            }else{
+                alert("この分野は準備中です。");
+            }
+        };
+
+        catDiv.appendChild(btn);
+    });
+
+}
+
+function currentExamName(){
+    if(currentExam==="boki") return "簿記検定";
+    if(currentExam==="joho") return "情報処理検定";
+    if(currentExam==="keisan") return "ビジネス計算検定";
+    if(currentExam==="bunsho") return "ビジネス文書検定";
+}
+
+function goHome(){
+    document.getElementById("gradeMenu").classList.add("hidden");
+    document.getElementById("examMenu").classList.remove("hidden");
+}
+
+function goGrade(){
+    document.getElementById("categoryMenu").classList.add("hidden");
+    document.getElementById("gradeMenu").classList.remove("hidden");
+}
+
+</script>
+
+</body>
+</html>

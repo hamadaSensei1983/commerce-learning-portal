@@ -67,6 +67,9 @@ button{
     color:white;
     font-weight:bold;
     cursor:pointer;
+    margin:8px auto;
+    display:block;
+    width:90%;
 }
 
 button:hover{
@@ -146,4 +149,19 @@ footer{
 @keyframes spin{
     0%{ transform:rotate(0deg); }
     100%{ transform:rotate(360deg); }
+}
+
+/* ===== 固定ポータルボタン専用上書き ===== */
+
+.portal-btn{
+    position:fixed;
+    bottom:20px;
+    right:20px;
+    width:auto;          /* ← 追加 */
+    display:inline-block;/* ← 追加 */
+    margin:0;            /* ← 追加 */
+    padding:12px 18px;
+    border-radius:30px;
+    background:var(--main-green);
+    box-shadow:0 6px 15px rgba(0,0,0,0.2);
 }

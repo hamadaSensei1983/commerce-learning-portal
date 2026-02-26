@@ -50,7 +50,7 @@
 <div class="card hidden" id="studyScreen">
 <h3 id="studyTerm"></h3>
 <p id="studyMeaning"></p>
-<button onclick="nextStudy()">次へ</button>
+<button id="studyBtn" onclick="nextStudy()">説明を見る</button>
 </div>
 
 <a href="../../index.html">
@@ -69,6 +69,7 @@ let timer;
 let timeLeft;
 let totalTime = 0;
 let studyStep = 0;
+let answered = false;
 
 async function loadCSV(){
     const response = await fetch("data3.csv");
@@ -188,9 +189,12 @@ function showQuestion(){
             nextQuestion();
         }
     },1000);
+    answered = false;
 }
 
 function checkAnswer(choice){
+    if(answered) return;
+    answered = true;
     clearInterval(timer);
     const correct=filteredQuestions[currentIndex].meaning;
 
@@ -204,7 +208,14 @@ function checkAnswer(choice){
 }
 
 function nextQuestion(){
+
+    if(!answered){
+        alert("答えを選択してください");
+        return;
+    }
+
     currentIndex++;
+
     if(currentIndex>=10 || currentIndex>=filteredQuestions.length){
         endQuiz();
     }else{
@@ -236,8 +247,10 @@ function showStudy(){
     if(studyStep===0){
         document.getElementById("studyTerm").innerText=q.term;
         document.getElementById("studyMeaning").innerText="";
+        document.getElementById("studyBtn").innerText="説明を見る";
     }else{
         document.getElementById("studyMeaning").innerText=q.meaning;
+        document.getElementById("studyBtn").innerText="次の用語へ";
     }
 }
 

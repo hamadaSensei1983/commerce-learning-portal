@@ -84,6 +84,12 @@ button:hover{
     background:var(--wrong) !important;
 }
 
+.control-btn.small {
+    width: 40%;
+    font-size: 0.9rem;
+}
+
+
 /* 選択肢の正解・不正解表示 */
 .correct {
     background-color: #2e7d32 !important;

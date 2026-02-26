@@ -22,8 +22,8 @@
 <div class="card hidden" id="fieldScreen">
 <h2>分野選択</h2>
 <div id="fieldCheckboxes"></div>
-<button onclick="selectAllFields()">全選択</button>
-<button onclick="goModeSelect()">次へ</button>
+<button class="control-btn" onclick="selectAllFields()">全選択</button>
+<button class="main-btn" onclick="goModeSelect()">次へ</button>
 </div>
 
 <!-- モード選択 -->
@@ -217,12 +217,37 @@ function showQuestion(){
         timeLeft--;
         totalTime++;
         document.getElementById("timerBox").innerText="残り"+timeLeft+"秒";
+
         if(timeLeft<=0){
             clearInterval(timer);
-            nextQuestion();
+
+            if(!answered){
+                timeUp();
+            }
         }
     },1000);
     answered = false;
+}
+
+function timeUp(){
+
+    answered = true;
+
+    const correctAnswer = filteredQuestions[currentIndex].meaning;
+    const buttons = document.querySelectorAll("#choices button");
+
+    buttons.forEach(btn=>{
+        if(btn.innerText === correctAnswer){
+            btn.classList.add("correct");
+        }
+        btn.disabled = true;
+    });
+
+    document.getElementById("resultMessage").innerText="時間切れです";
+
+    if(mode==="challenge"){
+        setTimeout(endQuiz,800);
+    }
 }
 
 function checkAnswer(choice){

@@ -34,6 +34,13 @@
 <button onclick="setMode('review')">復習モード</button>
 <button onclick="setMode('challenge')">チャレンジ</button>
 <button onclick="startStudyMode()">学習モード</button>
+<!-- モード説明画面 -->
+<div class="card hidden" id="modeInfoScreen">
+  <h2 id="modeTitle"></h2>
+  <p id="modeDescription"></p>
+  <button class="control-btn" onclick="startQuiz()">開始する</button>
+  <button class="control-btn" onclick="backToMenu()">戻る</button>
+</div>
 </div>
 </div>
 
@@ -134,11 +141,37 @@ function goModeSelect(){
 }
 
 function setMode(m){
-    mode=m;
-    startQuiz();
+    mode = m;
+    showModeInfo();
+}
+
+function showModeInfo(){
+
+    let title="";
+    let description="";
+
+    if(mode==="normal"){
+        title="通常モード";
+        description="10問出題されます。最後に正解数と合計時間が表示されます。落ち着いて取り組みましょう。";
+    }
+    else if(mode==="review"){
+        title="復習モード";
+        description="10問解いたあと、間違えた問題をすべて正解するまで続きます。完全理解を目指します。";
+    }
+    else if(mode==="challenge"){
+        title="チャレンジモード";
+        description="1問でも間違えるとその時点で終了です。緊張感をもって挑戦しましょう。";
+    }
+
+    document.getElementById("modeTitle").innerText=title;
+    document.getElementById("modeDescription").innerText=description;
+
+    document.getElementById("menuScreen").classList.add("hidden");
+    document.getElementById("modeInfoScreen").classList.remove("hidden");
 }
 
 function startQuiz(){
+    document.getElementById("modeInfoScreen").classList.add("hidden");
     shuffle(filteredQuestions);
     currentIndex=0;
     score=0;
@@ -291,6 +324,11 @@ function shuffle(arr){
         const j=Math.floor(Math.random()*(i+1));
         [arr[i],arr[j]]=[arr[j],arr[i]];
     }
+}
+
+function backToMenu(){
+    document.getElementById("modeInfoScreen").classList.add("hidden");
+    document.getElementById("menuScreen").classList.remove("hidden");
 }
 
 </script>

@@ -84,6 +84,30 @@ button:hover{
     background:var(--wrong) !important;
 }
 
+/* 選択肢の正解・不正解表示 */
+.correct {
+    background-color: #2e7d32 !important;
+    color: white !important;
+}
+
+.wrong {
+    background-color: #c62828 !important;
+    color: white !important;
+}
+
+/* 操作用ボタン（次へ・説明を見る） */
+.control-btn {
+    background-color: #ffffff;
+    color: var(--main-green);
+    border: 2px solid var(--main-green);
+    width: 60%;
+}
+
+.control-btn:hover {
+    background-color: var(--main-green);
+    color: white;
+}
+
 /* ===== 2列グリッド ===== */
 .grid-2{
     display:grid;

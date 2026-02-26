@@ -108,6 +108,17 @@ button:hover{
     color: white;
 }
 
+/* メインボタン（進む系） */
+.main-btn {
+    background-color: var(--main-green);
+    color: white;
+    width: 60%;
+}
+
+.main-btn:hover {
+    opacity: 0.85;
+}
+
 /* ===== 2列グリッド ===== */
 .grid-2{
     display:grid;

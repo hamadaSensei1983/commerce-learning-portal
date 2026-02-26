@@ -62,6 +62,7 @@ let mode = "";
 let timer;
 let timeLeft;
 let totalTime = 0;
+let studyStep = 0; // 0=用語表示 1=説明表示
 
 async function loadCSV(){
     try{
@@ -191,6 +192,7 @@ function endQuiz(){
 function startStudyMode(){
     currentIndex=0;
     shuffle(questions);
+    studyStep = 0;
 
     document.getElementById("menuScreen").classList.add("hidden");
     document.getElementById("studyScreen").classList.remove("hidden");
@@ -199,18 +201,33 @@ function startStudyMode(){
 }
 
 function showStudy(){
-    const q=questions[currentIndex];
-    document.getElementById("studyTerm").innerText=q.term;
-    document.getElementById("studyMeaning").innerText=q.meaning;
+    const q = questions[currentIndex];
+
+    if(studyStep === 0){
+        document.getElementById("studyTerm").innerText = q.term;
+        document.getElementById("studyMeaning").innerText = "";
+    }else{
+        document.getElementById("studyMeaning").innerText = q.meaning;
+    }
 }
 
 function nextStudy(){
-    currentIndex++;
-    if(currentIndex>=questions.length){
-        location.reload();
-    }else{
+
+    if(studyStep === 0){
+        studyStep = 1;
         showStudy();
+    }else{
+        studyStep = 0;
+        currentIndex++;
+
+        if(currentIndex >= questions.length){
+            location.reload();
+        }else{
+            showStudy();
+        }
     }
+    document.querySelector("#studyScreen button").innerText =
+        studyStep===0 ? "答えを見る" : "次へ";
 }
 
 function shuffle(array){

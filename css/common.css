@@ -89,6 +89,15 @@ button:hover{
     font-size: 0.9rem;
 }
 
+.control-btn {
+    display: inline-block;
+    padding: 10px 20px;
+    text-align: center;
+    text-decoration: none;
+    border-radius: 6px;
+    font-size: 16px;
+}
+
 
 /* 選択肢の正解・不正解表示 */
 .correct {

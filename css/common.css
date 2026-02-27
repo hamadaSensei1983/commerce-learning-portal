@@ -98,6 +98,23 @@ button:hover{
     font-size: 16px;
 }
 
+/* 右下に浮かせるボタン */
+.floating-btn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 999;
+
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* 少し浮く演出 */
+.floating-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.3);
+}
+
 
 /* 選択肢の正解・不正解表示 */
 .correct {

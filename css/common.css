@@ -56,6 +56,38 @@ header h1{
     box-shadow:0 6px 15px rgba(0,0,0,0.08);
 }
 
+/* ===== 進捗表示全体 ===== */
+.progress-wrapper {
+    width: 100%;
+    max-width: 500px;
+    margin: 0 auto 15px auto;
+}
+
+/* テキスト（3 / 10問） */
+.progress-text {
+    text-align: right;
+    font-size: 14px;
+    margin-bottom: 6px;
+    color: #555;
+}
+
+/* バー背景 */
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background-color: #e0e0e0;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+/* バー中身 */
+.progress-bar-fill {
+    height: 100%;
+    width: 0%;
+    background-color: #2e8b57;
+    transition: width 0.3s ease;
+}
+
 /* ===== ボタン ===== */
 button{
     padding:14px;

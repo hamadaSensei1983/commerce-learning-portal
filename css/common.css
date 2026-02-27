@@ -1,348 +1,78 @@
-/* ===== 鎮西学院商業科 共通テーマ ===== */
-
 :root{
-    --main-green:#0b5d3b;
-    --button-green:#1b8f4c;
-    --button-hover:#27a85e;
-    --light-bg:#f3f8f4;
-    --correct:#4CAF50;
-    --wrong:#d32f2f;
+    --main-green:#2e8b57;
+    --light-green:#e8f5e9;
 }
 
-/* 基本 */
+/* 共通 */
 body{
     font-family:sans-serif;
     margin:0;
-    background:var(--light-bg);
-    text-align:center;
-}
-
-/* ===== ヘッダー ===== */
-header{
-    background:var(--main-green);
-    color:white;
-    padding:15px 20px;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-}
-
-.header-left{
-    display:flex;
-    align-items:center;
-    gap:15px;
-}
-
-header img{
-    height:40px;
-}
-
-header h1{
-    font-size:18px;
-    margin:0;
+    background:var(--light-green);
 }
 
 .hidden{
     display:none;
 }
 
-/* ===== カード ===== */
 .card{
     background:white;
+    max-width:600px;
+    margin:30px auto;
     padding:20px;
-    margin:20px auto;
-    max-width:1000px;
-    border-radius:12px;
-    box-shadow:0 6px 15px rgba(0,0,0,0.08);
+    border-radius:10px;
+    box-shadow:0 4px 10px rgba(0,0,0,0.1);
 }
 
-/* ===== 進捗表示全体 ===== */
-.progress-wrapper {
-    width: 100%;
-    max-width: 500px;
-    margin: 0 auto 15px auto;
-}
+/* ================= ボタン ================= */
 
-/* テキスト（3 / 10問） */
-.progress-text {
-    text-align: right;
-    font-size: 14px;
-    margin-bottom: 6px;
-    color: #555;
-}
-
-/* バー背景 */
-.progress-bar {
-    width: 100%;
-    height: 8px;
-    background-color: #e0e0e0;
-    border-radius: 5px;
-    overflow: hidden;
-}
-
-/* バー中身 */
-.progress-bar-fill {
-    height: 100%;
-    width: 0%;
-    background-color: #2e8b57;
-    transition: width 0.3s ease;
-}
-
-/* ===== ボタン ===== */
 button{
-    padding:14px;
+    width:100%;
+    padding:10px;
+    margin:5px 0;
     font-size:16px;
-    border:none;
-    border-radius:8px;
-    background:var(--button-green);
-    color:white;
-    font-weight:bold;
+    border-radius:6px;
     cursor:pointer;
-    margin:8px auto;
-    display:block;
-    width:90%;
+}
+
+.main-btn{
+    background:var(--main-green);
+    color:white;
+    border:none;
+}
+
+.control-btn{
+    background:white;
+    color:var(--main-green);
+    border:2px solid var(--main-green);
 }
 
 button:hover{
-    background:var(--button-hover);
+    opacity:0.9;
 }
 
-.correct{
-    background:var(--correct) !important;
+/* ================= 進捗バー ================= */
+
+.progress-bar{
+    background:#ddd;
+    height:15px;
+    border-radius:10px;
 }
 
-.wrong{
-    background:var(--wrong) !important;
-}
-
-.control-btn.small {
-    width: 40%;
-    font-size: 0.9rem;
-}
-
-.control-btn {
-    display: inline-block;
-    padding: 10px 20px;
-    text-align: center;
-    text-decoration: none;
-    border-radius: 6px;
-    font-size: 16px;
-}
-
-/* 未実装ボタン */
-.disabled-btn {
-    background-color: #d9d9d9 !important;
-    color: #555 !important;
-    cursor: not-allowed;
-    opacity: 0.85;
-}
-
-/* 準備中テキスト */
-.coming-soon {
-    font-size: 12px;
-    color: #888;
-}
-
-
-/* 選択肢の正解・不正解表示 */
-.correct {
-    background-color: #2e7d32 !important;
-    color: white !important;
-}
-
-.wrong {
-    background-color: #c62828 !important;
-    color: white !important;
-}
-
-/* 操作用ボタン（次へ・説明を見る） */
-.control-btn {
-    background-color: #ffffff;
-    color: var(--main-green);
-    border: 2px solid var(--main-green);
-    width: 60%;
-}
-
-.control-btn:hover {
-    background-color: var(--main-green);
-    color: white;
-}
-
-/* 右下に浮かせるボタン */
-.floating-btn {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    z-index: 999;
-
-    /* サイズ調整 */
-    width: auto;
-    padding: 6px 8px;
-    font-size: 13px;
-    border-radius: 20px;
-
-    /* 浮遊演出 */
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.floating-btn:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 6px 16px rgba(0,0,0,0.3);
-}
-
-/* 少し浮く演出 */
-.floating-btn:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 6px 16px rgba(0,0,0,0.3);
-}
-
-
-/* メインボタン（進む系） */
-.main-btn {
-    background-color: var(--main-green);
-    color: white;
-    width: 60%;
-}
-
-.main-btn:hover {
-    opacity: 0.85;
-}
-
-/* ===== 2列グリッド ===== */
-.grid-2{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:12px;
-    max-width:600px;
-    margin:0 auto;
-}
-
-/* ===== 戻る固定ボタン ===== */
-.portal-btn{
-    position:fixed;
-    bottom:20px;
-    right:20px;
+.progress-bar-fill{
     background:var(--main-green);
-    padding:12px 16px;
-    border-radius:30px;
-    font-size:14px;
-}
-
-/* ===== フッター ===== */
-footer{
-    margin-top:40px;
-    padding:20px;
-    font-size:12px;
-    color:#555;
-}
-
-/* ===== ローディング画面 ===== */
-
-#loadingScreen{
-    position:fixed;
-    top:0;
-    left:0;
-    width:100%;
     height:100%;
-    background:var(--light-bg);
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    z-index:9999;
+    border-radius:10px;
 }
 
-.loaderBox{
-    text-align:center;
-}
-
-.loadingLogo{
-    height:60px;
-    margin-bottom:20px;
-}
-
-.spinner{
-    width:40px;
-    height:40px;
-    border:5px solid #ccc;
-    border-top:5px solid var(--main-green);
-    border-radius:50%;
-    animation:spin 1s linear infinite;
-    margin:0 auto 15px auto;
-}
-
-@keyframes spin{
-    0%{ transform:rotate(0deg); }
-    100%{ transform:rotate(360deg); }
-}
-
-/* ===== 固定ポータルボタン専用上書き ===== */
+/* ================= ポータルボタン ================= */
 
 .portal-btn{
     position:fixed;
     bottom:20px;
     right:20px;
-    width:auto;          /* ← 追加 */
-    display:inline-block;/* ← 追加 */
-    margin:0;            /* ← 追加 */
-    padding:12px 18px;
-    border-radius:30px;
     background:var(--main-green);
-    box-shadow:0 6px 15px rgba(0,0,0,0.2);
-}
-
-/* 分野チェックボックスを3列にする */
-/* ===== 分野グリッド ===== */
-.field-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 180px);
-    gap: 16px 28px;
-    justify-content: center;
-    margin: 20px 0;
-}
-
-/* ===== 分野カード ===== */
-.field-grid label {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-
-    padding: 9px 10px;
-    border-radius: 10px;
-
-    background-color: #f9f9f9;
-    border: 1px solid #dcdcdc;
-
-    cursor: pointer;
-
-    transition: 
-        background-color 0.2s ease,
-        border-color 0.2s ease,
-        box-shadow 0.2s ease,
-        transform 0.15s ease;
-}
-
-/* ===== hover効果 ===== */
-.field-grid label:hover {
-    background-color: #eef7f0;
-    border-color: #66aa88;
-    box-shadow: 0 3px 8px rgba(0,0,0,0.1);
-    transform: translateY(-2px);
-}
-
-/* ===== チェックON時 ===== */
-.field-grid input[type="checkbox"]:checked + * {
-    font-weight: bold;
-}
-
-/* 親labelをチェック時に変化させる */
-.field-grid label:has(input[type="checkbox"]:checked) {
-    background-color: #e0f3e7;
-    border-color: #2e8b57;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-}
-
-/* チェックボックスを少し大きく */
-.field-grid input[type="checkbox"] {
-    transform: scale(1.1);
+    color:white;
+    padding:10px 15px;
+    border-radius:20px;
+    text-decoration:none;
 }

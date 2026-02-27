@@ -92,8 +92,8 @@ document.getElementById("pageTitle").innerText =
 
 
 async function loadCSV(){
-    const response = await fetch("data3.csv");
-    let text = await response.text();
+    const csvFile = "data" + level + ".csv";
+    const response = await fetch(csvFile);    let text = await response.text();
     text = text.replace(/^\uFEFF/, "");
     const lines = text.split(/\r?\n/);
 

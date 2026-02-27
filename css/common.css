@@ -106,8 +106,8 @@ button:hover{
     z-index: 999;
 
     /* サイズ調整 */
-    width: 100px;
-    padding: 6px 12px;
+    width: auto;
+    padding: 6px 8px;
     font-size: 13px;
     border-radius: 20px;
 

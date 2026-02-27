@@ -47,6 +47,12 @@
 <!-- クイズ画面 -->
 <div class="card hidden" id="quizScreen">
 <div id="timerBox">残り10秒</div>
+<div class="progress-wrapper">
+    <div id="progressText" class="progress-text"></div>
+    <div class="progress-bar">
+        <div id="progressBarFill" class="progress-bar-fill"></div>
+    </div>
+</div>
 <h3 id="questionText"></h3>
 <div id="choices"></div>
 <p id="resultMessage"></p>
@@ -189,6 +195,17 @@ function showQuestion(){
     document.getElementById("timerBox").innerText="残り10秒";
 
     const q=filteredQuestions[currentIndex];
+
+    // ===== 進捗表示更新 =====
+    const totalQuestions = filteredQuestions.length;
+    const currentNumber = currentIndex + 1;
+
+    document.getElementById("progressText").innerText =
+        currentNumber + " / " + totalQuestions + " 問";
+
+    const percent = (currentNumber / totalQuestions) * 100;
+    document.getElementById("progressBarFill").style.width = percent + "%";
+
     document.getElementById("questionText").innerText=q.term;
 
     const sameField = filteredQuestions.filter(x=>x.field===q.field && x.meaning!==q.meaning);

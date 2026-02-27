@@ -94,26 +94,31 @@ function selectGrade(grade){
 
     if(currentExam==="joho" && grade==="3級"){
         categories=[
-            {name:"用語問題", link:"kentei/joho/joho3.html"},
-            {name:"計算問題", link:"#"}
+            {
+                name:"用語問題",
+                link:"kentei/joho/joho.html?level=3&type=word",
+                enabled:true
+            },
+            {
+                name:"計算問題",
+                link:"#",
+                enabled:false
+            }
         ];
     }
-    else if(currentExam==="boki"){
+
+    if(currentExam==="joho" && grade==="2級"){
         categories=[
-            {name:"仕訳問題", link:"#"},
-            {name:"理論問題", link:"#"}
-        ];
-    }
-    else if(currentExam==="keisan"){
-        categories=[
-            {name:"電卓問題", link:"#"},
-            {name:"理論問題", link:"#"}
-        ];
-    }
-    else if(currentExam==="bunsho"){
-        categories=[
-            {name:"文書作成", link:"#"},
-            {name:"敬語問題", link:"#"}
+            {
+                name:"用語問題",
+                link:"kentei/joho/joho.html?level=2&type=word",
+                enabled:false
+            },
+            {
+                name:"計算問題",
+                link:"#",
+                enabled:false
+            }
         ];
     }
 
@@ -121,18 +126,20 @@ function selectGrade(grade){
     catDiv.innerHTML="";
 
     categories.forEach(c=>{
-        let btn=document.createElement("button");
-        btn.innerText=c.name;
+        const btn=document.createElement("button");
 
-        btn.onclick=function(){
-            if(c.link!=="#"){
-                window.location.href=c.link;
-            }else{
-                alert("この分野は準備中です。");
-            }
-        };
+        if(c.enabled){
+            btn.innerText = c.name;
+            btn.onclick = function(){
+                location.href = c.link;
+            };
+        } else {
+            btn.innerHTML = c.name + "<br><span class='coming-soon'>（準備中）</span>";
+            btn.disabled = true;
+            btn.classList.add("disabled-btn");
+        }
 
-        catDiv.appendChild(btn);
+        container.appendChild(btn);
     });
 
 }

@@ -247,15 +247,20 @@ footer{
 /* 分野チェックボックスを3列にする */
 .field-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px 20px;
-    margin: 20px 0;
+
+    /* 列幅を固定寄りにする */
+    grid-template-columns: repeat(3, 200px);
+
+    gap: 10px 30px;
+
+    /* 全体を中央寄せ */
+    justify-content: center;
 }
 
-/* 各チェック項目を整える */
+/* 各項目は左寄せ */
 .field-grid label {
     display: flex;
     align-items: center;
     gap: 6px;
-    cursor: pointer;
+    justify-content: flex-start;
 }

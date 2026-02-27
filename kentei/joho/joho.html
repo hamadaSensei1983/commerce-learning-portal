@@ -303,6 +303,14 @@ function checkAnswer(choice){
             return;
         }
     }
+    if(mode === "challenge"){
+        if(choice === correctAnswer){
+            if(currentIndex === filteredQuestions.length - 1){
+                setTimeout(endQuiz,800);
+            }
+        }
+    }
+
 }
 
 function nextQuestion(){
@@ -314,7 +322,7 @@ function nextQuestion(){
 
     currentIndex++;
 
-    if(currentIndex>=10 || currentIndex>=filteredQuestions.length){
+    if(currentIndex >= filteredQuestions.length){
         endQuiz();
     }else{
         showQuestion();
@@ -322,7 +330,10 @@ function nextQuestion(){
 }
 
 function endQuiz(){
-    alert("終了！ 正解数："+score+"/10\n合計時間："+totalTime+"秒");
+    const totalQuestions = filteredQuestions.length;
+
+    alert("終了！ 正解数："+score+"/"+totalQuestions+
+          "\n合計時間："+totalTime+"秒");
     location.reload();
 }
 

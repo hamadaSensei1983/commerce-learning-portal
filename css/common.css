@@ -98,6 +98,30 @@ button:hover{
     font-size: 16px;
 }
 
+/* 選択肢の正解・不正解表示 */
+.correct {
+    background-color: #2e7d32 !important;
+    color: white !important;
+}
+
+.wrong {
+    background-color: #c62828 !important;
+    color: white !important;
+}
+
+/* 操作用ボタン（次へ・説明を見る） */
+.control-btn {
+    background-color: #ffffff;
+    color: var(--main-green);
+    border: 2px solid var(--main-green);
+    width: 60%;
+}
+
+.control-btn:hover {
+    background-color: var(--main-green);
+    color: white;
+}
+
 /* 右下に浮かせるボタン */
 .floating-btn {
     position: fixed;
@@ -127,30 +151,6 @@ button:hover{
     box-shadow: 0 6px 16px rgba(0,0,0,0.3);
 }
 
-
-/* 選択肢の正解・不正解表示 */
-.correct {
-    background-color: #2e7d32 !important;
-    color: white !important;
-}
-
-.wrong {
-    background-color: #c62828 !important;
-    color: white !important;
-}
-
-/* 操作用ボタン（次へ・説明を見る） */
-.control-btn {
-    background-color: #ffffff;
-    color: var(--main-green);
-    border: 2px solid var(--main-green);
-    width: 60%;
-}
-
-.control-btn:hover {
-    background-color: var(--main-green);
-    color: white;
-}
 
 /* メインボタン（進む系） */
 .main-btn {

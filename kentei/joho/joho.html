@@ -8,7 +8,7 @@
 <body>
 
 <header>
-<h1>情報処理3級 用語学習</h1>
+<h1 id="pageTitle"></h1>
 </header>
 
 <div id="loadingScreen">
@@ -83,6 +83,13 @@ let timeLeft;
 let totalTime = 0;
 let studyStep = 0;
 let answered = false;
+
+const params = new URLSearchParams(window.location.search);
+const level = params.get("level");
+
+document.getElementById("pageTitle").innerText =
+"情報処理検定 " + level + "級";
+
 
 async function loadCSV(){
     const response = await fetch("data3.csv");

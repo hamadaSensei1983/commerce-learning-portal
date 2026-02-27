@@ -46,20 +46,6 @@ header h1{
     display:none;
 }
 
-.field-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px 20px;  /* 縦 横 */
-    text-align: left;
-    margin-bottom: 20px;
-}
-
-.field-grid label {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
 /* ===== カード ===== */
 .card{
     background:white;
@@ -256,4 +242,20 @@ footer{
     border-radius:30px;
     background:var(--main-green);
     box-shadow:0 6px 15px rgba(0,0,0,0.2);
+}
+
+/* 分野チェックボックスを3列にする */
+.field-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px 20px;
+    margin: 20px 0;
+}
+
+/* 各チェック項目を整える */
+.field-grid label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
 }

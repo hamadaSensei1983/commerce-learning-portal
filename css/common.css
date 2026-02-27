@@ -245,15 +245,57 @@ footer{
 }
 
 /* 分野チェックボックスを3列にする */
+/* ===== 分野グリッド ===== */
 .field-grid {
     display: grid;
     grid-template-columns: repeat(3, 180px);
-    gap: 12px 24px;
+    gap: 16px 28px;
     justify-content: center;
+    margin: 20px 0;
 }
 
+/* ===== 分野カード ===== */
 .field-grid label {
-    display: block;
-    width: 100%;
-    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    padding: 10px 14px;
+    border-radius: 10px;
+
+    background-color: #f9f9f9;
+    border: 1px solid #dcdcdc;
+
+    cursor: pointer;
+
+    transition: 
+        background-color 0.2s ease,
+        border-color 0.2s ease,
+        box-shadow 0.2s ease,
+        transform 0.15s ease;
+}
+
+/* ===== hover効果 ===== */
+.field-grid label:hover {
+    background-color: #eef7f0;
+    border-color: #66aa88;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+    transform: translateY(-2px);
+}
+
+/* ===== チェックON時 ===== */
+.field-grid input[type="checkbox"]:checked + * {
+    font-weight: bold;
+}
+
+/* 親labelをチェック時に変化させる */
+.field-grid label:has(input[type="checkbox"]:checked) {
+    background-color: #e0f3e7;
+    border-color: #2e8b57;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+}
+
+/* チェックボックスを少し大きく */
+.field-grid input[type="checkbox"] {
+    transform: scale(1.1);
 }

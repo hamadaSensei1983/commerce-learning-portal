@@ -105,8 +105,20 @@ button:hover{
     right: 20px;
     z-index: 999;
 
+    /* サイズ調整 */
+    width: auto;
+    padding: 6px 12px;
+    font-size: 13px;
+    border-radius: 20px;
+
+    /* 浮遊演出 */
     box-shadow: 0 4px 12px rgba(0,0,0,0.2);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.floating-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.3);
 }
 
 /* 少し浮く演出 */

@@ -35,25 +35,32 @@ body{
    ポータルヘッダー
 ============================= */
 
-header{
+/* ===== ヘッダー構造 ===== */
+
+.app-header{
     background:var(--main-green);
+    padding:12px 20px;
     color:white;
-    padding:15px 20px;
+}
+
+.header-left{
     display:flex;
     align-items:center;
-    gap:15px;
-    box-shadow:0 4px 12px rgba(0,0,0,0.2);
+    gap:12px;
 }
 
-header img{
-    height:40px;
-    display:block;
+.header-icon{
+    width:40px;
 }
 
-header h1{
+.site-title{
+    font-size:18px;
     margin:0;
-    font-size:22px;
-    font-weight:600;
+}
+
+.exam-title{
+    font-size:14px;
+    opacity:0.9;
 }
 
 /* =============================

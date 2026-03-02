@@ -262,12 +262,76 @@ function showQuestion(){
     const sameField =
         quizQuestions.filter(x=>x.field===q.field && x.meaning!==q.meaning);
 
-    let choices=[q.meaning];
+/* =====================
+   ダミー生成（改良版）
+   優先順位：
+   ① 同分野かつ前後
+   ② 同分野その他
+   ③ 他分野
+===================== */
 
-    while(choices.length<4 && sameField.length>0){
-        let rand=sameField[Math.floor(Math.random()*sameField.length)].meaning;
-        if(!choices.includes(rand)) choices.push(rand);
+let choices = [q.meaning];
+
+// 正解のCSV上の位置
+const correctIndex = filteredQuestions.indexOf(q);
+
+// 候補プール
+let dummyCandidates = [];
+
+/* ---------- ① 前後優先 ---------- */
+const neighborOffsets = [-2, -1, 1, 2];
+
+neighborOffsets.forEach(offset => {
+    const idx = correctIndex + offset;
+    if (idx >= 0 && idx < filteredQuestions.length) {
+        const candidate = filteredQuestions[idx];
+        if (candidate.field === q.field &&
+            candidate.meaning !== q.meaning) {
+            dummyCandidates.push(candidate.meaning);
+        }
     }
+});
+
+/* ---------- ② 同分野その他 ---------- */
+if (dummyCandidates.length < 3) {
+
+    const sameFieldOthers =
+        filteredQuestions.filter(x =>
+            x.field === q.field &&
+            x.meaning !== q.meaning &&
+            !dummyCandidates.includes(x.meaning)
+        );
+
+    shuffle(sameFieldOthers);
+
+    sameFieldOthers.forEach(item => {
+        if (dummyCandidates.length < 3) {
+            dummyCandidates.push(item.meaning);
+        }
+    });
+}
+
+/* ---------- ③ 他分野 ---------- */
+if (dummyCandidates.length < 3) {
+
+    const otherFields =
+        filteredQuestions.filter(x =>
+            x.field !== q.field &&
+            x.meaning !== q.meaning &&
+            !dummyCandidates.includes(x.meaning)
+        );
+
+    shuffle(otherFields);
+
+    otherFields.forEach(item => {
+        if (dummyCandidates.length < 3) {
+            dummyCandidates.push(item.meaning);
+        }
+    });
+}
+
+/* ---------- 選択肢確定 ---------- */
+dummyCandidates.slice(0,3).forEach(d => choices.push(d));
 
     shuffle(choices);
 

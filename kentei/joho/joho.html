@@ -293,35 +293,28 @@ if(correctIndex !== -1){
 }
 
 // ② 同分野その他
+function similarity(a,b){
+    let matches=0;
+    for(let i=0;i<Math.min(a.length,b.length);i++){
+        if(a[i]===b[i]) matches++;
+    }
+    return matches / Math.max(a.length,b.length);
+}
+
 if(dummyCandidates.length < 3){
+
     const sameFieldOthers =
         filteredQuestions.filter(x =>
             x.field===q.field &&
-            x.term!==q.term &&
-            !dummyCandidates.includes(x.term)
+            x.term!==q.term
         );
 
-    shuffle(sameFieldOthers);
+    sameFieldOthers.sort((a,b)=>{
+        return similarity(q.term,b.term)
+             - similarity(q.term,a.term);
+    });
 
     sameFieldOthers.forEach(item=>{
-        if(dummyCandidates.length<3){
-            dummyCandidates.push(item.term);
-        }
-    });
-}
-
-// ③ 他分野
-if(dummyCandidates.length < 3){
-    const otherFields =
-        filteredQuestions.filter(x =>
-            x.field!==q.field &&
-            x.term!==q.term &&
-            !dummyCandidates.includes(x.term)
-        );
-
-    shuffle(otherFields);
-
-    otherFields.forEach(item=>{
         if(dummyCandidates.length<3){
             dummyCandidates.push(item.term);
         }

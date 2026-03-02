@@ -247,145 +247,118 @@ function startQuiz(){
 function showQuestion(){
 
     clearInterval(timer);
-    timeLeft=10;
-    answered=false;
+    timeLeft = 10;
+    answered = false;
 
     const q = quizQuestions[currentIndex];
 
-    document.getElementById("questionText").innerText=q.term;
+    document.getElementById("questionText").innerText = q.term;
+    document.getElementById("resultMessage").innerText = "";
+
     document.getElementById("progressText").innerText =
-        (currentIndex+1)+" / "+quizQuestions.length+" 問";
+        (currentIndex+1) + " / " + quizQuestions.length + " 問";
 
     document.getElementById("progressBarFill").style.width =
-        ((currentIndex+1)/quizQuestions.length*100)+"%";
+        ((currentIndex+1)/quizQuestions.length*100) + "%";
 
-    const sameField =
-        quizQuestions.filter(x=>x.field===q.field && x.meaning!==q.meaning);
+    /* =====================
+       ダミー生成（最終安定版）
+    ===================== */
 
-/* =====================
-   ダミー生成（安定版）
-===================== */
+    let choices = [q.meaning];
 
-let choices = [q.meaning];
+    const correctIndex =
+        filteredQuestions.findIndex(x => x.term === q.term);
 
-// filteredQuestions 内で正解の位置を探す
-const correctIndex =
-    filteredQuestions.findIndex(x => x.term === q.term);
+    let dummyCandidates = [];
 
-let dummyCandidates = [];
+    // ① 前後優先
+    if(correctIndex !== -1){
+        const neighborOffsets = [-2,-1,1,2];
 
-/* ---------- ① 前後優先 ---------- */
-if (correctIndex !== -1) {
-
-    const neighborOffsets = [-2, -1, 1, 2];
-
-    neighborOffsets.forEach(offset => {
-        const idx = correctIndex + offset;
-        if (idx >= 0 && idx < filteredQuestions.length) {
-            const candidate = filteredQuestions[idx];
-            if (candidate.field === q.field &&
-                candidate.meaning !== q.meaning) {
-                dummyCandidates.push(candidate.meaning);
+        neighborOffsets.forEach(offset=>{
+            const idx = correctIndex + offset;
+            if(idx >=0 && idx < filteredQuestions.length){
+                const candidate = filteredQuestions[idx];
+                if(candidate.field === q.field &&
+                   candidate.meaning !== q.meaning){
+                    dummyCandidates.push(candidate.meaning);
+                }
             }
-        }
-    });
-}
+        });
+    }
 
-/* ---------- ② 同分野その他 ---------- */
-if (dummyCandidates.length < 3) {
+    // ② 同分野その他
+    if(dummyCandidates.length < 3){
+        const sameFieldOthers =
+            filteredQuestions.filter(x =>
+                x.field === q.field &&
+                x.meaning !== q.meaning &&
+                !dummyCandidates.includes(x.meaning)
+            );
 
-    const sameFieldOthers =
-        filteredQuestions.filter(x =>
-            x.field === q.field &&
-            x.meaning !== q.meaning &&
-            !dummyCandidates.includes(x.meaning)
-        );
+        shuffle(sameFieldOthers);
 
-    shuffle(sameFieldOthers);
+        sameFieldOthers.forEach(item=>{
+            if(dummyCandidates.length < 3){
+                dummyCandidates.push(item.meaning);
+            }
+        });
+    }
 
-    sameFieldOthers.forEach(item => {
-        if (dummyCandidates.length < 3) {
-            dummyCandidates.push(item.meaning);
-        }
-    });
-}
+    // ③ 他分野
+    if(dummyCandidates.length < 3){
+        const otherFields =
+            filteredQuestions.filter(x =>
+                x.field !== q.field &&
+                x.meaning !== q.meaning &&
+                !dummyCandidates.includes(x.meaning)
+            );
 
-/* ---------- ③ 他分野 ---------- */
-if (dummyCandidates.length < 3) {
+        shuffle(otherFields);
 
-    const otherFields =
-        filteredQuestions.filter(x =>
-            x.field !== q.field &&
-            x.meaning !== q.meaning &&
-            !dummyCandidates.includes(x.meaning)
-        );
+        otherFields.forEach(item=>{
+            if(dummyCandidates.length < 3){
+                dummyCandidates.push(item.meaning);
+            }
+        });
+    }
 
-    shuffle(otherFields);
-
-    otherFields.forEach(item => {
-        if (dummyCandidates.length < 3) {
-            dummyCandidates.push(item.meaning);
-        }
-    });
-}
-
-/* ---------- 選択肢確定 ---------- */
-dummyCandidates.slice(0,3).forEach(d => choices.push(d));
-
-shuffle(choices);
-
-    sameFieldOthers.forEach(item => {
-        if (dummyCandidates.length < 3) {
-            dummyCandidates.push(item.meaning);
-        }
-    });
-}
-
-/* ---------- ③ 他分野 ---------- */
-if (dummyCandidates.length < 3) {
-
-    const otherFields =
-        filteredQuestions.filter(x =>
-            x.field !== q.field &&
-            x.meaning !== q.meaning &&
-            !dummyCandidates.includes(x.meaning)
-        );
-
-    shuffle(otherFields);
-
-    otherFields.forEach(item => {
-        if (dummyCandidates.length < 3) {
-            dummyCandidates.push(item.meaning);
-        }
-    });
-}
-
-/* ---------- 選択肢確定 ---------- */
-dummyCandidates.slice(0,3).forEach(d => choices.push(d));
+    dummyCandidates.slice(0,3).forEach(d=>choices.push(d));
 
     shuffle(choices);
 
-    const div=document.getElementById("choices");
+    /* =====================
+       選択肢描画
+    ===================== */
+
+    const div = document.getElementById("choices");
     div.innerHTML="";
 
     choices.forEach(c=>{
-        const btn=document.createElement("button");
+        const btn = document.createElement("button");
+        btn.className="main-btn";
         btn.innerText=c;
         btn.onclick=function(){checkAnswer(c)};
         div.appendChild(btn);
     });
 
-    timer=setInterval(()=>{
+    /* =====================
+       タイマー
+    ===================== */
+
+    timer = setInterval(()=>{
         timeLeft--;
         totalTime++;
-        document.getElementById("timerBox").innerText="残り"+timeLeft+"秒";
-        if(timeLeft<=0){
+        document.getElementById("timerBox").innerText =
+            "残り" + timeLeft + "秒";
+
+        if(timeLeft <= 0){
             clearInterval(timer);
             timeUp();
         }
     },1000);
 }
-
 
 /* =====================
    回答処理

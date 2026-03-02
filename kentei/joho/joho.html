@@ -79,9 +79,11 @@
         <button class="nav-square" onclick="prevStudy()">＜</button>
 
         <div class="study-center">
-            <h3 id="studyTerm"></h3>
-            <div class="study-position">
-                <span id="studyPosition"></span>
+            <div id="studySlide" class="slide-area">
+                <h3 id="studyTerm"></h3>
+                <div class="study-position">
+                    <span id="studyPosition"></span>
+                </div>
             </div>
         </div>
 
@@ -526,22 +528,28 @@ function startStudyMode(){
     renderStudy();
 }
 
-function renderStudy(){
-    const q = filteredQuestions[studyIndex];
+function renderStudy(direction="none"){
 
-    document.getElementById("studyTerm").innerText = q.term;
+    const slide = document.getElementById("studySlide");
 
-    // 現在位置表示
-    document.getElementById("studyPosition").innerText =
-        (studyIndex + 1) + " / " + filteredQuestions.length;
-
-    if(meaningVisible){
-        document.getElementById("studyMeaning").innerText = q.meaning;
-        document.getElementById("studyBtn").innerText = "説明を隠す";
-    }else{
-        document.getElementById("studyMeaning").innerText = "";
-        document.getElementById("studyBtn").innerText = "説明を見る";
+    if(direction==="left"){
+        slide.classList.add("slide-left");
+    }else if(direction==="right"){
+        slide.classList.add("slide-right");
     }
+
+    setTimeout(()=>{
+
+        const q = filteredQuestions[studyIndex];
+
+        document.getElementById("studyTerm").innerText = q.term;
+
+        document.getElementById("studyPosition").innerText =
+            (studyIndex + 1) + " / " + filteredQuestions.length;
+
+        slide.classList.remove("slide-left","slide-right");
+
+    },120);
 }
 
 function toggleMeaning(){
@@ -553,7 +561,7 @@ function nextStudyTerm(){
     if(studyIndex < filteredQuestions.length - 1){
         studyIndex++;
         meaningVisible = false;
-        renderStudy();
+        renderStudy("left");
     }
 }
 
@@ -561,7 +569,7 @@ function prevStudy(){
     if(studyIndex > 0){
         studyIndex--;
         meaningVisible = false;
-        renderStudy();
+        renderStudy("right");
     }
 }
 

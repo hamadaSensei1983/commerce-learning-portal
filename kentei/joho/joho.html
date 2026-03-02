@@ -74,10 +74,23 @@
 
 <!-- ===================== 学習モード ===================== -->
 <div class="card hidden" id="studyScreen">
-<h3 id="studyTerm"></h3>
-<p id="studyMeaning"></p>
-<button id="studyBtn" class="control-btn" onclick="nextStudy()">説明を見る</button>
+
+    <div class="study-term-wrapper">
+        <button class="nav-btn" onclick="prevStudy()">＜</button>
+        <h3 id="studyTerm"></h3>
+        <button class="nav-btn" onclick="nextStudyTerm()">＞</button>
+    </div>
+
+    <div class="study-meaning-box">
+        <p id="studyMeaning"></p>
+    </div>
+
+    <button id="studyBtn" class="control-btn" onclick="toggleMeaning()">
+        説明を見る
+    </button>
+
 </div>
+
 
 <!-- ポータルボタン -->
 <a href="../../index.html" class="portal-btn">ポータルへ戻る</a>
@@ -493,43 +506,54 @@ function returnToFieldSelect(){
    学習モード
 ===================== */
 
-let studyStep=0;
+let studyIndex = 0;
+let meaningVisible = false;
 
 function startStudyMode(){
     shuffle(filteredQuestions);
-    currentIndex=0;
-    studyStep=0;
+    studyIndex = 0;
+    meaningVisible = false;
+
     document.getElementById("menuScreen").classList.add("hidden");
     document.getElementById("studyScreen").classList.remove("hidden");
-    showStudy();
+
+    renderStudy();
 }
 
-function showStudy(){
-    const q=filteredQuestions[currentIndex];
-    if(studyStep===0){
-        document.getElementById("studyTerm").innerText=q.term;
-        document.getElementById("studyMeaning").innerText="";
-        document.getElementById("studyBtn").innerText="説明を見る";
+function renderStudy(){
+    const q = filteredQuestions[studyIndex];
+
+    document.getElementById("studyTerm").innerText = q.term;
+
+    if(meaningVisible){
+        document.getElementById("studyMeaning").innerText = q.meaning;
+        document.getElementById("studyBtn").innerText = "説明を隠す";
     }else{
-        document.getElementById("studyMeaning").innerText=q.meaning;
-        document.getElementById("studyBtn").innerText="次へ";
+        document.getElementById("studyMeaning").innerText = "";
+        document.getElementById("studyBtn").innerText = "説明を見る";
     }
 }
 
-function nextStudy(){
-    if(studyStep===0){
-        studyStep=1;
-    }else{
-        studyStep=0;
-        currentIndex++;
-        if(currentIndex>=filteredQuestions.length){
-            location.reload();
-            return;
-        }
-    }
-    showStudy();
+function toggleMeaning(){
+    meaningVisible = !meaningVisible;
+    renderStudy();
 }
 
+function nextStudyTerm(){
+    if(studyIndex < filteredQuestions.length - 1){
+        studyIndex++;
+        meaningVisible = false;
+        renderStudy();
+    }
+}
+
+function prevStudy(){
+    if(studyIndex > 0){
+        studyIndex--;
+        meaningVisible = false;
+        renderStudy();
+    }
+}
 
 /* =====================
    シャッフル

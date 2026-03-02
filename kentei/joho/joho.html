@@ -31,9 +31,9 @@
 <div class="card hidden" id="menuScreen">
 <h2>モード選択</h2>
 <div class="grid-2">
-<button class="main-btn" onclick="setMode('normal')">通常モード</button>
-<button class="main-btn" onclick="setMode('review')">復習モード</button>
-<button class="main-btn" onclick="setMode('challenge')">チャレンジ</button>
+<button class="mode-btn" onclick="setMode('normal')">通常モード</button>
+<button class="mode-btn" onclick="setMode('review')">復習モード</button>
+<button class="mode-btn" onclick="setMode('challenge')">チャレンジ</button>
 <button class="control-btn" onclick="startStudyMode()">学習モード</button>
 </div>
 </div>
@@ -265,68 +265,72 @@ function showQuestion(){
        ダミー生成（最終安定版）
     ===================== */
 
-    let choices = [q.meaning];
+/* =====================
+   ダミー生成（説明→用語版）
+===================== */
 
-    const correctIndex =
-        filteredQuestions.findIndex(x => x.term === q.term);
+let choices = [q.term];
 
-    let dummyCandidates = [];
+const correctIndex =
+    filteredQuestions.findIndex(x => x.term === q.term);
 
-    // ① 前後優先
-    if(correctIndex !== -1){
-        const neighborOffsets = [-2,-1,1,2];
+let dummyCandidates = [];
 
-        neighborOffsets.forEach(offset=>{
-            const idx = correctIndex + offset;
-            if(idx >=0 && idx < filteredQuestions.length){
-                const candidate = filteredQuestions[idx];
-                if(candidate.field === q.field &&
-                   candidate.meaning !== q.meaning){
-                    dummyCandidates.push(candidate.meaning);
-                }
+// ① 前後優先
+if(correctIndex !== -1){
+    const neighborOffsets = [-2,-1,1,2];
+
+    neighborOffsets.forEach(offset=>{
+        const idx = correctIndex + offset;
+        if(idx>=0 && idx<filteredQuestions.length){
+            const candidate = filteredQuestions[idx];
+            if(candidate.field===q.field &&
+               candidate.term!==q.term){
+                dummyCandidates.push(candidate.term);
             }
-        });
-    }
+        }
+    });
+}
 
-    // ② 同分野その他
-    if(dummyCandidates.length < 3){
-        const sameFieldOthers =
-            filteredQuestions.filter(x =>
-                x.field === q.field &&
-                x.meaning !== q.meaning &&
-                !dummyCandidates.includes(x.meaning)
-            );
+// ② 同分野その他
+if(dummyCandidates.length < 3){
+    const sameFieldOthers =
+        filteredQuestions.filter(x =>
+            x.field===q.field &&
+            x.term!==q.term &&
+            !dummyCandidates.includes(x.term)
+        );
 
-        shuffle(sameFieldOthers);
+    shuffle(sameFieldOthers);
 
-        sameFieldOthers.forEach(item=>{
-            if(dummyCandidates.length < 3){
-                dummyCandidates.push(item.meaning);
-            }
-        });
-    }
+    sameFieldOthers.forEach(item=>{
+        if(dummyCandidates.length<3){
+            dummyCandidates.push(item.term);
+        }
+    });
+}
 
-    // ③ 他分野
-    if(dummyCandidates.length < 3){
-        const otherFields =
-            filteredQuestions.filter(x =>
-                x.field !== q.field &&
-                x.meaning !== q.meaning &&
-                !dummyCandidates.includes(x.meaning)
-            );
+// ③ 他分野
+if(dummyCandidates.length < 3){
+    const otherFields =
+        filteredQuestions.filter(x =>
+            x.field!==q.field &&
+            x.term!==q.term &&
+            !dummyCandidates.includes(x.term)
+        );
 
-        shuffle(otherFields);
+    shuffle(otherFields);
 
-        otherFields.forEach(item=>{
-            if(dummyCandidates.length < 3){
-                dummyCandidates.push(item.meaning);
-            }
-        });
-    }
+    otherFields.forEach(item=>{
+        if(dummyCandidates.length<3){
+            dummyCandidates.push(item.term);
+        }
+    });
+}
 
-    dummyCandidates.slice(0,3).forEach(d=>choices.push(d));
+dummyCandidates.slice(0,3).forEach(d=>choices.push(d));
 
-    shuffle(choices);
+shuffle(choices);
 
     /* =====================
        選択肢描画
@@ -371,7 +375,7 @@ function checkAnswer(choice){
     clearInterval(timer);
 
     const correct =
-        quizQuestions[currentIndex].meaning;
+        quizQuestions[currentIndex].term;
 
     const buttons =
         document.querySelectorAll("#choices button");
@@ -409,7 +413,7 @@ function timeUp(){
     answered = true;
 
     const correct =
-        quizQuestions[currentIndex].meaning;
+        quizQuestions[currentIndex].term;
 
     const buttons =
         document.querySelectorAll("#choices button");

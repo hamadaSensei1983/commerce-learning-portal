@@ -98,6 +98,41 @@ button{
 }
 
 /* =============================
+   クイズ選択肢ボタン（浮かない）
+============================= */
+
+.quiz-btn{
+    width:100%;
+    padding:12px;
+    margin:6px 0;
+    font-size:16px;
+    border-radius:8px;
+    cursor:pointer;
+    background:white;
+    color:var(--main-green);
+    border:2px solid var(--main-green);
+    transition:0.15s;
+}
+
+.quiz-btn:hover{
+    background:#f0fff4;
+}
+
+/* 正解表示 */
+.correct{
+    background:var(--main-green) !important;
+    color:white !important;
+    border:none !important;
+}
+
+/* 不正解表示 */
+.incorrect{
+    background:#d9534f !important;
+    color:white !important;
+    border:none !important;
+}
+
+/* =============================
    進捗バー
 ============================= */
 .progress-wrapper{

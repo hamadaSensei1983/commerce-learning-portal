@@ -132,6 +132,23 @@ button{
     border:none !important;
 }
 
+/* モード選択専用 */
+.mode-btn{
+    width:100%;
+    padding:14px;
+    border-radius:10px;
+    border:2px solid var(--main-green);
+    background:white;
+    color:var(--main-green);
+    font-size:16px;
+    cursor:pointer;
+    transition:0.15s;
+}
+
+.mode-btn:hover{
+    background:#f0fff4;
+}
+
 /* =============================
    進捗バー
 ============================= */

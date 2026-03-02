@@ -77,11 +77,10 @@ button{
 }
 
 /* メイン（緑）ボタン */
-.main-btn{
-    background:var(--main-green);
-    color:white;
-    border:none;
-    box-shadow:0 4px 10px rgba(0,0,0,0.15);
+.main-btn:hover{
+    background:white;
+    color:var(--main-green);
+    border:2px solid var(--main-green);
 }
 
 .main-btn:hover{
@@ -101,7 +100,6 @@ button{
 .control-btn:hover{
     background:var(--main-green);
     color:white;
-    transform:translateY(-2px);
 }
 
 /* =============================

@@ -261,9 +261,6 @@ function showQuestion(){
     document.getElementById("progressBarFill").style.width =
         ((currentIndex+1)/quizQuestions.length*100) + "%";
 
-    /* =====================
-       ダミー生成（最終安定版）
-    ===================== */
 
 /* =====================
    ダミー生成（説明→用語版）
@@ -321,7 +318,25 @@ if(dummyCandidates.length < 3){
     });
 }
 
-dummyCandidates.slice(0,3).forEach(d=>choices.push(d));
+// 重複除去
+dummyCandidates = [...new Set(dummyCandidates)];
+
+// 3つまで追加
+dummyCandidates.slice(0,3).forEach(d=>{
+    if(!choices.includes(d)){
+        choices.push(d);
+    }
+});
+
+// 最終安全装置（万一足りない場合）
+while(choices.length < 4){
+    const random =
+        filteredQuestions[Math.floor(Math.random()*filteredQuestions.length)].term;
+
+    if(!choices.includes(random)){
+        choices.push(random);
+    }
+}
 
 shuffle(choices);
 

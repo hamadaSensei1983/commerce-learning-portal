@@ -1,11 +1,18 @@
+/* =============================
+   カラーテーマ
+============================= */
 :root{
     --main-green:#2e8b57;
+    --dark-green:#1f6a42;
     --light-green:#e8f5e9;
+    --shadow:0 6px 18px rgba(0,0,0,0.15);
 }
 
-/* 共通 */
+/* =============================
+   基本レイアウト
+============================= */
 body{
-    font-family:sans-serif;
+    font-family: "Segoe UI", sans-serif;
     margin:0;
     background:var(--light-green);
 }
@@ -16,63 +23,173 @@ body{
 
 .card{
     background:white;
-    max-width:600px;
-    margin:30px auto;
-    padding:20px;
-    border-radius:10px;
-    box-shadow:0 4px 10px rgba(0,0,0,0.1);
+    max-width:650px;
+    margin:40px auto;
+    padding:25px;
+    border-radius:14px;
+    box-shadow:var(--shadow);
+    transition:0.3s;
 }
 
-/* ================= ボタン ================= */
+/* =============================
+   ポータルヘッダー
+============================= */
+header{
+    background:var(--main-green);
+    color:white;
+    padding:15px 20px;
+    display:flex;
+    align-items:center;
+    gap:15px;
+    box-shadow:0 4px 12px rgba(0,0,0,0.2);
+}
 
+header img{
+    height:40px;
+}
+
+header h1{
+    margin:0;
+    font-size:22px;
+    font-weight:600;
+}
+
+/* =============================
+   ボタン共通
+============================= */
 button{
     width:100%;
-    padding:10px;
-    margin:5px 0;
+    padding:12px;
+    margin:6px 0;
     font-size:16px;
-    border-radius:6px;
+    border-radius:8px;
     cursor:pointer;
+    transition:0.2s ease;
 }
 
+/* メイン（緑）ボタン */
 .main-btn{
     background:var(--main-green);
     color:white;
     border:none;
+    box-shadow:0 4px 10px rgba(0,0,0,0.15);
 }
 
+.main-btn:hover{
+    background:white;
+    color:var(--main-green);
+    border:2px solid var(--main-green);
+    transform:translateY(-2px);
+}
+
+/* サブ（白）ボタン */
 .control-btn{
     background:white;
     color:var(--main-green);
     border:2px solid var(--main-green);
 }
 
-button:hover{
-    opacity:0.9;
+.control-btn:hover{
+    background:var(--main-green);
+    color:white;
+    transform:translateY(-2px);
 }
 
-/* ================= 進捗バー ================= */
+/* =============================
+   進捗バー
+============================= */
+.progress-wrapper{
+    margin-bottom:15px;
+}
+
+.progress-text{
+    margin-bottom:5px;
+    font-weight:bold;
+}
 
 .progress-bar{
     background:#ddd;
-    height:15px;
+    height:14px;
     border-radius:10px;
+    overflow:hidden;
 }
 
 .progress-bar-fill{
     background:var(--main-green);
     height:100%;
-    border-radius:10px;
+    transition:width 0.3s;
 }
 
-/* ================= ポータルボタン ================= */
+/* =============================
+   タイマー
+============================= */
+#timerBox{
+    font-weight:bold;
+    color:var(--dark-green);
+    margin-bottom:10px;
+}
 
+/* =============================
+   ポータルへ戻るボタン（浮遊）
+============================= */
 .portal-btn{
     position:fixed;
-    bottom:20px;
-    right:20px;
+    bottom:25px;
+    right:25px;
     background:var(--main-green);
     color:white;
-    padding:10px 15px;
-    border-radius:20px;
+    padding:12px 18px;
+    border-radius:30px;
     text-decoration:none;
+    font-weight:bold;
+    box-shadow:0 8px 20px rgba(0,0,0,0.25);
+    transition:0.25s ease;
+}
+
+.portal-btn:hover{
+    background:var(--dark-green);
+    transform:translateY(-4px);
+    box-shadow:0 12px 25px rgba(0,0,0,0.35);
+}
+
+/* =============================
+   分野選択チェックボックス整形
+============================= */
+.field-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+    margin-bottom:15px;
+}
+
+.field-grid label{
+    background:#f9f9f9;
+    padding:6px;
+    border-radius:6px;
+}
+
+/* =============================
+   ローディング
+============================= */
+#loadingScreen{
+    position:fixed;
+    inset:0;
+    background:rgba(255,255,255,0.9);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    z-index:1000;
+}
+
+.spinner{
+    width:40px;
+    height:40px;
+    border:5px solid #ddd;
+    border-top:5px solid var(--main-green);
+    border-radius:50%;
+    animation:spin 1s linear infinite;
+}
+
+@keyframes spin{
+    to{transform:rotate(360deg);}
 }

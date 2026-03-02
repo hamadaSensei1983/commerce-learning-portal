@@ -75,10 +75,17 @@
 <!-- ===================== 学習モード ===================== -->
 <div class="card hidden" id="studyScreen">
 
-    <div class="study-term-wrapper">
-        <button class="nav-btn" onclick="prevStudy()">＜</button>
-        <h3 id="studyTerm"></h3>
-        <button class="nav-btn" onclick="nextStudyTerm()">＞</button>
+    <div class="study-row">
+        <button class="nav-square" onclick="prevStudy()">＜</button>
+
+        <div class="study-center">
+            <h3 id="studyTerm"></h3>
+            <div class="study-position">
+                <span id="studyPosition"></span>
+            </div>
+        </div>
+
+        <button class="nav-square" onclick="nextStudyTerm()">＞</button>
     </div>
 
     <div class="study-meaning-box">
@@ -90,7 +97,6 @@
     </button>
 
 </div>
-
 
 <!-- ポータルボタン -->
 <a href="../../index.html" class="portal-btn">ポータルへ戻る</a>
@@ -524,6 +530,10 @@ function renderStudy(){
     const q = filteredQuestions[studyIndex];
 
     document.getElementById("studyTerm").innerText = q.term;
+
+    // 現在位置表示
+    document.getElementById("studyPosition").innerText =
+        (studyIndex + 1) + " / " + filteredQuestions.length;
 
     if(meaningVisible){
         document.getElementById("studyMeaning").innerText = q.meaning;

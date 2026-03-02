@@ -337,7 +337,7 @@ function showQuestion(){
 
     choices.forEach(c=>{
         const btn = document.createElement("button");
-        btn.className="main-btn";
+        btn.className="quiz-btn";
         btn.innerText=c;
         btn.onclick=function(){checkAnswer(c)};
         div.appendChild(btn);
@@ -367,31 +367,68 @@ function showQuestion(){
 function checkAnswer(choice){
 
     if(answered) return;
-    answered=true;
+    answered = true;
     clearInterval(timer);
 
-    const correct=quizQuestions[currentIndex].meaning;
+    const correct =
+        quizQuestions[currentIndex].meaning;
 
-    if(choice===correct){
+    const buttons =
+        document.querySelectorAll("#choices button");
+
+    buttons.forEach(btn=>{
+        btn.disabled = true;
+
+        if(btn.innerText === correct){
+            btn.classList.add("correct");
+        }
+
+        if(btn.innerText === choice &&
+           choice !== correct){
+            btn.classList.add("incorrect");
+        }
+    });
+
+    if(choice === correct){
         score++;
-        document.getElementById("resultMessage").innerText="正解です！";
+        document.getElementById("resultMessage").innerText =
+            "正解です！";
     }else{
-        document.getElementById("resultMessage").innerText="不正解です";
+        document.getElementById("resultMessage").innerText =
+            "不正解です。答えは「" + correct + "」です。";
+
         if(mode==="challenge"){
-            setTimeout(endQuiz,800);
+            setTimeout(endQuiz,1000);
         }
     }
 }
 
 function timeUp(){
+
     if(answered) return;
-    answered=true;
-    document.getElementById("resultMessage").innerText="時間切れ";
+    answered = true;
+
+    const correct =
+        quizQuestions[currentIndex].meaning;
+
+    const buttons =
+        document.querySelectorAll("#choices button");
+
+    buttons.forEach(btn=>{
+        btn.disabled = true;
+
+        if(btn.innerText === correct){
+            btn.classList.add("correct");
+        }
+    });
+
+    document.getElementById("resultMessage").innerText =
+        "時間切れ。答えは「" + correct + "」です。";
+
     if(mode==="challenge"){
-        setTimeout(endQuiz,800);
+        setTimeout(endQuiz,1000);
     }
 }
-
 
 /* =====================
    次へ

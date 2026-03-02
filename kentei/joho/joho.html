@@ -528,6 +528,35 @@ function startStudyMode(){
     renderStudy();
 }
 
+let touchStartX = 0;
+let touchEndX = 0;
+
+function handleSwipe(){
+
+    const threshold = 50; // スワイプ判定距離
+
+    if(touchStartX - touchEndX > threshold){
+        // 左スワイプ → 次へ
+        nextStudyTerm();
+    }
+
+    if(touchEndX - touchStartX > threshold){
+        // 右スワイプ → 前へ
+        prevStudy();
+    }
+}
+
+const studyScreen = document.getElementById("studyScreen");
+
+studyScreen.addEventListener("touchstart", e=>{
+    touchStartX = e.changedTouches[0].screenX;
+});
+
+studyScreen.addEventListener("touchend", e=>{
+    touchEndX = e.changedTouches[0].screenX;
+    handleSwipe();
+});
+
 function renderStudy(direction="none"){
 
     const slide = document.getElementById("studySlide");
@@ -542,10 +571,21 @@ function renderStudy(direction="none"){
 
         const q = filteredQuestions[studyIndex];
 
+        // 用語
         document.getElementById("studyTerm").innerText = q.term;
 
+        // 現在位置
         document.getElementById("studyPosition").innerText =
             (studyIndex + 1) + " / " + filteredQuestions.length;
+
+        // 説明表示制御
+        if(meaningVisible){
+            document.getElementById("studyMeaning").innerText = q.meaning;
+            document.getElementById("studyBtn").innerText = "説明を隠す";
+        }else{
+            document.getElementById("studyMeaning").innerText = "";
+            document.getElementById("studyBtn").innerText = "説明を見る";
+        }
 
         slide.classList.remove("slide-left","slide-right");
 

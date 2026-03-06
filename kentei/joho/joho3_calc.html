@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>情報処理検定3級 計算問題</title>
+<link rel="stylesheet" href="../../css/common.css">
+<style>
+.calc-box{text-align:center;}
+input{
+    padding:10px;
+    font-size:18px;
+    width:220px;
+    text-align:center;
+    margin-top:10px;
+}
+.hint-box{
+    margin-top:10px;
+    background:#f9f9f9;
+    padding:10px;
+    border-radius:8px;
+    min-height:60px;
+}
+</style>
+</head>
+<body>
+
+<div class="card calc-box">
+
+<h2>3級 計算問題</h2>
+
+<select id="modeSelect" onchange="generateQuestion()">
+<option value="binToDec">2進数 → 10進数</option>
+<option value="decToBin">10進数 → 2進数</option>
+<option value="mix">ミックス</option>
+</select>
+
+<h3 id="question"></h3>
+
+<input type="text" id="answer" placeholder="半角数字で入力">
+
+<br>
+
+<button class="main-btn" onclick="checkAnswer()">解答する</button>
+<button class="control-btn" onclick="showHint()">ヒント</button>
+<button class="control-btn" onclick="generateQuestion()">次の問題</button>
+
+<p id="result"></p>
+
+<div class="hint-box" id="hintBox"></div>
+
+</div>
+
+<script>
+
+let correctAnswer = "";
+let currentValue = "";
+let currentMode = "";
+
+function generateQuestion(){
+
+    document.getElementById("result").innerText="";
+    document.getElementById("hintBox").innerText="";
+    document.getElementById("answer").value="";
+
+    let mode = document.getElementById("modeSelect").value;
+
+    if(mode==="mix"){
+        mode = Math.random()<0.5 ? "binToDec" : "decToBin";
+    }
+
+    currentMode = mode;
+
+    if(mode==="binToDec"){
+
+        let bin="";
+        const length = Math.floor(Math.random()*4)+4;
+
+        for(let i=0;i<length;i++){
+            bin += (i===0) ? "1" :
+                   (Math.random()<0.5?"0":"1");
+        }
+
+        currentValue = bin;
+        correctAnswer = parseInt(bin,2).toString();
+
+        document.getElementById("question").innerText =
+            bin + " (2) を10進数に変換せよ";
+
+    }else{
+
+        const dec = Math.floor(Math.random()*243)+13; // 13〜255
+
+        currentValue = dec;
+        correctAnswer = dec.toString(2);
+
+        document.getElementById("question").innerText =
+            dec + " を2進数に変換せよ";
+    }
+}
+
+function checkAnswer(){
+
+    const user =
+        document.getElementById("answer").value.trim();
+
+    if(user===""){
+        alert("解答を入力してください");
+        return;
+    }
+
+    if(user === correctAnswer){
+        document.getElementById("result").innerText =
+            "正解です！";
+    }else{
+        document.getElementById("result").innerText =
+            "不正解。正解は " + correctAnswer + " です。";
+    }
+}
+
+function showHint(){
+
+    let hint="";
+
+    if(currentMode==="binToDec"){
+
+        const bin=currentValue;
+        const len=bin.length;
+
+        let parts=[];
+
+        for(let i=0;i<len;i++){
+            const bit = bin[i];
+            const power = Math.pow(2,len-1-i);
+            parts.push(bit+"×"+power);
+        }
+
+        hint = parts.join(" + ");
+
+    }else{
+
+        let dec = currentValue;
+        let steps="";
+
+        while(dec>0){
+            steps += dec + " ÷ 2 = " +
+                     Math.floor(dec/2) +
+                     " 余り" + (dec%2) + "<br>";
+            dec = Math.floor(dec/2);
+        }
+
+        hint = steps + "下から読む　↑";
+    }
+
+    document.getElementById("hintBox").innerHTML = hint;
+}
+
+generateQuestion();
+
+</script>
+</body>
+</html>

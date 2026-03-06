@@ -3,159 +3,162 @@
 <head>
 <meta charset="UTF-8">
 <title>情報処理検定3級 計算問題</title>
-<link rel="stylesheet" href="../../css/common.css">
+
 <style>
-.calc-box{text-align:center;}
+body{
+font-family: sans-serif;
+text-align:center;
+margin:40px;
+}
+
+#question{
+font-size:28px;
+margin:30px;
+}
+
 input{
-    padding:10px;
-    font-size:18px;
-    width:220px;
-    text-align:center;
-    margin-top:10px;
+font-size:22px;
+padding:5px;
+width:150px;
+text-align:center;
 }
-.hint-box{
-    margin-top:10px;
-    background:#f9f9f9;
-    padding:10px;
-    border-radius:8px;
-    min-height:60px;
+
+button{
+font-size:18px;
+padding:8px 16px;
+margin:8px;
 }
+
+#result{
+font-size:22px;
+margin-top:20px;
+font-weight:bold;
+}
+
+#hint,#explain{
+margin-top:20px;
+display:none;
+}
+
+.portal{
+position:fixed;
+right:20px;
+bottom:20px;
+}
+
 </style>
 </head>
+
 <body>
 
-<div class="card calc-box">
+<h1>情報処理検定3級 計算問題</h1>
 
-<h2>3級 計算問題</h2>
+<div id="question"></div>
 
-<select id="modeSelect" onchange="generateQuestion()">
-<option value="binToDec">2進数 → 10進数</option>
-<option value="decToBin">10進数 → 2進数</option>
-<option value="mix">ミックス</option>
-</select>
-
-<h3 id="question"></h3>
-
-<input type="text" id="answer" placeholder="半角数字で入力">
+<input id="answer" type="text" placeholder="半角数字">
 
 <br>
 
-<button class="main-btn" onclick="checkAnswer()">解答する</button>
-<button class="control-btn" onclick="showHint()">ヒント</button>
-<button class="control-btn" onclick="generateQuestion()">次の問題</button>
+<button onclick="check()">答え合わせ</button>
+<button onclick="showHint()">ヒント</button>
+<button onclick="nextQuestion()">次の問題</button>
 
-<p id="result"></p>
+<div id="result"></div>
 
-<div class="hint-box" id="hintBox"></div>
+<div id="hint"></div>
+<div id="explain"></div>
 
+<div class="portal">
+<button onclick="location.href='index.html'">ポータルへ戻る</button>
 </div>
 
 <script>
 
-let correctAnswer = "";
-let currentValue = "";
-let currentMode = "";
+let correctAnswer;
+let type;
+let value;
 
-function generateQuestion(){
+function nextQuestion(){
 
-    document.getElementById("result").innerText="";
-    document.getElementById("hintBox").innerText="";
-    document.getElementById("answer").value="";
+document.getElementById("result").innerHTML="";
+document.getElementById("hint").style.display="none";
+document.getElementById("explain").style.display="none";
+document.getElementById("answer").value="";
 
-    let mode = document.getElementById("modeSelect").value;
+type=Math.random()<0.5 ? "binToDec":"decToBin";
 
-    if(mode==="mix"){
-        mode = Math.random()<0.5 ? "binToDec" : "decToBin";
-    }
+if(type==="binToDec"){
 
-    currentMode = mode;
+let digits=Math.floor(Math.random()*5)+3; 
+let bin="";
 
-    if(mode==="binToDec"){
-
-        let bin="";
-        const length = Math.floor(Math.random()*4)+4;
-
-        for(let i=0;i<length;i++){
-            bin += (i===0) ? "1" :
-                   (Math.random()<0.5?"0":"1");
-        }
-
-        currentValue = bin;
-        correctAnswer = parseInt(bin,2).toString();
-
-        document.getElementById("question").innerText =
-            bin + " (2) を10進数に変換せよ";
-
-    }else{
-
-        const dec = Math.floor(Math.random()*243)+13; // 13〜255
-
-        currentValue = dec;
-        correctAnswer = dec.toString(2);
-
-        document.getElementById("question").innerText =
-            dec + " を2進数に変換せよ";
-    }
+for(let i=0;i<digits;i++){
+bin+=Math.floor(Math.random()*2);
 }
 
-function checkAnswer(){
+bin=bin.replace(/^0+/,'1');
 
-    const user =
-        document.getElementById("answer").value.trim();
+value=parseInt(bin,2);
 
-    if(user===""){
-        alert("解答を入力してください");
-        return;
-    }
+document.getElementById("question").innerHTML=
+bin+" (2進数) を10進数に変換しなさい";
 
-    if(user === correctAnswer){
-        document.getElementById("result").innerText =
-            "正解です！";
-    }else{
-        document.getElementById("result").innerText =
-            "不正解。正解は " + correctAnswer + " です。";
-    }
+correctAnswer=value;
+
+document.getElementById("hint").innerHTML=
+"ヒント：2進数は各けたに 1,2,4,8,16,32... の重みがあります。";
+
+document.getElementById("explain").innerHTML=
+"解説：<br>"+
+bin+" = "+value+"<br>"+
+"各桁の重みを足して計算します。";
+
+}else{
+
+value=Math.floor(Math.random()*100)+13;
+
+document.getElementById("question").innerHTML=
+value+" (10進数) を2進数に変換しなさい";
+
+correctAnswer=value.toString(2);
+
+document.getElementById("hint").innerHTML=
+"ヒント：2で割り続けて余りを下から並べます。";
+
+document.getElementById("explain").innerHTML=
+"解説：<br>"+
+value+" = "+correctAnswer+" (2進数)";
+}
+
+}
+
+function check(){
+
+let user=document.getElementById("answer").value;
+
+if(user==correctAnswer){
+
+document.getElementById("result").innerHTML="〇 正解！";
+document.getElementById("explain").style.display="block";
+
+}else{
+
+document.getElementById("result").innerHTML=
+"× 不正解。ヒントを見てみましょう。";
+
+}
+
 }
 
 function showHint(){
 
-    let hint="";
+document.getElementById("hint").style.display="block";
 
-    if(currentMode==="binToDec"){
-
-        const bin=currentValue;
-        const len=bin.length;
-
-        let parts=[];
-
-        for(let i=0;i<len;i++){
-            const bit = bin[i];
-            const power = Math.pow(2,len-1-i);
-            parts.push(bit+"×"+power);
-        }
-
-        hint = parts.join(" + ");
-
-    }else{
-
-        let dec = currentValue;
-        let steps="";
-
-        while(dec>0){
-            steps += dec + " ÷ 2 = " +
-                     Math.floor(dec/2) +
-                     " 余り" + (dec%2) + "<br>";
-            dec = Math.floor(dec/2);
-        }
-
-        hint = steps + "↓ 下から読む";
-    }
-
-    document.getElementById("hintBox").innerHTML = hint;
 }
 
-generateQuestion();
+nextQuestion();
 
 </script>
+
 </body>
 </html>

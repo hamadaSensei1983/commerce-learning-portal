@@ -4,46 +4,46 @@
 <meta charset="UTF-8">
 <title>情報処理検定3級 計算問題</title>
 
+<link rel="stylesheet" href="../../css/common.css">
+
 <style>
-body{
-font-family: sans-serif;
+
+.calc-box{
+max-width:500px;
+margin:auto;
 text-align:center;
-margin:40px;
 }
 
 #question{
-font-size:28px;
-margin:30px;
+font-size:26px;
+margin:30px 0;
 }
 
-input{
-font-size:22px;
-padding:5px;
-width:150px;
+#answerInput{
+font-size:20px;
+padding:6px;
+width:160px;
 text-align:center;
 }
 
-button{
-font-size:18px;
-padding:8px 16px;
-margin:8px;
-}
-
-#result{
-font-size:22px;
+.result{
+font-size:20px;
 margin-top:20px;
-font-weight:bold;
 }
 
-#hint,#explain{
+.stat{
+margin-top:20px;
+font-size:16px;
+}
+
+.hint{
 margin-top:20px;
 display:none;
 }
 
-.portal{
-position:fixed;
-right:20px;
-bottom:20px;
+.explain{
+margin-top:20px;
+display:none;
 }
 
 </style>
@@ -51,110 +51,204 @@ bottom:20px;
 
 <body>
 
+<header>
 <h1>情報処理検定3級 計算問題</h1>
+</header>
+
+<div class="container">
+
+<div class="card calc-box">
 
 <div id="question"></div>
 
-<input id="answer" type="text" placeholder="半角数字">
+<input id="answerInput" type="text" placeholder="半角数字" oninput="checkInput()">
 
-<br>
+<br><br>
 
-<button onclick="check()">答え合わせ</button>
-<button onclick="showHint()">ヒント</button>
-<button onclick="nextQuestion()">次の問題</button>
+<button id="checkBtn" class="main-btn" onclick="checkAnswer()" disabled>
+答え合わせ
+</button>
 
-<div id="result"></div>
+<button class="control-btn" onclick="showHint()">
+ヒント
+</button>
 
-<div id="hint"></div>
-<div id="explain"></div>
+<button class="control-btn" onclick="nextQuestion()">
+次の問題
+</button>
 
-<div class="portal">
-<button onclick="location.href='index.html'">ポータルへ戻る</button>
+<div id="result" class="result"></div>
+
+<div id="hint" class="hint"></div>
+
+<div id="explain" class="explain"></div>
+
+<div class="stat">
+挑戦数：<span id="total">0</span>　
+正解数：<span id="correct">0</span>　
+正解率：<span id="rate">0</span>%
 </div>
+
+</div>
+
+</div>
+
+<a href="../../index.html" class="control-btn floating-btn">
+ポータルへ戻る
+</a>
 
 <script>
 
 let correctAnswer;
-let type;
-let value;
+let hintText;
+let explainText;
+
+let totalCount = 0;
+let correctCount = 0;
+
+
+/* 入力チェック */
+
+function checkInput(){
+
+const input = document.getElementById("answerInput").value;
+
+document.getElementById("checkBtn").disabled =
+(input.trim()==="");
+
+}
+
+
+/* 問題生成 */
 
 function nextQuestion(){
+
+document.getElementById("answerInput").value="";
+document.getElementById("checkBtn").disabled=true;
 
 document.getElementById("result").innerHTML="";
 document.getElementById("hint").style.display="none";
 document.getElementById("explain").style.display="none";
-document.getElementById("answer").value="";
 
-type=Math.random()<0.5 ? "binToDec":"decToBin";
+let type = Math.random() < 0.5 ? "binToDec" : "decToBin";
+
+
+/* 2進数 → 10進数 */
 
 if(type==="binToDec"){
 
-let digits=Math.floor(Math.random()*5)+3; 
+let digits = Math.floor(Math.random()*4)+4;
+
 let bin="";
 
 for(let i=0;i<digits;i++){
 bin+=Math.floor(Math.random()*2);
 }
 
-bin=bin.replace(/^0+/,'1');
+bin = bin.replace(/^0+/,'1');
 
-value=parseInt(bin,2);
+let dec = parseInt(bin,2);
 
-document.getElementById("question").innerHTML=
-bin+" (2進数) を10進数に変換しなさい";
+correctAnswer = dec;
 
-correctAnswer=value;
+document.getElementById("question").innerText =
+bin + " (2進数) を10進数に変換しなさい";
 
-document.getElementById("hint").innerHTML=
-"ヒント：2進数は各けたに 1,2,4,8,16,32... の重みがあります。";
+hintText =
+"ヒント：2進数は各桁に 1,2,4,8,16,32... の重みがあります。";
 
-document.getElementById("explain").innerHTML=
-"解説：<br>"+
-bin+" = "+value+"<br>"+
+explainText =
+"解説：<br>"+bin+" = "+dec+"<br>"+
 "各桁の重みを足して計算します。";
 
-}else{
+}
 
-value=Math.floor(Math.random()*100)+13;
 
-document.getElementById("question").innerHTML=
-value+" (10進数) を2進数に変換しなさい";
+/* 10進数 → 2進数 */
 
-correctAnswer=value.toString(2);
+else{
 
-document.getElementById("hint").innerHTML=
+let dec = Math.floor(Math.random()*116)+13;
+
+let bin = dec.toString(2);
+
+correctAnswer = bin;
+
+document.getElementById("question").innerText =
+dec + " (10進数) を2進数に変換しなさい";
+
+hintText =
 "ヒント：2で割り続けて余りを下から並べます。";
 
-document.getElementById("explain").innerHTML=
-"解説：<br>"+
-value+" = "+correctAnswer+" (2進数)";
-}
+explainText =
+"解説：<br>"+dec+" = "+bin+" (2進数)";
 
 }
 
-function check(){
+}
 
-let user=document.getElementById("answer").value;
+
+/* 答えチェック */
+
+function checkAnswer(){
+
+let user =
+document.getElementById("answerInput").value.trim();
+
+totalCount++;
 
 if(user==correctAnswer){
 
-document.getElementById("result").innerHTML="〇 正解！";
+correctCount++;
+
+document.getElementById("result").innerHTML =
+"<span style='color:green'>正解！</span>";
+
+document.getElementById("explain").innerHTML = explainText;
 document.getElementById("explain").style.display="block";
 
 }else{
 
-document.getElementById("result").innerHTML=
-"× 不正解。ヒントを見てみましょう。";
+document.getElementById("result").innerHTML =
+"<span style='color:red'>不正解です。ヒントを見てみましょう。</span>";
 
 }
 
+updateStat();
+
 }
+
+
+/* ヒント */
 
 function showHint(){
 
+document.getElementById("hint").innerHTML = hintText;
 document.getElementById("hint").style.display="block";
 
 }
+
+
+/* 成績更新 */
+
+function updateStat(){
+
+document.getElementById("total").innerText = totalCount;
+
+document.getElementById("correct").innerText = correctCount;
+
+let rate = 0;
+
+if(totalCount>0){
+rate = Math.round(correctCount/totalCount*100);
+}
+
+document.getElementById("rate").innerText = rate;
+
+}
+
+
+/* 初期問題 */
 
 nextQuestion();
 

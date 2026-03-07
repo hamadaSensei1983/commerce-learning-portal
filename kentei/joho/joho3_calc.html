@@ -87,12 +87,16 @@
 
 <div style="text-align:center">
 
-<input id="answerInput" class="calc-input" type="text">
+<input id="answerInput" class="calc-input" type="text" inputmode="numeric">
 
 <br><br>
 
 <button class="main-btn" onclick="checkAnswer()" id="checkBtn">
 答え合わせ
+</button>
+
+<button id="nextBtn" class="control-btn hidden" onclick="nextQuestion()">
+次の問題
 </button>
 
 <button class="control-btn" onclick="showHint()">
@@ -230,13 +234,24 @@ document.getElementById("hint").innerHTML=
 
 function checkAnswer(){
 
+function toHalfWidth(str){
+return str.replace(/[０-９]/g,function(s){
+return String.fromCharCode(s.charCodeAt(0)-65248)
+})
+}
+
 let input=document.getElementById("answerInput").value.trim()
 
-if(input===""){
+input=toHalfWidth(input)
 
+if(!/^[0-9]+$/.test(input)){
+alert("数字は半角で入力してください")
+return
+}
+
+if(input===""){
 alert("答えを入力してください")
 return
-
 }
 
 let result=document.getElementById("result")
@@ -249,6 +264,9 @@ result.textContent="正解！"
 
 document.getElementById("correct").textContent=correctCount
 
+// 正解時は次へボタン非表示
+document.getElementById("nextBtn").classList.add("hidden")
+
 setTimeout(nextQuestion,800)
 
 }
@@ -259,7 +277,7 @@ result.textContent="不正解。ヒントを確認しましょう。"
 
 document.getElementById("hint").classList.remove("hidden")
 
-setTimeout(nextQuestion,1500)
+document.getElementById("nextBtn").classList.remove("hidden")
 
 }
 

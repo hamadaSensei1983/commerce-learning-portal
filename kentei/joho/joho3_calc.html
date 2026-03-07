@@ -46,7 +46,7 @@
 
 <header class="app-header">
 <div class="header-left">
-<img src="logo.png" class="header-icon">
+<img src="../../images/logo.png" class="header-icon">
 <div>
 <h1 class="site-title">情報処理検定 学習サイト</h1>
 <div class="exam-title">3級 計算問題</div>
@@ -307,6 +307,15 @@ function restart(){
 location.reload()
 
 }
+
+
+//Enter押したら答え合わせするトリガー
+
+document.getElementById("answerInput").addEventListener("keypress",function(e){
+  if(e.key==="Enter"){
+    checkAnswer()
+  }
+})
 
 </script>
 

@@ -7,19 +7,6 @@
 
 <link rel="stylesheet" href="../../css/common.css">
 
-<style>
-
-/* 分野選択を2列に戻す */
-
-.field-grid{
-display:grid;
-grid-template-columns:1fr 1fr;
-gap:8px;
-margin-bottom:15px;
-}
-
-</style>
-
 </head>
 
 <body>
@@ -378,6 +365,28 @@ score=0
 wrong=[]
 streak=0
 
+
+/* 学習モードならクイズ画面ではなく学習画面 */
+
+if(mode==="study"){
+
+document.getElementById("setupArea").classList.add("hidden")
+document.getElementById("studyArea").classList.remove("hidden")
+
+startStudy()
+
+return
+}
+
+
+/* 通常モードは5問に制限 */
+
+if(mode==="normal"){
+
+filtered=filtered.slice(0,5)
+
+}
+
 document.getElementById("setupArea").classList.add("hidden")
 document.getElementById("quizArea").classList.remove("hidden")
 
@@ -386,12 +395,19 @@ nextQuestion()
 }
 
 
-
 /* =====================
  問題表示
 ===================== */
 
 function nextQuestion(){
+
+let total=filtered.length
+
+document.getElementById("progressText").innerText=
+(current+1)+" / "+total+" 問目"
+
+document.getElementById("progressBar").style.width=
+((current)/total*100)+"%"
 
 document.getElementById("result").innerText=""
 
@@ -488,9 +504,36 @@ current++
 
 document.getElementById("nextBtn").classList.remove("hidden")
 
+updateFieldStats(filtered[current].field,a===c)
+
 }
 
 
+/* =====================
+ 弱点ランキング更新
+====================== */
+
+function updateFieldStats(field,correct){
+
+let stats=JSON.parse(localStorage.getItem("fieldStats")||"{}")
+
+if(!stats[field]){
+
+stats[field]={correct:0,attempts:0}
+
+}
+
+stats[field].attempts++
+
+if(correct){
+
+stats[field].correct++
+
+}
+
+localStorage.setItem("fieldStats",JSON.stringify(stats))
+
+}
 
 /* =====================
  結果画面
@@ -604,6 +647,53 @@ let j=Math.floor(Math.random()*(i+1))
 let t=a[i]
 a[i]=a[j]
 a[j]=t
+
+}
+
+}
+
+/* =====================
+ 学習モード用
+===================== */
+
+let studyIndex=0
+
+function startStudy(){
+
+studyIndex=0
+showStudy()
+
+}
+
+function showStudy(){
+
+let q=filtered[studyIndex]
+
+document.getElementById("studyTerm").innerText=q.term
+document.getElementById("studyMeaning").innerText=q.meaning
+
+document.getElementById("cardPosition").innerText=
+(studyIndex+1)+" / "+filtered.length
+
+}
+
+function nextCard(){
+
+if(studyIndex<filtered.length-1){
+
+studyIndex++
+showStudy()
+
+}
+
+}
+
+function prevCard(){
+
+if(studyIndex>0){
+
+studyIndex--
+showStudy()
 
 }
 

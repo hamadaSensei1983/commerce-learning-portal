@@ -134,6 +134,7 @@
 
 <button class="main-btn" onclick="location.reload()">もう一度</button>
 <button class="control-btn" onclick="retryWrong()">復習する</button>
+<button class="control-btn" onclick="backToSetup()">分野選択に戻る</button>
 
 </div>
 
@@ -145,22 +146,19 @@
 
 <div class="card hidden" id="studyArea">
 
-<div class="study-row">
+    <div class="study-row">
+        <button class="nav-square" onclick="prevCard()">◀</button>
+        <div>
+            <h2 id="studyTerm"></h2>
+            <div id="cardPosition"></div>
+        </div>
+        <button class="nav-square" onclick="nextCard()">▶</button>
 
-<button class="nav-square" onclick="prevCard()">◀</button>
+    </div>
 
-<div>
-
-<h2 id="studyTerm"></h2>
-<div id="cardPosition"></div>
-
-</div>
-
-<button class="nav-square" onclick="nextCard()">▶</button>
-
-</div>
-
-<div class="study-meaning-box" id="studyMeaning"></div>
+    <div class="study-meaning-box" id="studyMeaning"></div>
+    <div class="study-meaning-box" id="studyMeaning"></div>
+    <button class="control-btn" onclick="backToSetup()">分野選択に戻る</button>
 
 </div>
 
@@ -627,6 +625,22 @@ function prevCard(){
 
 }
 
+/* =====================
+ 分野選択へ戻る
+===================== */
+
+function backToSetup(){
+
+    document.getElementById("quizArea").classList.add("hidden")
+    document.getElementById("resultArea").classList.add("hidden")
+    document.getElementById("studyArea").classList.add("hidden")
+    document.getElementById("setupArea").classList.remove("hidden")
+    document.getElementById("nextBtn").classList.add("hidden")
+
+    showWeakRanking()
+
+}
+
 //スワイプ対応
 
 let touchStartX=0
@@ -656,6 +670,28 @@ function handleSwipe(){
     }
 
 }
+
+//復習用
+
+function retryWrong(){
+
+    if(wrong.length===0){
+        alert("復習する問題がありません")
+        return
+    }
+
+    filtered=[...wrong]
+
+    wrong=[]
+    current=0
+    score=0
+    document.getElementById("resultArea").classList.add("hidden")
+    document.getElementById("quizArea").classList.remove("hidden")
+
+    nextQuestion()
+
+}
+
 
 </script>
 

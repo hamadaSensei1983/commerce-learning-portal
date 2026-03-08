@@ -1,37 +1,80 @@
-```html
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
 <meta charset="UTF-8">
 <title>情報処理検定 用語問題</title>
 
 <link rel="stylesheet" href="../../css/common.css">
 
+<style>
+
+/* 分野選択を2列に戻す */
+
+.field-grid{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:8px;
+margin-bottom:15px;
+}
+
+</style>
+
 </head>
 
 <body>
 
 <header class="app-header">
+
 <div class="header-left">
+
 <img src="../../images/logo.png" class="header-icon">
+
 <div>
 <h1 class="site-title">検定対策システム</h1>
 <div class="exam-title" id="examLevel"></div>
 </div>
+
 </div>
 </header>
 
+
+<!-- =====================
+ ローディング画面
+===================== -->
+
 <div id="loadingScreen">
+
 <div style="text-align:center">
+
 <img src="../../images/logo.png" style="width:90px;margin-bottom:20px">
+
 <div class="spinner"></div>
+
 <p style="margin-top:15px;font-weight:bold">
 問題を読み込み中...
 </p>
-</div>
+
 </div>
 
+</div>
+
+
+
+<!-- =====================
+ 初期設定画面
+===================== -->
+
 <div class="card hidden" id="setupArea">
+
+<h3>生徒名</h3>
+
+<input id="studentNameInput" style="width:100%;padding:8px">
+
+<button class="control-btn" onclick="saveStudent()">保存</button>
+
+<div id="studentStats"></div>
+
 
 <h3>分野選択</h3>
 
@@ -40,31 +83,44 @@
 <button class="control-btn" onclick="selectAll()">全選択</button>
 <button class="control-btn" onclick="clearAll()">全解除</button>
 
+
 <h3>モード選択</h3>
 
-<select id="modeSelect" style="width:100%;padding:10px;">
+<select id="modeSelect" style="width:100%;padding:10px">
+
 <option value="normal">通常モード</option>
 <option value="challenge">チャレンジモード</option>
 <option value="review">復習モード</option>
 <option value="study">学習モード</option>
+
 </select>
 
-<div id="modeDescription" style="margin:10px 0;font-size:14px"></div>
+<div id="modeDescription"></div>
 
 <button class="main-btn" onclick="startQuiz()">開始</button>
+
 
 <h3>弱点ランキング</h3>
 <div id="weakRanking"></div>
 
 </div>
 
+
+
+<!-- =====================
+ クイズ画面
+===================== -->
+
 <div class="card hidden" id="quizArea">
 
 <div class="progress-wrapper">
+
 <div id="progressText"></div>
+
 <div class="progress-bar">
 <div id="progressBar" class="progress-bar-fill"></div>
 </div>
+
 </div>
 
 <h3 id="question"></h3>
@@ -76,6 +132,12 @@
 <button id="nextBtn" class="main-btn hidden" onclick="nextQuestion()">次へ</button>
 
 </div>
+
+
+
+<!-- =====================
+ 結果画面
+===================== -->
 
 <div class="card hidden" id="resultArea">
 
@@ -90,15 +152,23 @@
 
 </div>
 
+
+
+<!-- =====================
+ 学習モード
+===================== -->
+
 <div class="card hidden" id="studyArea">
 
 <div class="study-row">
 
 <button class="nav-square" onclick="prevCard()">◀</button>
 
-<div class="study-center">
+<div>
+
 <h2 id="studyTerm"></h2>
 <div id="cardPosition"></div>
+
 </div>
 
 <button class="nav-square" onclick="nextCard()">▶</button>
@@ -109,6 +179,8 @@
 
 </div>
 
+
+
 <a href="index.html" class="portal-btn exam-btn">
 検定トップ
 </a>
@@ -117,33 +189,49 @@
 ポータルへ戻る
 </a>
 
+
 <script>
+
+
+/* =====================
+   グローバル変数
+===================== */
 
 let questions=[]
 let filtered=[]
 let wrong=[]
+
 let current=0
 let score=0
 let mode=""
 let streak=0
 
+
+
+/* =====================
+ モード説明
+===================== */
+
 const modeDesc={
+
 normal:"5問出題されます",
+
 challenge:"全問題出題。1問でも間違えると終了",
-review:"全問題出題。間違えた問題を再出題",
+
+review:"間違えた問題を再出題",
+
 study:"カード形式で学習"
+
 }
+
+
+
+/* =====================
+ レベル判定
+===================== */
 
 const params=new URLSearchParams(location.search)
 const level=params.get("level")
-
-document.getElementById("modeSelect").onchange=updateModeDesc
-updateModeDesc()
-
-function updateModeDesc(){
-let m=document.getElementById("modeSelect").value
-document.getElementById("modeDescription").innerText=modeDesc[m]
-}
 
 if(level==="3"){
 document.getElementById("examLevel").innerText="情報処理検定 3級"
@@ -154,6 +242,12 @@ if(level==="2"){
 document.getElementById("examLevel").innerText="情報処理検定 2級"
 loadCSV("data/data2.csv")
 }
+
+
+
+/* =====================
+ CSV読み込み
+===================== */
 
 async function loadCSV(path){
 
@@ -168,47 +262,39 @@ createFieldList()
 showWeakRanking()
 
 setTimeout(()=>{
+
 document.getElementById("loadingScreen").style.display="none"
 document.getElementById("setupArea").classList.remove("hidden")
+
 },600)
 
 }
 
+
+
+/* =====================
+ CSVパーサー
+===================== */
+
 function parseCSV(text){
 
-let rows=[]
-let row=[]
-let cell=""
-let quote=false
-
-for(let c of text){
-
-if(c=='"'){quote=!quote;continue}
-
-if(c==","&&!quote){row.push(cell);cell="";continue}
-
-if(c=="\n"&&!quote){row.push(cell);rows.push(row);row=[];cell="";continue}
-
-cell+=c
-
-}
-
-row.push(cell)
-rows.push(row)
+let rows=text.split("\n")
 
 let result=[]
 
 for(let i=1;i<rows.length;i++){
 
-let r=rows[i]
+let r=rows[i].split(",")
 
-if(!r[0]||!r[1]||!r[2]) continue
+if(r.length<3) continue
 
 result.push({
-field:r[0].trim(),
-term:r[1].trim(),
-meaning:r[2].trim(),
+
+field:r[0],
+term:r[1],
+meaning:r[2],
 index:i-1
+
 })
 
 }
@@ -217,40 +303,44 @@ return result
 
 }
 
+
+
+/* =====================
+ 分野リスト作成
+===================== */
+
 function createFieldList(){
 
 let counts={}
-let stats=getFieldStats()
 
 questions.forEach(q=>{
+
 if(!counts[q.field]) counts[q.field]=0
 counts[q.field]++
+
 })
 
 let area=document.getElementById("fieldArea")
-area.innerHTML=""
 
 Object.keys(counts).forEach(field=>{
-
-let total=counts[field]
-
-let correct=stats[field]?.correct||0
-let attempts=stats[field]?.attempts||0
-
-let rate=attempts>0?Math.round(correct/attempts*100):"-"
 
 let label=document.createElement("label")
 
 label.innerHTML=
 '<input type="checkbox" value="'+field+'"> '
-+field+' ('+total+') '
-+'<span style="font-size:12px;color:#666">正解率:'+rate+'%</span>'
++field+' ('+counts[field]+')'
 
 area.appendChild(label)
 
 })
 
 }
+
+
+
+/* =====================
+ 分野選択操作
+===================== */
 
 function selectAll(){
 document.querySelectorAll("#fieldArea input").forEach(c=>c.checked=true)
@@ -260,22 +350,26 @@ function clearAll(){
 document.querySelectorAll("#fieldArea input").forEach(c=>c.checked=false)
 }
 
+
+
+/* =====================
+ クイズ開始
+===================== */
+
 function startQuiz(){
+
+mode=document.getElementById("modeSelect").value
 
 let selected=[...document.querySelectorAll("#fieldArea input:checked")].map(c=>c.value)
 
 if(selected.length===0){
+
 alert("分野を1つ以上選択してください")
 return
+
 }
 
-mode=document.getElementById("modeSelect").value
-
 filtered=questions.filter(q=>selected.includes(q.field))
-
-let weak=getWeakTerms()
-let weakQ=questions.filter(q=>weak.includes(q.term))
-filtered=[...filtered,...weakQ,...weakQ]
 
 shuffle(filtered)
 
@@ -284,15 +378,6 @@ score=0
 wrong=[]
 streak=0
 
-if(mode==="study"){
-document.getElementById("setupArea").classList.add("hidden")
-document.getElementById("studyArea").classList.remove("hidden")
-showCard()
-return
-}
-
-if(mode==="normal") filtered=filtered.slice(0,5)
-
 document.getElementById("setupArea").classList.add("hidden")
 document.getElementById("quizArea").classList.remove("hidden")
 
@@ -300,30 +385,36 @@ nextQuestion()
 
 }
 
+
+
+/* =====================
+ 問題表示
+===================== */
+
 function nextQuestion(){
 
 document.getElementById("result").innerText=""
-document.getElementById("nextBtn").classList.add("hidden")
 
 if(current>=filtered.length){
+
 showResult()
 return
-}
 
-updateProgress()
+}
 
 let q=filtered[current]
 
 document.getElementById("question").innerText=q.meaning
 
-let choices=generateChoices(q)
-
 let area=document.getElementById("choices")
 area.innerHTML=""
+
+let choices=generateChoices(q)
 
 choices.forEach(c=>{
 
 let btn=document.createElement("button")
+
 btn.className="quiz-btn"
 btn.innerText=c.term
 
@@ -337,24 +428,15 @@ area.appendChild(btn)
 
 }
 
-function updateProgress(){
 
-document.getElementById("progressText").innerText=
-"問題 "+(current+1)+" / "+filtered.length
 
-document.getElementById("progressBar").style.width=
-(current/filtered.length*100)+"%"
-
-}
+/* =====================
+ 選択肢生成
+===================== */
 
 function generateChoices(q){
 
 let arr=[q]
-
-let i=q.index
-
-if(questions[i-1]) arr.push(questions[i-1])
-if(questions[i+1]) arr.push(questions[i+1])
 
 while(arr.length<4){
 
@@ -365,60 +447,54 @@ if(!arr.includes(r)) arr.push(r)
 }
 
 shuffle(arr)
+
 return arr
 
 }
 
-function checkAnswer(answer,correct,btn){
 
-let q=filtered[current]
 
-let stats=getFieldStats()
+/* =====================
+ 正解判定
+===================== */
 
-if(!stats[q.field]){
-stats[q.field]={correct:0,attempts:0}
-}
-
-stats[q.field].attempts++
+function checkAnswer(a,c,btn){
 
 let buttons=document.querySelectorAll(".quiz-btn")
 buttons.forEach(b=>b.disabled=true)
 
-if(answer===correct){
+if(a===c){
 
 btn.classList.add("correct")
+
 streak++
 score++
-stats[q.field].correct++
 
-document.getElementById("result").innerText=
-"正解！ 🔥"+streak+"連続"
+document.getElementById("result").innerText="正解！🔥"+streak+"連続"
 
 }else{
 
 btn.classList.add("incorrect")
+
 streak=0
 
 document.getElementById("result").innerText="不正解"
 
 wrong.push(filtered[current])
 
-let weak=getWeakTerms()
-weak.push(q.term)
-localStorage.setItem("weakTerms",JSON.stringify(weak))
-
-buttons.forEach(b=>{
-if(b.innerText===correct) b.classList.add("correct")
-})
-
 }
 
-localStorage.setItem("fieldStats",JSON.stringify(stats))
-
 current++
+
 document.getElementById("nextBtn").classList.remove("hidden")
 
 }
+
+
+
+/* =====================
+ 結果画面
+===================== */
 
 function showResult(){
 
@@ -427,85 +503,76 @@ document.getElementById("resultArea").classList.remove("hidden")
 
 let rate=Math.round(score/filtered.length*100)
 
-document.getElementById("scoreText").innerText="正解数 "+score+" / "+filtered.length
+document.getElementById("scoreText").innerText="正解数 "+score
 document.getElementById("rateText").innerText="正答率 "+rate+"%"
 
-let rank="D"
-if(rate>=90) rank="S"
-else if(rate>=80) rank="A"
-else if(rate>=70) rank="B"
-else if(rate>=60) rank="C"
-
-document.getElementById("rankText").innerText="ランク "+rank
+saveStudentStats(rate)
 
 }
 
-function retryWrong(){
 
-filtered=[...wrong]
 
-wrong=[]
-current=0
-score=0
+/* =====================
+ 成績保存
+===================== */
 
-document.getElementById("resultArea").classList.add("hidden")
-document.getElementById("quizArea").classList.remove("hidden")
+function saveStudent(){
 
-nextQuestion()
+let name=document.getElementById("studentNameInput").value
 
-}
+localStorage.setItem("studentName",name)
 
-function showCard(){
-
-let q=filtered[current]
-
-document.getElementById("studyTerm").innerText=q.term
-document.getElementById("studyMeaning").innerText=q.meaning
-document.getElementById("cardPosition").innerText=(current+1)+" / "+filtered.length
+showStudentStats()
 
 }
 
-function nextCard(){
-current++
-if(current>=filtered.length) current=0
-showCard()
+function saveStudentStats(rate){
+
+let stats=JSON.parse(localStorage.getItem("studentStats")||"[]")
+
+stats.push(rate)
+
+localStorage.setItem("studentStats",JSON.stringify(stats))
+
+showStudentStats()
+
 }
 
-function prevCard(){
-current--
-if(current<0) current=filtered.length-1
-showCard()
+function showStudentStats(){
+
+let stats=JSON.parse(localStorage.getItem("studentStats")||"[]")
+
+if(stats.length===0) return
+
+let avg=Math.round(stats.reduce((a,b)=>a+b)/stats.length)
+
+let max=Math.max(...stats)
+
+document.getElementById("studentStats").innerHTML=
+
+"試験回数 "+stats.length+"回<br>"+
+"平均正答率 "+avg+"%<br>"+
+"最高正答率 "+max+"%"
+
 }
 
-function shuffle(a){
-for(let i=a.length-1;i>0;i--){
-let j=Math.floor(Math.random()*(i+1))
-let t=a[i]
-a[i]=a[j]
-a[j]=t
-}
-}
 
-function getFieldStats(){
-let data=localStorage.getItem("fieldStats")
-if(!data) return {}
-return JSON.parse(data)
-}
 
-function getWeakTerms(){
-let data=localStorage.getItem("weakTerms")
-if(!data) return []
-return JSON.parse(data)
-}
+/* =====================
+ 弱点ランキング
+===================== */
 
 function showWeakRanking(){
 
-let stats=getFieldStats()
+let stats=JSON.parse(localStorage.getItem("fieldStats")||"{}")
 
 let arr=Object.keys(stats).map(f=>{
+
 let s=stats[f]
 let rate=Math.round(s.correct/s.attempts*100)
+
 return {field:f,rate:rate}
+
 })
 
 arr.sort((a,b)=>a.rate-b.rate)
@@ -513,10 +580,32 @@ arr.sort((a,b)=>a.rate-b.rate)
 let html=""
 
 arr.slice(0,3).forEach((r,i)=>{
+
 html+=(i+1)+"位 "+r.field+" "+r.rate+"%<br>"
+
 })
 
 document.getElementById("weakRanking").innerHTML=html
+
+}
+
+
+
+/* =====================
+ 配列シャッフル
+===================== */
+
+function shuffle(a){
+
+for(let i=a.length-1;i>0;i--){
+
+let j=Math.floor(Math.random()*(i+1))
+
+let t=a[i]
+a[i]=a[j]
+a[j]=t
+
+}
 
 }
 

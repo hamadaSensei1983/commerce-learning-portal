@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -48,18 +49,21 @@
 <option value="study">学習モード</option>
 </select>
 
-<div id="modeDescription" style="margin:10px 0;font-size:14px;color:#444"></div>
+<div id="modeDescription" style="margin:10px 0;font-size:14px"></div>
 
 <button class="main-btn" onclick="startQuiz()">開始</button>
+
+<h3>弱点ランキング</h3>
+<div id="weakRanking"></div>
 
 </div>
 
 <div class="card hidden" id="quizArea">
 
 <div class="progress-wrapper">
-<div class="progress-text" id="progressText"></div>
+<div id="progressText"></div>
 <div class="progress-bar">
-<div class="progress-bar-fill" id="progressBar"></div>
+<div id="progressBar" class="progress-bar-fill"></div>
 </div>
 </div>
 
@@ -94,7 +98,7 @@
 
 <div class="study-center">
 <h2 id="studyTerm"></h2>
-<div class="study-position" id="cardPosition"></div>
+<div id="cardPosition"></div>
 </div>
 
 <button class="nav-square" onclick="nextCard()">▶</button>
@@ -121,29 +125,29 @@ let wrong=[]
 let current=0
 let score=0
 let mode=""
+let streak=0
 
 const modeDesc={
-    normal:"5問出題されます",
-    challenge:"全問題出題。1問でも間違えると終了",
-    review:"全問題出題。間違えた問題を再度出題",
-    study:"カード形式で用語を学習"
+normal:"5問出題されます",
+challenge:"全問題出題。1問でも間違えると終了",
+review:"全問題出題。間違えた問題を再出題",
+study:"カード形式で学習"
 }
 
 const params=new URLSearchParams(location.search)
 const level=params.get("level")
 
 document.getElementById("modeSelect").onchange=updateModeDesc
-
-function updateModeDesc(){
-    let m=document.getElementById("modeSelect").value
-    document.getElementById("modeDescription").innerText=modeDesc[m]
-}
-
 updateModeDesc()
 
+function updateModeDesc(){
+let m=document.getElementById("modeSelect").value
+document.getElementById("modeDescription").innerText=modeDesc[m]
+}
+
 if(level==="3"){
-    document.getElementById("examLevel").innerText="情報処理検定 3級"
-    loadCSV("data/data3.csv")
+document.getElementById("examLevel").innerText="情報処理検定 3級"
+loadCSV("data/data3.csv")
 }
 
 if(level==="2"){
@@ -153,96 +157,94 @@ loadCSV("data/data2.csv")
 
 async function loadCSV(path){
 
-    let res=await fetch(path)
-    let text=await res.text()
+let res=await fetch(path)
+let text=await res.text()
 
-    text=text.replace(/^\uFEFF/,"")
+text=text.replace(/^\uFEFF/,"")
 
-    questions=parseCSV(text)
+questions=parseCSV(text)
 
-    createFieldList()
+createFieldList()
+showWeakRanking()
 
-    setTimeout(()=>{
-    loadingScreen.style.display="none"
-    setupArea.classList.remove("hidden")
-    },600)
+setTimeout(()=>{
+document.getElementById("loadingScreen").style.display="none"
+document.getElementById("setupArea").classList.remove("hidden")
+},600)
 
 }
 
 function parseCSV(text){
 
-    let rows=[]
-    let row=[]
-    let cell=""
-    let quote=false
+let rows=[]
+let row=[]
+let cell=""
+let quote=false
 
-    for(let c of text){
+for(let c of text){
 
-        if(c=='"'){quote=!quote;continue}
+if(c=='"'){quote=!quote;continue}
 
-        if(c==","&&!quote){row.push(cell);cell="";continue}
+if(c==","&&!quote){row.push(cell);cell="";continue}
 
-        if(c=="\n"&&!quote){row.push(cell);rows.push(row);row=[];cell="";continue}
+if(c=="\n"&&!quote){row.push(cell);rows.push(row);row=[];cell="";continue}
 
-        cell+=c
-
-    }
-
-    row.push(cell)
-    rows.push(row)
-
-    let result=[]
-
-    for(let i=1;i<rows.length;i++){
-
-        let r=rows[i]
-
-        if(!r[0] || !r[1] || !r[2]) continue
-
-        result.push({
-        field:r[0].trim(),
-        term:r[1].trim(),
-        meaning:r[2].trim(),
-        index:i-1
-        })
-    }
-
-    return result
+cell+=c
 
 }
 
+row.push(cell)
+rows.push(row)
+
+let result=[]
+
+for(let i=1;i<rows.length;i++){
+
+let r=rows[i]
+
+if(!r[0]||!r[1]||!r[2]) continue
+
+result.push({
+field:r[0].trim(),
+term:r[1].trim(),
+meaning:r[2].trim(),
+index:i-1
+})
+
+}
+
+return result
+
+}
 
 function createFieldList(){
 
-let fieldCounts={}
-let fieldCorrect=getFieldStats()
+let counts={}
+let stats=getFieldStats()
 
 questions.forEach(q=>{
-if(!fieldCounts[q.field]) fieldCounts[q.field]=0
-fieldCounts[q.field]++
+if(!counts[q.field]) counts[q.field]=0
+counts[q.field]++
 })
 
 let area=document.getElementById("fieldArea")
 area.innerHTML=""
 
-Object.keys(fieldCounts).forEach(field=>{
+Object.keys(counts).forEach(field=>{
 
-let total=fieldCounts[field]
+let total=counts[field]
 
-let correct=fieldCorrect[field]?.correct || 0
-let attempts=fieldCorrect[field]?.attempts || 0
+let correct=stats[field]?.correct||0
+let attempts=stats[field]?.attempts||0
 
-let rate=attempts>0 ? Math.round(correct/attempts*100) : "-"
+let rate=attempts>0?Math.round(correct/attempts*100):"-"
 
 let label=document.createElement("label")
 
 label.innerHTML=
 '<input type="checkbox" value="'+field+'"> '
-+ field
-+ ' ('+total+') '
-+ '<span style="font-size:12px;color:#666">'
-+ '正解率:'+rate+'%'
-+ '</span>'
++field+' ('+total+') '
++'<span style="font-size:12px;color:#666">正解率:'+rate+'%</span>'
 
 area.appendChild(label)
 
@@ -251,11 +253,11 @@ area.appendChild(label)
 }
 
 function selectAll(){
-    document.querySelectorAll("#fieldArea input").forEach(c=>c.checked=true)
+document.querySelectorAll("#fieldArea input").forEach(c=>c.checked=true)
 }
 
 function clearAll(){
-    document.querySelectorAll("#fieldArea input").forEach(c=>c.checked=false)
+document.querySelectorAll("#fieldArea input").forEach(c=>c.checked=false)
 }
 
 function startQuiz(){
@@ -269,31 +271,30 @@ return
 
 mode=document.getElementById("modeSelect").value
 
-let selected=[...document.querySelectorAll("#fieldArea input:checked")].map(c=>c.value)
-
 filtered=questions.filter(q=>selected.includes(q.field))
+
+let weak=getWeakTerms()
+let weakQ=questions.filter(q=>weak.includes(q.term))
+filtered=[...filtered,...weakQ,...weakQ]
 
 shuffle(filtered)
 
 current=0
 score=0
 wrong=[]
+streak=0
 
 if(mode==="study"){
-
-setupArea.classList.add("hidden")
-studyArea.classList.remove("hidden")
-
+document.getElementById("setupArea").classList.add("hidden")
+document.getElementById("studyArea").classList.remove("hidden")
 showCard()
-
 return
-
 }
 
 if(mode==="normal") filtered=filtered.slice(0,5)
 
-setupArea.classList.add("hidden")
-quizArea.classList.remove("hidden")
+document.getElementById("setupArea").classList.add("hidden")
+document.getElementById("quizArea").classList.remove("hidden")
 
 nextQuestion()
 
@@ -301,8 +302,8 @@ nextQuestion()
 
 function nextQuestion(){
 
-result.innerText=""
-nextBtn.classList.add("hidden")
+document.getElementById("result").innerText=""
+document.getElementById("nextBtn").classList.add("hidden")
 
 if(current>=filtered.length){
 showResult()
@@ -318,15 +319,12 @@ document.getElementById("question").innerText=q.meaning
 let choices=generateChoices(q)
 
 let area=document.getElementById("choices")
-
 area.innerHTML=""
 
 choices.forEach(c=>{
 
 let btn=document.createElement("button")
-
 btn.className="quiz-btn"
-
 btn.innerText=c.term
 
 btn.onclick=function(){
@@ -341,9 +339,11 @@ area.appendChild(btn)
 
 function updateProgress(){
 
-progressText.innerText="問題 "+(current+1)+" / "+filtered.length
+document.getElementById("progressText").innerText=
+"問題 "+(current+1)+" / "+filtered.length
 
-progressBar.style.width=((current)/filtered.length*100)+"%"
+document.getElementById("progressBar").style.width=
+(current/filtered.length*100)+"%"
 
 }
 
@@ -365,7 +365,6 @@ if(!arr.includes(r)) arr.push(r)
 }
 
 shuffle(arr)
-
 return arr
 
 }
@@ -377,12 +376,7 @@ let q=filtered[current]
 let stats=getFieldStats()
 
 if(!stats[q.field]){
-
-stats[q.field]={
-correct:0,
-attempts:0
-}
-
+stats[q.field]={correct:0,attempts:0}
 }
 
 stats[q.field].attempts++
@@ -393,25 +387,28 @@ buttons.forEach(b=>b.disabled=true)
 if(answer===correct){
 
 btn.classList.add("correct")
-
-document.getElementById("result").innerText="正解！"
-
+streak++
 score++
-
 stats[q.field].correct++
+
+document.getElementById("result").innerText=
+"正解！ 🔥"+streak+"連続"
 
 }else{
 
 btn.classList.add("incorrect")
+streak=0
 
 document.getElementById("result").innerText="不正解"
 
 wrong.push(filtered[current])
 
+let weak=getWeakTerms()
+weak.push(q.term)
+localStorage.setItem("weakTerms",JSON.stringify(weak))
+
 buttons.forEach(b=>{
-if(b.innerText===correct){
-b.classList.add("correct")
-}
+if(b.innerText===correct) b.classList.add("correct")
 })
 
 }
@@ -419,29 +416,27 @@ b.classList.add("correct")
 localStorage.setItem("fieldStats",JSON.stringify(stats))
 
 current++
-
 document.getElementById("nextBtn").classList.remove("hidden")
 
 }
 
 function showResult(){
 
-quizArea.classList.add("hidden")
-resultArea.classList.remove("hidden")
+document.getElementById("quizArea").classList.add("hidden")
+document.getElementById("resultArea").classList.remove("hidden")
 
 let rate=Math.round(score/filtered.length*100)
 
-scoreText.innerText="正解数 "+score+" / "+filtered.length
-rateText.innerText="正答率 "+rate+"%"
+document.getElementById("scoreText").innerText="正解数 "+score+" / "+filtered.length
+document.getElementById("rateText").innerText="正答率 "+rate+"%"
 
 let rank="D"
-
 if(rate>=90) rank="S"
 else if(rate>=80) rank="A"
 else if(rate>=70) rank="B"
 else if(rate>=60) rank="C"
 
-rankText.innerText="ランク "+rank
+document.getElementById("rankText").innerText="ランク "+rank
 
 }
 
@@ -450,12 +445,11 @@ function retryWrong(){
 filtered=[...wrong]
 
 wrong=[]
-
 current=0
 score=0
 
-resultArea.classList.add("hidden")
-quizArea.classList.remove("hidden")
+document.getElementById("resultArea").classList.add("hidden")
+document.getElementById("quizArea").classList.remove("hidden")
 
 nextQuestion()
 
@@ -465,71 +459,66 @@ function showCard(){
 
 let q=filtered[current]
 
-studyTerm.innerText=q.term
-studyMeaning.innerText=q.meaning
-cardPosition.innerText=(current+1)+" / "+filtered.length
+document.getElementById("studyTerm").innerText=q.term
+document.getElementById("studyMeaning").innerText=q.meaning
+document.getElementById("cardPosition").innerText=(current+1)+" / "+filtered.length
 
 }
 
 function nextCard(){
-
 current++
-
 if(current>=filtered.length) current=0
-
 showCard()
-
 }
 
 function prevCard(){
-
 current--
-
 if(current<0) current=filtered.length-1
-
 showCard()
-
 }
 
-let startX=0
-
-document.addEventListener("touchstart",e=>{
-startX=e.touches[0].clientX
-})
-
-document.addEventListener("touchend",e=>{
-
-let endX=e.changedTouches[0].clientX
-
-if(endX-startX>80) prevCard()
-if(startX-endX>80) nextCard()
-
-})
-
 function shuffle(a){
-
 for(let i=a.length-1;i>0;i--){
-
 let j=Math.floor(Math.random()*(i+1))
-
 let t=a[i]
 a[i]=a[j]
 a[j]=t
-
 }
-
 }
 
 function getFieldStats(){
-
 let data=localStorage.getItem("fieldStats")
-
 if(!data) return {}
-
 return JSON.parse(data)
-
 }
 
+function getWeakTerms(){
+let data=localStorage.getItem("weakTerms")
+if(!data) return []
+return JSON.parse(data)
+}
+
+function showWeakRanking(){
+
+let stats=getFieldStats()
+
+let arr=Object.keys(stats).map(f=>{
+let s=stats[f]
+let rate=Math.round(s.correct/s.attempts*100)
+return {field:f,rate:rate}
+})
+
+arr.sort((a,b)=>a.rate-b.rate)
+
+let html=""
+
+arr.slice(0,3).forEach((r,i)=>{
+html+=(i+1)+"位 "+r.field+" "+r.rate+"%<br>"
+})
+
+document.getElementById("weakRanking").innerHTML=html
+
+}
 
 </script>
 

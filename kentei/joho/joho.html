@@ -240,25 +240,28 @@ loadCSV("data/data2.csv")
 
 async function loadCSV(path){
 
-let res=await fetch(path)
-let text=await res.text()
+    try{
 
-text=text.replace(/^\uFEFF/,"")
+        let res=await fetch(path)
 
-questions=parseCSV(text)
+        if(!res.ok){
+            throw new Error("CSVが見つかりません: "+path)
+        }
 
-createFieldList()
-showWeakRanking()
+        let text=await res.text()
+        text=text.replace(/^\uFEFF/,"")
+        questions=parseCSV(text)
+        createFieldList()
+        showWeakRanking()
 
-setTimeout(()=>{
+        document.getElementById("loadingScreen").style.display="none"
+        document.getElementById("setupArea").classList.remove("hidden")
 
-document.getElementById("loadingScreen").style.display="none"
-document.getElementById("setupArea").classList.remove("hidden")
-
-},600)
+    }catch(e){
+        alert("CSV読み込みエラー\n"+e.message)
+    }
 
 }
-
 
 
 /* =====================
@@ -427,14 +430,6 @@ function nextQuestion(){
     document.getElementById("progressBar").style.width=
     (current/total*100)+"%"
 
-    let total=filtered.length
-
-    document.getElementById("progressText").innerText=
-    (current+1)+" / "+total+" 問目"
-
-    document.getElementById("progressBar").style.width=
-    ((current)/total*100)+"%"
-
     document.getElementById("result").innerText=""
 
     if(current>=filtered.length){
@@ -464,7 +459,6 @@ function nextQuestion(){
         area.appendChild(btn)
     })
 }
-
 
 
 /* =====================
@@ -497,40 +491,27 @@ return arr
 
 function checkAnswer(a,c,btn){
 
-let buttons=document.querySelectorAll(".quiz-btn")
-buttons.forEach(b=>b.disabled=true)
+    let buttons=document.querySelectorAll(".quiz-btn")
+    buttons.forEach(b=>b.disabled=true)
 
-if(a===c){
+    let field=filtered[current].field
 
-btn.classList.add("correct")
+    if(a===c){
+        btn.classList.add("correct")
+        streak++
+        score++
+        document.getElementById("result").innerText="正解！🔥"+streak+"連続"
+    }else{
+        btn.classList.add("incorrect")
+        streak=0
+        document.getElementById("result").innerText="不正解"
+        wrong.push(filtered[current])
+    }
 
-streak++
-score++
-
-document.getElementById("result").innerText="正解！🔥"+streak+"連続"
-
-}else{
-
-btn.classList.add("incorrect")
-
-streak=0
-
-document.getElementById("result").innerText="不正解"
-
-updateFieldStats(filtered[current].field,a===c)
-
-wrong.push(filtered[current])
-
+    updateFieldStats(field,a===c)
+    current++
+    document.getElementById("nextBtn").classList.remove("hidden")
 }
-
-current++
-
-document.getElementById("nextBtn").classList.remove("hidden")
-
-updateFieldStats(filtered[current].field,a===c)
-
-}
-
 
 /* =====================
  弱点ランキング更新

@@ -98,39 +98,37 @@ document.getElementById("examLevel").innerText="2級 用語問題"
 loadCSV("data/data2.csv")
 }
 
-async function loadCSV(){
-    try{
-        const response = await fetch("data/data" + level + ".csv");
+async function loadCSV(path){
 
-        if(!response.ok){
-            throw new Error("CSVが見つかりません");
-        }
+try{
 
-        let text = await response.text();
-        text = text.replace(/^\uFEFF/, "");
+const response = await fetch(path)
 
-        const lines = text.split(/\r?\n/);
+if(!response.ok){
+throw new Error("CSVが見つかりません")
+}
 
-        for(let i=1;i<lines.length;i++){
-            const cols = lines[i].split(",");
-            if(cols.length>=3){
-                allQuestions.push({
-                    field: cols[0].trim(),
-                    term: cols[1].trim(),
-                    meaning: cols.slice(2).join(",").trim()
-                });
-            }
-        }
+let text = await response.text()
 
-        createFieldSelection();
-        document.getElementById("loadingScreen").style.display="none";
-        document.getElementById("fieldScreen").classList.remove("hidden");
+// BOM除去
+text = text.replace(/^\uFEFF/, "")
 
-    }catch(e){
-        document.getElementById("loadingScreen").innerHTML =
-        "<p>CSV読み込みエラー</p>";
-        console.error(e);
-    }
+parseCSV(text)
+
+createFieldList()
+
+document.getElementById("loadingScreen").style.display="none"
+document.getElementById("setupArea").classList.remove("hidden")
+
+}catch(e){
+
+document.getElementById("loadingScreen").innerHTML =
+"<p>CSV読み込みエラー</p>"
+
+console.error(e)
+
+}
+
 }
 
 function parseCSV(data){
@@ -141,10 +139,12 @@ for(let i=1;i<lines.length;i++){
 
 const cols=lines[i].split(",")
 
+if(cols.length<3) continue
+
 questions.push({
-field:cols[0],
-term:cols[1],
-meaning:cols[2]
+field:cols[0].trim(),
+term:cols[1].trim(),
+meaning:cols.slice(2).join(",").trim()
 })
 
 }
@@ -156,6 +156,8 @@ function createFieldList(){
 let fields=[...new Set(questions.map(q=>q.field))]
 
 const area=document.getElementById("fieldArea")
+
+area.innerHTML=""
 
 fields.forEach(f=>{
 

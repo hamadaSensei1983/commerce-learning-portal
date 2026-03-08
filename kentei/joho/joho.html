@@ -1,100 +1,106 @@
+```html
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>情報処理検定 用語問題</title>
 
 <link rel="stylesheet" href="../../css/common.css">
-
-<title>情報処理 用語問題</title>
 
 </head>
 
 <body>
 
 <header class="app-header">
-
 <div class="header-left">
-
-<img src="../../images/logo.png" class="header-icon">
-
+<img src="../../img/icon.png" class="header-icon">
 <div>
-<h1 class="site-title">情報処理検定</h1>
-<div id="examLevel" class="exam-title"></div>
+<h1 class="site-title">検定対策システム</h1>
+<div class="exam-title" id="examLevel"></div>
 </div>
-
 </div>
-
 </header>
-
-<div class="card">
 
 <div id="loadingScreen">
 <div class="spinner"></div>
 </div>
 
-<div id="setupArea" class="hidden">
+<div class="card hidden" id="setupArea">
 
-<h3>出題分野を選択</h3>
+<h3>分野選択</h3>
 
 <div id="fieldArea" class="field-grid"></div>
 
-<button class="main-btn" onclick="startQuiz()">
-問題開始
-</button>
+<button class="control-btn" onclick="selectAll()">全選択</button>
+<button class="control-btn" onclick="clearAll()">全解除</button>
+
+<h3>モード</h3>
+
+<select id="mode" style="width:100%;padding:10px;margin-bottom:15px;">
+<option value="normal">通常モード（5問）</option>
+<option value="challenge">チャレンジモード</option>
+<option value="review">復習モード</option>
+<option value="study">学習モード</option>
+</select>
+
+<button class="main-btn" onclick="startQuiz()">開始</button>
 
 </div>
 
-<div id="quizArea" class="hidden">
+<div class="card hidden" id="quizArea">
 
-<div class="progress-wrapper">
-
-<div class="progress-text" id="progressText"></div>
-
-<div class="progress-bar">
-<div class="progress-bar-fill" id="progressBar"></div>
-</div>
-
-</div>
-
-<h2 id="question"></h2>
+<div id="question"></div>
 
 <div id="choices"></div>
 
-<div id="result"></div>
+<p id="result"></p>
 
-<button id="nextBtn" class="control-btn hidden" onclick="nextQuestion()">
-次の問題
-</button>
+<button id="nextBtn" class="main-btn hidden" onclick="nextQuestion()">次へ</button>
 
 </div>
 
-<button class="control-btn"
-onclick="location.href='index.html'">
-級選択へ戻る
-</button>
+<div class="card hidden" id="studyArea">
+
+<div class="study-row">
+
+<button class="nav-square" onclick="prevCard()">◀</button>
+
+<div class="study-center">
+
+<h2 id="studyTerm"></h2>
+<div class="study-position" id="cardPosition"></div>
 
 </div>
+
+<button class="nav-square" onclick="nextCard()">▶</button>
+
+</div>
+
+<div class="study-meaning-box" id="studyMeaning"></div>
+
+</div>
+
+<a href="../../index.html" class="portal-btn">ポータルへ</a>
 
 <script>
 
 let questions=[]
 let filtered=[]
+let wrong=[]
 let current=0
 let score=0
-let level=""
+let mode=""
 
-const params = new URLSearchParams(location.search)
-level = params.get("level")
+const params=new URLSearchParams(location.search)
+const level=params.get("level")
 
 if(level==="3"){
-document.getElementById("examLevel").innerText="3級 用語問題"
+document.getElementById("examLevel").innerText="情報処理検定 3級"
 loadCSV("data/data3.csv")
 }
 
 if(level==="2"){
-document.getElementById("examLevel").innerText="2級 用語問題"
+document.getElementById("examLevel").innerText="情報処理検定 2級"
 loadCSV("data/data2.csv")
 }
 
@@ -102,16 +108,13 @@ async function loadCSV(path){
 
 try{
 
-const response = await fetch(path)
+let res=await fetch(path)
 
-if(!response.ok){
-throw new Error("CSVが見つかりません")
-}
+if(!res.ok) throw "CSV取得失敗"
 
-let text = await response.text()
+let text=await res.text()
 
-// BOM除去
-text = text.replace(/^\uFEFF/, "")
+text=text.replace(/^\uFEFF/,"")
 
 parseCSV(text)
 
@@ -122,10 +125,7 @@ document.getElementById("setupArea").classList.remove("hidden")
 
 }catch(e){
 
-document.getElementById("loadingScreen").innerHTML =
-"<p>CSV読み込みエラー</p>"
-
-console.error(e)
+alert("CSV読み込みエラー")
 
 }
 
@@ -133,18 +133,17 @@ console.error(e)
 
 function parseCSV(data){
 
-const lines=data.trim().split(/\r?\n/)
+let lines=data.trim().split(/\r?\n/)
 
 for(let i=1;i<lines.length;i++){
 
-const cols=lines[i].split(",")
-
-if(cols.length<3) continue
+let cols=lines[i].split(",")
 
 questions.push({
-field:cols[0].trim(),
-term:cols[1].trim(),
-meaning:cols.slice(2).join(",").trim()
+field:cols[0],
+term:cols[1],
+meaning:cols.slice(2).join(","),
+index:i-1
 })
 
 }
@@ -155,16 +154,13 @@ function createFieldList(){
 
 let fields=[...new Set(questions.map(q=>q.field))]
 
-const area=document.getElementById("fieldArea")
-
-area.innerHTML=""
+let area=document.getElementById("fieldArea")
 
 fields.forEach(f=>{
 
 let label=document.createElement("label")
 
-label.innerHTML=
-'<input type="checkbox" value="'+f+'" checked> '+f
+label.innerHTML='<input type="checkbox" value="'+f+'"> '+f
 
 area.appendChild(label)
 
@@ -172,11 +168,26 @@ area.appendChild(label)
 
 }
 
+function selectAll(){
+
+document.querySelectorAll("#fieldArea input")
+.forEach(c=>c.checked=true)
+
+}
+
+function clearAll(){
+
+document.querySelectorAll("#fieldArea input")
+.forEach(c=>c.checked=false)
+
+}
+
 function startQuiz(){
 
-const checks=document.querySelectorAll("#fieldArea input:checked")
+mode=document.getElementById("mode").value
 
-let selected=[...checks].map(c=>c.value)
+let selected=[...document.querySelectorAll("#fieldArea input:checked")]
+.map(c=>c.value)
 
 filtered=questions.filter(q=>selected.includes(q.field))
 
@@ -184,6 +195,22 @@ shuffle(filtered)
 
 current=0
 score=0
+wrong=[]
+
+if(mode==="study"){
+
+document.getElementById("setupArea").classList.add("hidden")
+document.getElementById("studyArea").classList.remove("hidden")
+
+showCard()
+
+return
+
+}
+
+if(mode==="normal"){
+filtered=filtered.slice(0,5)
+}
 
 document.getElementById("setupArea").classList.add("hidden")
 document.getElementById("quizArea").classList.remove("hidden")
@@ -199,6 +226,16 @@ document.getElementById("nextBtn").classList.add("hidden")
 
 if(current>=filtered.length){
 
+if(mode==="review" && wrong.length>0){
+
+filtered=[...wrong]
+wrong=[]
+current=0
+
+alert("間違えた問題を復習します")
+
+}else{
+
 document.getElementById("question").innerText=
 "終了！ "+score+" / "+filtered.length
 
@@ -208,15 +245,15 @@ return
 
 }
 
-updateProgress()
+}
 
 let q=filtered[current]
 
-document.getElementById("question").innerText=q.term
+document.getElementById("question").innerText=q.meaning
 
-let choices=generateChoices(q.meaning)
+let choices=generateChoices(q)
 
-const area=document.getElementById("choices")
+let area=document.getElementById("choices")
 
 area.innerHTML=""
 
@@ -226,10 +263,10 @@ let btn=document.createElement("button")
 
 btn.className="quiz-btn"
 
-btn.innerText=c
+btn.innerText=c.term
 
 btn.onclick=function(){
-checkAnswer(c,q.meaning,btn)
+checkAnswer(c.term,q.term,btn)
 }
 
 area.appendChild(btn)
@@ -238,13 +275,18 @@ area.appendChild(btn)
 
 }
 
-function generateChoices(correct){
+function generateChoices(q){
 
-let arr=[correct]
+let arr=[q]
+
+let i=q.index
+
+if(questions[i-1]) arr.push(questions[i-1])
+if(questions[i+1]) arr.push(questions[i+1])
 
 while(arr.length<4){
 
-let r=questions[Math.floor(Math.random()*questions.length)].meaning
+let r=questions[Math.floor(Math.random()*questions.length)]
 
 if(!arr.includes(r)) arr.push(r)
 
@@ -276,11 +318,19 @@ btn.classList.add("incorrect")
 
 document.getElementById("result").innerText="不正解"
 
+wrong.push(filtered[current])
+
 buttons.forEach(b=>{
 if(b.innerText===correct){
 b.classList.add("correct")
 }
 })
+
+if(mode==="challenge"){
+alert("不正解！チャレンジ終了")
+location.reload()
+return
+}
 
 }
 
@@ -290,14 +340,37 @@ document.getElementById("nextBtn").classList.remove("hidden")
 
 }
 
-function updateProgress(){
+function showCard(){
 
-let percent=(current/filtered.length)*100
+let q=filtered[current]
 
-document.getElementById("progressBar").style.width=percent+"%"
+document.getElementById("studyTerm").innerText=q.term
+document.getElementById("studyMeaning").innerText=q.meaning
+document.getElementById("cardPosition").innerText=(current+1)+" / "+filtered.length
 
-document.getElementById("progressText").innerText=
-(current+1)+" / "+filtered.length
+}
+
+function nextCard(){
+
+current++
+
+if(current>=filtered.length){
+current=0
+}
+
+showCard()
+
+}
+
+function prevCard(){
+
+current--
+
+if(current<0){
+current=filtered.length-1
+}
+
+showCard()
 
 }
 
@@ -308,9 +381,7 @@ for(let i=a.length-1;i>0;i--){
 let j=Math.floor(Math.random()*(i+1))
 
 let t=a[i]
-
 a[i]=a[j]
-
 a[j]=t
 
 }
@@ -321,3 +392,4 @@ a[j]=t
 
 </body>
 </html>
+```

@@ -14,7 +14,6 @@
 <body>
 
 <header class="app-header">
-
 <div class="header-left">
 
 <img src="../../images/logo.png" class="header-icon">
@@ -25,16 +24,14 @@
 </div>
 
 </div>
-
 </header>
+
 
 <div class="card">
 
-<h2>問題形式</h2>
+<h2>問題タイプを選択</h2>
 
-<button class="mode-btn" onclick="startBinary()">2進数計算</button>
-
-<button class="mode-btn" onclick="startCapacity()">容量計算</button>
+<div id="modeButtons"></div>
 
 <button class="control-btn" onclick="location.href='index.html'">
 級選択へ戻る
@@ -42,11 +39,16 @@
 
 </div>
 
-<div class="card hidden" id="quizCard">
 
-<div id="questionArea"></div>
+<div class="card hidden" id="quizArea">
+
+<div id="question" class="calc-question"></div>
+
+<div style="text-align:center">
 
 <input id="answerInput" class="calc-input">
+
+<br><br>
 
 <button class="main-btn" onclick="checkAnswer()">
 答え合わせ
@@ -56,9 +58,12 @@
 次の問題
 </button>
 
+</div>
+
 <div id="result"></div>
 
 </div>
+
 
 <script>
 
@@ -71,25 +76,51 @@ level=params.get("level")
 
 document.getElementById("examLevel").innerText=level+"級 計算問題"
 
-function startBinary(){
+createModeButtons()
 
-mode="binary"
+function createModeButtons(){
 
-startQuiz()
+const area=document.getElementById("modeButtons")
+
+if(level==="3"){
+
+area.innerHTML=`
+<button class="mode-btn" onclick="startGame('binToDec')">
+2進数 → 10進数
+</button>
+
+<button class="mode-btn" onclick="startGame('decToBin')">
+10進数 → 2進数
+</button>
+
+<button class="mode-btn" onclick="startGame('mix')">
+ミックス
+</button>
+`
 
 }
 
-function startCapacity(){
+if(level==="2"){
 
-mode="capacity"
+area.innerHTML=`
+<button class="mode-btn" onclick="startGame('binaryCalc')">
+2進数計算
+</button>
 
-startQuiz()
+<button class="mode-btn" onclick="startGame('capacity')">
+容量計算
+</button>
+`
 
 }
 
-function startQuiz(){
+}
 
-document.getElementById("quizCard").classList.remove("hidden")
+function startGame(m){
+
+mode=m
+
+document.getElementById("quizArea").classList.remove("hidden")
 
 nextQuestion()
 
@@ -97,17 +128,50 @@ nextQuestion()
 
 function nextQuestion(){
 
-document.getElementById("answerInput").value=""
 document.getElementById("result").innerText=""
+document.getElementById("answerInput").value=""
 document.getElementById("nextBtn").classList.add("hidden")
 
-if(mode==="binary") binaryQuestion()
+if(mode==="binToDec") binToDec()
+if(mode==="decToBin") decToBin()
+if(mode==="mix") mix()
 
-if(mode==="capacity") capacityQuestion()
+if(mode==="binaryCalc") binaryCalc()
+if(mode==="capacity") capacity()
 
 }
 
-function binaryQuestion(){
+function mix(){
+
+if(Math.random()<0.5) binToDec()
+else decToBin()
+
+}
+
+function binToDec(){
+
+let num=Math.floor(Math.random()*100)+13
+let bin=num.toString(2)
+
+correctAnswer=num
+
+document.getElementById("question").innerText=
+bin+" (2進数) → 10進数"
+
+}
+
+function decToBin(){
+
+let num=Math.floor(Math.random()*100)+13
+
+correctAnswer=num.toString(2)
+
+document.getElementById("question").innerText=
+num+" (10進数) → 2進数"
+
+}
+
+function binaryCalc(){
 
 let a=Math.floor(Math.random()*15)+5
 let b=Math.floor(Math.random()*10)
@@ -124,13 +188,12 @@ b=t
 
 correctAnswer=(op==="+")?(a+b).toString(2):(a-b).toString(2)
 
-document.getElementById("questionArea").innerHTML=
-"次の2進数計算<br><br>"+
+document.getElementById("question").innerText=
 a.toString(2)+" "+op+" "+b.toString(2)
 
 }
 
-function capacityQuestion(){
+function capacity(){
 
 let w=[640,800,1024][Math.floor(Math.random()*3)]
 let h=[480,600,768][Math.floor(Math.random()*3)]
@@ -140,15 +203,14 @@ let bytes=w*h*(bits/8)
 
 correctAnswer=Math.floor(bytes/1024)
 
-document.getElementById("questionArea").innerHTML=
-"画像容量は何KBか<br><br>"+
-"横"+w+" 縦"+h+" "+bits+"bit"
+document.getElementById("question").innerText=
+"画像容量は何KB？ 横"+w+" 縦"+h+" "+bits+"bit"
 
 }
 
 function checkAnswer(){
 
-let input=document.getElementById("answerInput").value
+let input=document.getElementById("answerInput").value.trim()
 
 if(input===""){
 alert("答えを入力してください")
@@ -161,7 +223,8 @@ document.getElementById("result").innerText="正解"
 
 }else{
 
-document.getElementById("result").innerText="不正解 正解:"+correctAnswer
+document.getElementById("result").innerText=
+"不正解 正解："+correctAnswer
 
 }
 

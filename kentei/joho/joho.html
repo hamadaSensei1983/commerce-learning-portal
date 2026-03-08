@@ -278,18 +278,40 @@ function parseCSV(text){
 
     for(let i=1;i<rows.length;i++){
 
-        if(!rows[i].trim()) continue
+        let line = rows[i].trim()
+        if(!line) continue
 
-        let r = rows[i].split(",")
+        let cols=[]
+        let current=""
+        let inQuotes=false
 
-        if(r.length < 3) continue
+        for(let c of line){
+
+            if(c === '"'){
+                inQuotes = !inQuotes
+                continue
+            }
+
+            if(c === "," && !inQuotes){
+                cols.push(current)
+                current=""
+            }else{
+                current += c
+            }
+
+        }
+
+        cols.push(current)
+
+        if(cols.length < 3) continue
 
         result.push({
-            field: r[0].trim(),
-            term: r[1].trim(),
-            meaning: r[2].trim(),
+            field: cols[0].trim(),
+            term: cols[1].trim(),
+            meaning: cols.slice(2).join(",").trim(),
             index: i-1
         })
+
     }
 
     return result

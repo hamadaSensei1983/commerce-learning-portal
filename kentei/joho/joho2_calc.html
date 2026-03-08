@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>情報処理検定2級 計算問題</title>
+
+<link rel="stylesheet" href="../../css/common.css">
+
+<style>
+
+.question{
+font-size:22px;
+margin-bottom:20px;
+text-align:center;
+}
+
+.answer-box{
+text-align:center;
+}
+
+input{
+font-size:20px;
+padding:8px;
+width:140px;
+text-align:center;
+}
+
+.result{
+margin-top:15px;
+font-weight:bold;
+text-align:center;
+}
+
+.choice-area button{
+margin:6px 0;
+}
+
+</style>
+</head>
+
+<body>
+
+<header class="app-header">
+<div class="header-left">
+<h1 class="site-title">情報処理検定2級</h1>
+<div class="exam-title">計算トレーニング</div>
+</div>
+</header>
+
+
+<!-- メニュー -->
+
+<div class="card" id="menu">
+
+<h2>問題を選択</h2>
+
+<button class="mode-btn" onclick="startBinary()">
+二進数計算
+</button>
+
+<button class="mode-btn" onclick="startImage()">
+画像容量計算
+</button>
+
+</div>
+
+
+<!-- 二進数問題 -->
+
+<div class="card hidden" id="binaryArea">
+
+<div id="binaryQuestion" class="question"></div>
+
+<div class="answer-box">
+
+<input id="binaryAnswer" inputmode="numeric">
+
+<br><br>
+
+<button class="main-btn" onclick="checkBinary()">
+答え合わせ
+</button>
+
+<button id="binaryNext" class="control-btn hidden" onclick="nextBinary()">
+次の問題
+</button>
+
+</div>
+
+<div id="binaryResult" class="result"></div>
+
+</div>
+
+
+<!-- 画像容量問題 -->
+
+<div class="card hidden" id="imageArea">
+
+<div id="imageQuestion" class="question"></div>
+
+<div id="choices" class="choice-area"></div>
+
+<div id="imageResult" class="result"></div>
+
+<button id="imageNext" class="control-btn hidden" onclick="nextImage()">
+次の問題
+</button>
+
+</div>
+
+
+<!-- 検定トップへ戻る -->
+
+<div class="card">
+
+<a href="joho2.html" class="control-btn">
+情報処理2級トップへ戻る
+</a>
+
+</div>
+
+
+<a href="../../index.html" class="portal-btn">
+ポータルへ戻る
+</a>
+
+
+<script>
+
+let correctAnswer
+
+
+/* =====================
+全角→半角変換
+===================== */
+
+function toHalfWidth(str){
+
+return str.replace(/[０-９]/g,function(s){
+return String.fromCharCode(s.charCodeAt(0)-65248)
+})
+
+}
+
+
+/* =====================
+二進数計算
+===================== */
+
+function startBinary(){
+
+document.getElementById("menu").classList.add("hidden")
+document.getElementById("binaryArea").classList.remove("hidden")
+
+nextBinary()
+
+}
+
+
+function nextBinary(){
+
+document.getElementById("binaryNext").classList.add("hidden")
+document.getElementById("binaryResult").innerHTML=""
+
+let a=Math.floor(Math.random()*15)+1
+let b=Math.floor(Math.random()*15)+1
+
+let type=Math.floor(Math.random()*3)
+
+let op
+let result
+
+if(type==0){
+
+op="+"
+result=a+b
+
+}
+
+else if(type==1){
+
+op="-"
+result=a-b
+
+}
+
+else{
+
+op="×"
+result=a*b
+
+}
+
+correctAnswer=result.toString(2)
+
+document.getElementById("binaryQuestion").innerHTML=
+
+a.toString(2)+"₂ "+op+" "+b.toString(2)+"₂ = ?"
+
+document.getElementById("binaryAnswer").value=""
+
+}
+
+
+function checkBinary(){
+
+let input=document.getElementById("binaryAnswer").value.trim()
+
+input=toHalfWidth(input)
+
+if(input===""){
+
+alert("答えを入力してください")
+return
+
+}
+
+if(input==correctAnswer){
+
+document.getElementById("binaryResult").innerHTML="正解！"
+
+setTimeout(nextBinary,800)
+
+}
+
+else{
+
+document.getElementById("binaryResult").innerHTML=
+"不正解　正解："+correctAnswer
+
+document.getElementById("binaryNext").classList.remove("hidden")
+
+}
+
+}
+
+
+/* Enterキー回答 */
+
+document.getElementById("binaryAnswer").addEventListener("keypress",function(e){
+
+if(e.key==="Enter"){
+
+const nextBtn=document.getElementById("binaryNext")
+
+if(!nextBtn.classList.contains("hidden")){
+
+nextBinary()
+
+}
+else{
+
+checkBinary()
+
+}
+
+}
+
+})
+
+
+
+/* =====================
+画像容量問題
+===================== */
+
+function startImage(){
+
+document.getElementById("menu").classList.add("hidden")
+document.getElementById("imageArea").classList.remove("hidden")
+
+nextImage()
+
+}
+
+
+function nextImage(){
+
+document.getElementById("imageNext").classList.add("hidden")
+document.getElementById("imageResult").innerHTML=""
+
+let w=[320,640,800,1024][Math.floor(Math.random()*4)]
+let h=[240,480,600,768][Math.floor(Math.random()*4)]
+
+let colorType=Math.floor(Math.random()*3)
+
+let bit
+let colorText
+
+if(colorType==0){
+
+bit=8
+colorText="256色"
+
+}
+
+else if(colorType==1){
+
+bit=16
+colorText="65536色"
+
+}
+
+else{
+
+bit=24
+colorText="1677万色"
+
+}
+
+let bytes=w*h*bit/8
+
+let kb=Math.round(bytes/1024)
+
+correctAnswer=kb
+
+document.getElementById("imageQuestion").innerHTML=
+
+"縦"+h+"ピクセル 横"+w+"ピクセル<br>"+
+colorText+"の画像容量は？"
+
+let choices=[kb,kb+100,Math.floor(kb/2),kb+300]
+
+choices.sort(()=>Math.random()-0.5)
+
+let html=""
+
+choices.forEach(c=>{
+
+html+=`<button class="quiz-btn" onclick="checkImage(${c})">${c} KB</button>`
+
+})
+
+document.getElementById("choices").innerHTML=html
+
+}
+
+
+function checkImage(ans){
+
+if(ans==correctAnswer){
+
+document.getElementById("imageResult").innerHTML="正解！"
+
+setTimeout(nextImage,800)
+
+}
+
+else{
+
+document.getElementById("imageResult").innerHTML=
+"不正解　正解："+correctAnswer+" KB"
+
+document.getElementById("imageNext").classList.remove("hidden")
+
+}
+
+}
+
+</script>
+
+</body>
+</html>

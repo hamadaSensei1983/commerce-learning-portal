@@ -1,634 +1,300 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
+
 <meta charset="UTF-8">
-<title>情報処理検定 用語学習</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <link rel="stylesheet" href="../../css/common.css">
+
+<title>情報処理 用語問題</title>
+
 </head>
+
 <body>
 
-<header>
-<h1 id="pageTitle"></h1>
+<header class="app-header">
+
+<div class="header-left">
+
+<img src="../../images/logo.png" class="header-icon">
+
+<div>
+<h1 class="site-title">情報処理検定</h1>
+<div id="examLevel" class="exam-title"></div>
+</div>
+
+</div>
+
 </header>
 
-<!-- ===================== ローディング ===================== -->
+<div class="card">
+
 <div id="loadingScreen">
-  <div class="loaderBox">
-    <div class="spinner"></div>
-    <p>読み込み中...</p>
-  </div>
+<div class="spinner"></div>
 </div>
 
-<!-- ===================== 分野選択 ===================== -->
-<div class="card hidden" id="fieldScreen">
-<h2>分野選択</h2>
-<div id="fieldCheckboxes" class="field-grid"></div>
-<button class="control-btn" onclick="selectAllFields()">全選択</button>
-<button class="main-btn" onclick="goModeSelect()">次へ</button>
+<div id="setupArea" class="hidden">
+
+<h3>出題分野を選択</h3>
+
+<div id="fieldArea" class="field-grid"></div>
+
+<button class="main-btn" onclick="startQuiz()">
+問題開始
+</button>
+
 </div>
 
-<!-- ===================== モード選択 ===================== -->
-<div class="card hidden" id="menuScreen">
-<h2>モード選択</h2>
-<div class="grid-2">
-<button class="mode-btn" onclick="setMode('normal')">通常モード</button>
-<button class="mode-btn" onclick="setMode('review')">復習モード</button>
-<button class="mode-btn" onclick="setMode('challenge')">チャレンジ</button>
-<button class="control-btn" onclick="startStudyMode()">学習モード</button>
-</div>
-</div>
-
-<!-- ===================== モード説明 ===================== -->
-<div class="card hidden" id="modeInfoScreen">
-<h2 id="modeTitle"></h2>
-<p id="modeDescription"></p>
-<button class="main-btn" onclick="startQuiz()">開始する</button>
-<button class="control-btn" onclick="backToMenu()">戻る</button>
-</div>
-
-<!-- ===================== クイズ画面 ===================== -->
-<div class="card hidden" id="quizScreen">
-<div id="timerBox">残り10秒</div>
+<div id="quizArea" class="hidden">
 
 <div class="progress-wrapper">
-    <div id="progressText" class="progress-text"></div>
-    <div class="progress-bar">
-        <div id="progressBarFill" class="progress-bar-fill"></div>
-    </div>
+
+<div class="progress-text" id="progressText"></div>
+
+<div class="progress-bar">
+<div class="progress-bar-fill" id="progressBar"></div>
 </div>
 
-<h3 id="questionText"></h3>
+</div>
+
+<h2 id="question"></h2>
+
 <div id="choices"></div>
-<p id="resultMessage"></p>
-<button class="control-btn" onclick="nextQuestion()">次へ</button>
-</div>
 
-<!-- ===================== 結果画面 ===================== -->
-<div class="card hidden" id="resultScreen">
-<h2>結果</h2>
-<p id="finalScore"></p>
-<p id="finalTime"></p>
-<button class="main-btn" onclick="restartSameMode()">もう一度挑戦</button>
-<button class="control-btn" onclick="returnToFieldSelect()">分野選択へ戻る</button>
-</div>
+<div id="result"></div>
 
-<!-- ===================== 学習モード ===================== -->
-<div class="card hidden" id="studyScreen">
-
-    <div class="study-row">
-        <button class="nav-square" onclick="prevStudy()">＜</button>
-
-        <div class="study-center">
-            <div id="studySlide" class="slide-area">
-                <h3 id="studyTerm"></h3>
-                <div class="study-position">
-                    <span id="studyPosition"></span>
-                </div>
-            </div>
-        </div>
-
-        <button class="nav-square" onclick="nextStudyTerm()">＞</button>
-    </div>
-
-    <div class="study-meaning-box">
-        <p id="studyMeaning"></p>
-    </div>
-
-    <button id="studyBtn" class="control-btn" onclick="toggleMeaning()">
-        説明を見る
-    </button>
+<button id="nextBtn" class="control-btn hidden" onclick="nextQuestion()">
+次の問題
+</button>
 
 </div>
 
-<!-- ポータルボタン -->
-<a href="../../index.html" class="portal-btn">ポータルへ戻る</a>
+<button class="control-btn"
+onclick="location.href='index.html'">
+級選択へ戻る
+</button>
+
+</div>
 
 <script>
 
-/* =====================
-   グローバル変数
-===================== */
+let questions=[]
+let filtered=[]
+let current=0
+let score=0
+let level=""
 
-let allQuestions = [];
-let filteredQuestions = [];
-let quizQuestions = [];
-let selectedFields = [];
+const params = new URLSearchParams(location.search)
+level = params.get("level")
 
-let currentIndex = 0;
-let score = 0;
-let totalTime = 0;
-let mode = "";
-let timer;
-let timeLeft;
-let answered = false;
-
-const params = new URLSearchParams(window.location.search);
-const level = params.get("level");
-document.getElementById("pageTitle").innerText =
-"情報処理検定 " + level + "級";
-
-
-/* =====================
-   CSV読み込み
-===================== */
-
-async function loadCSV(){
-    const response = await fetch("data" + level + ".csv");
-    let text = await response.text();
-    text = text.replace(/^\uFEFF/, "");
-
-    const lines = text.split(/\r?\n/);
-
-    for(let i=1;i<lines.length;i++){
-        const cols = lines[i].split(",");
-        if(cols.length>=3){
-            allQuestions.push({
-                field: cols[0].trim(),
-                term: cols[1].trim(),
-                meaning: cols.slice(2).join(",").trim()
-            });
-        }
-    }
-
-    createFieldSelection();
-    document.getElementById("loadingScreen").style.display="none";
-    document.getElementById("fieldScreen").classList.remove("hidden");
+if(level==="3"){
+document.getElementById("examLevel").innerText="3級 用語問題"
+loadCSV("data/data3.csv")
 }
 
-window.addEventListener("load", loadCSV);
-
-
-/* =====================
-   分野選択処理
-===================== */
-
-function createFieldSelection(){
-    const fields = [...new Set(allQuestions.map(q=>q.field))];
-    const container = document.getElementById("fieldCheckboxes");
-    container.innerHTML="";
-
-    fields.forEach(f=>{
-        const label=document.createElement("label");
-        const cb=document.createElement("input");
-        cb.type="checkbox";
-        cb.value=f;
-        label.appendChild(cb);
-        label.append(" "+f);
-        container.appendChild(label);
-    });
+if(level==="2"){
+document.getElementById("examLevel").innerText="2級 用語問題"
+loadCSV("data/data2.csv")
 }
 
-function selectAllFields(){
-    document.querySelectorAll("#fieldCheckboxes input")
-    .forEach(cb=>cb.checked=true);
+async function loadCSV(file){
+
+const response = await fetch(file)
+const text = await response.text()
+
+parseCSV(text)
+
+createFieldList()
+
+document.getElementById("loadingScreen").classList.add("hidden")
+document.getElementById("setupArea").classList.remove("hidden")
+
 }
 
-function goModeSelect(){
-    selectedFields=[];
-    document.querySelectorAll("#fieldCheckboxes input:checked")
-    .forEach(cb=>selectedFields.push(cb.value));
+function parseCSV(data){
 
-    if(selectedFields.length===0){
-        alert("分野を選択してください");
-        return;
-    }
+const lines=data.trim().split("\n")
 
-    filteredQuestions =
-        allQuestions.filter(q=>selectedFields.includes(q.field));
+for(let i=1;i<lines.length;i++){
 
-    document.getElementById("fieldScreen").classList.add("hidden");
-    document.getElementById("menuScreen").classList.remove("hidden");
+const cols=lines[i].split(",")
+
+questions.push({
+field:cols[0],
+term:cols[1],
+meaning:cols[2]
+})
+
 }
 
-
-/* =====================
-   モード設定
-===================== */
-
-function setMode(m){
-    mode = m;
-    showModeInfo();
 }
 
-function showModeInfo(){
+function createFieldList(){
 
-    let title="";
-    let description="";
+let fields=[...new Set(questions.map(q=>q.field))]
 
-    if(mode==="normal"){
-        title="通常モード";
-        description="5問のミニテスト形式です。";
-    }
-    else if(mode==="review"){
-        title="復習モード";
-        description="選択した分野の全用語を出題します。";
-    }
-    else if(mode==="challenge"){
-        title="チャレンジモード";
-        description="全用語出題。1問でも間違えると終了します。";
-    }
+const area=document.getElementById("fieldArea")
 
-    document.getElementById("modeTitle").innerText=title;
-    document.getElementById("modeDescription").innerText=description;
+fields.forEach(f=>{
 
-    document.getElementById("menuScreen").classList.add("hidden");
-    document.getElementById("modeInfoScreen").classList.remove("hidden");
+let label=document.createElement("label")
+
+label.innerHTML=
+'<input type="checkbox" value="'+f+'" checked> '+f
+
+area.appendChild(label)
+
+})
+
 }
-
-
-/* =====================
-   クイズ開始
-===================== */
 
 function startQuiz(){
 
-    document.getElementById("modeInfoScreen").classList.add("hidden");
+const checks=document.querySelectorAll("#fieldArea input:checked")
 
-    shuffle(filteredQuestions);
+let selected=[...checks].map(c=>c.value)
 
-    if(mode==="normal"){
-        quizQuestions = filteredQuestions.slice(0,5);
-    }else{
-        quizQuestions = [...filteredQuestions];
-    }
+filtered=questions.filter(q=>selected.includes(q.field))
 
-    currentIndex=0;
-    score=0;
-    totalTime=0;
+shuffle(filtered)
 
-    document.getElementById("quizScreen").classList.remove("hidden");
-    showQuestion();
+current=0
+score=0
+
+document.getElementById("setupArea").classList.add("hidden")
+document.getElementById("quizArea").classList.remove("hidden")
+
+nextQuestion()
+
 }
-
-
-/* =====================
-   問題表示
-===================== */
-
-function showQuestion(){
-
-    clearInterval(timer);
-    timeLeft = 10;
-    answered = false;
-
-    const q = quizQuestions[currentIndex];
-
-    document.getElementById("questionText").innerText = q.meaning;
-    document.getElementById("resultMessage").innerText = "";
-
-    document.getElementById("progressText").innerText =
-        (currentIndex+1) + " / " + quizQuestions.length + " 問";
-
-    document.getElementById("progressBarFill").style.width =
-        ((currentIndex+1)/quizQuestions.length*100) + "%";
-
-
-/* =====================
-   ダミー生成（説明→用語版）
-===================== */
-
-let choices = [q.term];
-
-const correctIndex =
-    filteredQuestions.findIndex(x => x.term === q.term);
-
-let dummyCandidates = [];
-
-// ① 前後優先
-if(correctIndex !== -1){
-    const neighborOffsets = [-2,-1,1,2];
-
-    neighborOffsets.forEach(offset=>{
-        const idx = correctIndex + offset;
-        if(idx>=0 && idx<filteredQuestions.length){
-            const candidate = filteredQuestions[idx];
-            if(candidate.field===q.field &&
-               candidate.term!==q.term){
-                dummyCandidates.push(candidate.term);
-            }
-        }
-    });
-}
-
-// ② 同分野その他
-function similarity(a,b){
-    let matches=0;
-    for(let i=0;i<Math.min(a.length,b.length);i++){
-        if(a[i]===b[i]) matches++;
-    }
-    return matches / Math.max(a.length,b.length);
-}
-
-if(dummyCandidates.length < 3){
-
-    const sameFieldOthers =
-        filteredQuestions.filter(x =>
-            x.field===q.field &&
-            x.term!==q.term
-        );
-
-    sameFieldOthers.sort((a,b)=>{
-        return similarity(q.term,b.term)
-             - similarity(q.term,a.term);
-    });
-
-    sameFieldOthers.forEach(item=>{
-        if(dummyCandidates.length<3){
-            dummyCandidates.push(item.term);
-        }
-    });
-}
-
-// 重複除去
-dummyCandidates = [...new Set(dummyCandidates)];
-
-// 3つまで追加
-dummyCandidates.slice(0,3).forEach(d=>{
-    if(!choices.includes(d)){
-        choices.push(d);
-    }
-});
-
-// 最終安全装置（万一足りない場合）
-while(choices.length < 4){
-    const random =
-        filteredQuestions[Math.floor(Math.random()*filteredQuestions.length)].term;
-
-    if(!choices.includes(random)){
-        choices.push(random);
-    }
-}
-
-shuffle(choices);
-
-    /* =====================
-       選択肢描画
-    ===================== */
-
-    const div = document.getElementById("choices");
-    div.innerHTML="";
-
-    choices.forEach(c=>{
-        const btn = document.createElement("button");
-        btn.className="quiz-btn";
-        btn.innerText=c;
-        btn.onclick=function(){checkAnswer(c)};
-        div.appendChild(btn);
-    });
-
-    /* =====================
-       タイマー
-    ===================== */
-
-    timer = setInterval(()=>{
-        timeLeft--;
-        totalTime++;
-        document.getElementById("timerBox").innerText =
-            "残り" + timeLeft + "秒";
-
-        if(timeLeft <= 0){
-            clearInterval(timer);
-            timeUp();
-        }
-    },1000);
-}
-
-/* =====================
-   回答処理
-===================== */
-
-function checkAnswer(choice){
-
-    if(answered) return;
-    answered = true;
-    clearInterval(timer);
-
-    const correct =
-        quizQuestions[currentIndex].term;
-
-    const buttons =
-        document.querySelectorAll("#choices button");
-
-    buttons.forEach(btn=>{
-        btn.disabled = true;
-
-        if(btn.innerText === correct){
-            btn.classList.add("correct");
-        }
-
-        if(btn.innerText === choice &&
-           choice !== correct){
-            btn.classList.add("incorrect");
-        }
-    });
-
-    if(choice === correct){
-        score++;
-        document.getElementById("resultMessage").innerText =
-            "正解です！";
-    }else{
-        document.getElementById("resultMessage").innerText =
-            "不正解です。答えは「" + correct + "」です。";
-
-        if(mode==="challenge"){
-            setTimeout(endQuiz,1000);
-        }
-    }
-}
-
-function timeUp(){
-
-    if(answered) return;
-    answered = true;
-
-    const correct =
-        quizQuestions[currentIndex].term;
-
-    const buttons =
-        document.querySelectorAll("#choices button");
-
-    buttons.forEach(btn=>{
-        btn.disabled = true;
-
-        if(btn.innerText === correct){
-            btn.classList.add("correct");
-        }
-    });
-
-    document.getElementById("resultMessage").innerText =
-        "時間切れ。答えは「" + correct + "」です。";
-
-    if(mode==="challenge"){
-        setTimeout(endQuiz,1000);
-    }
-}
-
-/* =====================
-   次へ
-===================== */
 
 function nextQuestion(){
 
-    if(!answered){
-        alert("答えを選択してください");
-        return;
-    }
+document.getElementById("result").innerText=""
+document.getElementById("nextBtn").classList.add("hidden")
 
-    currentIndex++;
+if(current>=filtered.length){
 
-    if(currentIndex>=quizQuestions.length){
-        endQuiz();
-    }else{
-        showQuestion();
-    }
+document.getElementById("question").innerText=
+"終了！ "+score+" / "+filtered.length
+
+document.getElementById("choices").innerHTML=""
+
+return
+
 }
 
+updateProgress()
 
-/* =====================
-   結果画面
-===================== */
+let q=filtered[current]
 
-function endQuiz(){
+document.getElementById("question").innerText=q.term
 
-    document.getElementById("quizScreen").classList.add("hidden");
-    document.getElementById("resultScreen").classList.remove("hidden");
+let choices=generateChoices(q.meaning)
 
-    document.getElementById("finalScore").innerText =
-        "正解数："+score+" / "+quizQuestions.length;
+const area=document.getElementById("choices")
 
-    document.getElementById("finalTime").innerText =
-        "合計時間："+totalTime+"秒";
+area.innerHTML=""
+
+choices.forEach(c=>{
+
+let btn=document.createElement("button")
+
+btn.className="quiz-btn"
+
+btn.innerText=c
+
+btn.onclick=function(){
+checkAnswer(c,q.meaning,btn)
 }
 
-function restartSameMode(){
-    document.getElementById("resultScreen").classList.add("hidden");
-    startQuiz();
+area.appendChild(btn)
+
+})
+
 }
 
-function returnToFieldSelect(){
-    location.reload();
+function generateChoices(correct){
+
+let arr=[correct]
+
+while(arr.length<4){
+
+let r=questions[Math.floor(Math.random()*questions.length)].meaning
+
+if(!arr.includes(r)) arr.push(r)
+
 }
 
+shuffle(arr)
 
-/* =====================
-   学習モード
-===================== */
+return arr
 
-let studyIndex = 0;
-let meaningVisible = false;
-
-function startStudyMode(){
-    shuffle(filteredQuestions);
-    studyIndex = 0;
-    meaningVisible = false;
-
-    document.getElementById("menuScreen").classList.add("hidden");
-    document.getElementById("studyScreen").classList.remove("hidden");
-
-    renderStudy();
 }
 
-let touchStartX = 0;
-let touchEndX = 0;
+function checkAnswer(answer,correct,btn){
 
-function handleSwipe(){
+let buttons=document.querySelectorAll(".quiz-btn")
 
-    const threshold = 50; // スワイプ判定距離
+buttons.forEach(b=>b.disabled=true)
 
-    if(touchStartX - touchEndX > threshold){
-        // 左スワイプ → 次へ
-        nextStudyTerm();
-    }
+if(answer===correct){
 
-    if(touchEndX - touchStartX > threshold){
-        // 右スワイプ → 前へ
-        prevStudy();
-    }
+btn.classList.add("correct")
+
+score++
+
+document.getElementById("result").innerText="正解"
+
+}else{
+
+btn.classList.add("incorrect")
+
+document.getElementById("result").innerText="不正解"
+
+buttons.forEach(b=>{
+if(b.innerText===correct){
+b.classList.add("correct")
+}
+})
+
 }
 
-const studyScreen = document.getElementById("studyScreen");
+current++
 
-studyScreen.addEventListener("touchstart", e=>{
-    touchStartX = e.changedTouches[0].screenX;
-});
+document.getElementById("nextBtn").classList.remove("hidden")
 
-studyScreen.addEventListener("touchend", e=>{
-    touchEndX = e.changedTouches[0].screenX;
-    handleSwipe();
-});
-
-function renderStudy(direction="none"){
-
-    const slide = document.getElementById("studySlide");
-
-    if(direction==="left"){
-        slide.classList.add("slide-left");
-    }else if(direction==="right"){
-        slide.classList.add("slide-right");
-    }
-
-    setTimeout(()=>{
-
-        const q = filteredQuestions[studyIndex];
-
-        // 用語
-        document.getElementById("studyTerm").innerText = q.term;
-
-        // 現在位置
-        document.getElementById("studyPosition").innerText =
-            (studyIndex + 1) + " / " + filteredQuestions.length;
-
-        // 説明表示制御
-        if(meaningVisible){
-            document.getElementById("studyMeaning").innerText = q.meaning;
-            document.getElementById("studyBtn").innerText = "説明を隠す";
-        }else{
-            document.getElementById("studyMeaning").innerText = "";
-            document.getElementById("studyBtn").innerText = "説明を見る";
-        }
-
-        slide.classList.remove("slide-left","slide-right");
-
-    },120);
 }
 
-function toggleMeaning(){
-    meaningVisible = !meaningVisible;
-    renderStudy();
+function updateProgress(){
+
+let percent=(current/filtered.length)*100
+
+document.getElementById("progressBar").style.width=percent+"%"
+
+document.getElementById("progressText").innerText=
+(current+1)+" / "+filtered.length
+
 }
 
-function nextStudyTerm(){
-    if(studyIndex < filteredQuestions.length - 1){
-        studyIndex++;
-        meaningVisible = false;
-        renderStudy("left");
-    }
+function shuffle(a){
+
+for(let i=a.length-1;i>0;i--){
+
+let j=Math.floor(Math.random()*(i+1))
+
+let t=a[i]
+
+a[i]=a[j]
+
+a[j]=t
+
 }
 
-function prevStudy(){
-    if(studyIndex > 0){
-        studyIndex--;
-        meaningVisible = false;
-        renderStudy("right");
-    }
-}
-
-/* =====================
-   シャッフル
-===================== */
-
-function shuffle(arr){
-    for(let i=arr.length-1;i>0;i--){
-        const j=Math.floor(Math.random()*(i+1));
-        [arr[i],arr[j]]=[arr[j],arr[i]];
-    }
-}
-
-function backToMenu(){
-    document.getElementById("modeInfoScreen").classList.add("hidden");
-    document.getElementById("menuScreen").classList.remove("hidden");
 }
 
 </script>
+
 </body>
 </html>

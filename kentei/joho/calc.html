@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link rel="stylesheet" href="../../css/common.css">
+
+<title>情報処理 計算問題</title>
+
+</head>
+
+<body>
+
+<header class="app-header">
+
+<div class="header-left">
+
+<img src="../../images/logo.png" class="header-icon">
+
+<div>
+<h1 class="site-title">情報処理検定</h1>
+<div id="examLevel" class="exam-title"></div>
+</div>
+
+</div>
+
+</header>
+
+<div class="card">
+
+<h2>問題形式</h2>
+
+<button class="mode-btn" onclick="startBinary()">2進数計算</button>
+
+<button class="mode-btn" onclick="startCapacity()">容量計算</button>
+
+<button class="control-btn" onclick="location.href='index.html'">
+級選択へ戻る
+</button>
+
+</div>
+
+<div class="card hidden" id="quizCard">
+
+<div id="questionArea"></div>
+
+<input id="answerInput" class="calc-input">
+
+<button class="main-btn" onclick="checkAnswer()">
+答え合わせ
+</button>
+
+<button id="nextBtn" class="control-btn hidden" onclick="nextQuestion()">
+次の問題
+</button>
+
+<div id="result"></div>
+
+</div>
+
+<script>
+
+let level=""
+let mode=""
+let correctAnswer=""
+
+const params=new URLSearchParams(location.search)
+level=params.get("level")
+
+document.getElementById("examLevel").innerText=level+"級 計算問題"
+
+function startBinary(){
+
+mode="binary"
+
+startQuiz()
+
+}
+
+function startCapacity(){
+
+mode="capacity"
+
+startQuiz()
+
+}
+
+function startQuiz(){
+
+document.getElementById("quizCard").classList.remove("hidden")
+
+nextQuestion()
+
+}
+
+function nextQuestion(){
+
+document.getElementById("answerInput").value=""
+document.getElementById("result").innerText=""
+document.getElementById("nextBtn").classList.add("hidden")
+
+if(mode==="binary") binaryQuestion()
+
+if(mode==="capacity") capacityQuestion()
+
+}
+
+function binaryQuestion(){
+
+let a=Math.floor(Math.random()*15)+5
+let b=Math.floor(Math.random()*10)
+
+let op=Math.random()<0.5?"+":"-"
+
+if(op==="-" && a<b){
+
+let t=a
+a=b
+b=t
+
+}
+
+correctAnswer=(op==="+")?(a+b).toString(2):(a-b).toString(2)
+
+document.getElementById("questionArea").innerHTML=
+"次の2進数計算<br><br>"+
+a.toString(2)+" "+op+" "+b.toString(2)
+
+}
+
+function capacityQuestion(){
+
+let w=[640,800,1024][Math.floor(Math.random()*3)]
+let h=[480,600,768][Math.floor(Math.random()*3)]
+let bits=[8,16,24][Math.floor(Math.random()*3)]
+
+let bytes=w*h*(bits/8)
+
+correctAnswer=Math.floor(bytes/1024)
+
+document.getElementById("questionArea").innerHTML=
+"画像容量は何KBか<br><br>"+
+"横"+w+" 縦"+h+" "+bits+"bit"
+
+}
+
+function checkAnswer(){
+
+let input=document.getElementById("answerInput").value
+
+if(input===""){
+alert("答えを入力してください")
+return
+}
+
+if(input==correctAnswer){
+
+document.getElementById("result").innerText="正解"
+
+}else{
+
+document.getElementById("result").innerText="不正解 正解:"+correctAnswer
+
+}
+
+document.getElementById("nextBtn").classList.remove("hidden")
+
+}
+
+</script>
+
+</body>
+</html>

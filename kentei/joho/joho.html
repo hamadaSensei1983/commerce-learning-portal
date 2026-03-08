@@ -52,45 +52,36 @@
  初期設定画面
 ===================== -->
 
+<h3>CSVテスト（ローカル用）</h3>
+<input type="file" accept=".csv" onchange="loadLocalCSV(this.files[0])">
+
 <div class="card hidden" id="setupArea">
 
-<h3>生徒名</h3>
+    <h3>生徒名</h3>
+    <input id="studentNameInput" style="width:100%;padding:8px">
+    <button class="control-btn" onclick="saveStudent()">保存</button>
+    <div id="studentStats"></div>
 
-<input id="studentNameInput" style="width:100%;padding:8px">
+    <h3>分野選択</h3>
+    <div id="fieldArea" class="field-grid"></div>
+    <button class="control-btn" onclick="selectAll()">全選択</button>
+    <button class="control-btn" onclick="clearAll()">全解除</button>
 
-<button class="control-btn" onclick="saveStudent()">保存</button>
+    <h3>モード選択</h3>
+    <select id="modeSelect" style="width:100%;padding:10px">
+    <option value="normal">通常モード</option>
+    <option value="challenge">チャレンジモード</option>
+    <option value="review">復習モード</option>
+    <option value="study">学習モード</option>
+    </select>
 
-<div id="studentStats"></div>
+    <div id="modeDescription"></div>
+    <button class="main-btn" onclick="startQuiz()">開始</button>
 
-
-<h3>分野選択</h3>
-
-<div id="fieldArea" class="field-grid"></div>
-
-<button class="control-btn" onclick="selectAll()">全選択</button>
-<button class="control-btn" onclick="clearAll()">全解除</button>
-
-
-<h3>モード選択</h3>
-
-<select id="modeSelect" style="width:100%;padding:10px">
-
-<option value="normal">通常モード</option>
-<option value="challenge">チャレンジモード</option>
-<option value="review">復習モード</option>
-<option value="study">学習モード</option>
-
-</select>
-
-<div id="modeDescription"></div>
-
-<button class="main-btn" onclick="startQuiz()">開始</button>
-
-
-<h3>弱点ランキング</h3>
-<div id="weakRanking"></div>
-<h3>分野別正答率</h3>
-<div id="fieldRates"></div>
+    <h3>弱点ランキング</h3>
+    <div id="weakRanking"></div>
+    <h3>分野別正答率</h3>
+    <div id="fieldRates"></div>
 
 </div>
 
@@ -100,13 +91,13 @@
 
 <div class="card hidden" id="quizArea">
 
-<div class="progress-wrapper">
+    <div class="progress-wrapper">
 
-<div id="progressText"></div>
+    <div id="progressText"></div>
 
-<div class="progress-bar">
-<div id="progressBar" class="progress-bar-fill"></div>
-</div>
+    <div class="progress-bar">
+        <div id="progressBar" class="progress-bar-fill"></div>
+    </div>
 
 </div>
 
@@ -156,7 +147,6 @@
 
     </div>
 
-    <div class="study-meaning-box" id="studyMeaning"></div>
     <div class="study-meaning-box" id="studyMeaning"></div>
     <button class="control-btn" onclick="backToSetup()">分野選択に戻る</button>
 
@@ -218,6 +208,31 @@ if(level==="2"){
  CSV読み込み
 ===================== */
 
+/* =====================
+   ローカルCSVテスト用
+===================== */
+
+function loadLocalCSV(file){
+
+    let reader = new FileReader()
+
+    reader.onload = function(e){
+
+        let text = e.target.result
+
+        questions = parseCSV(text)
+
+        createFieldList()
+        showWeakRanking()
+
+        document.getElementById("loadingScreen").style.display="none"
+        document.getElementById("setupArea").classList.remove("hidden")
+
+    }
+
+    reader.readAsText(file)
+}
+
 async function loadCSV(path){
 
     try{
@@ -236,6 +251,7 @@ async function loadCSV(path){
     }catch(e){
         alert("CSV読み込みエラー\n"+e.message)
     }
+    showStudentStats()
 }
 
 /* =====================
@@ -244,21 +260,27 @@ async function loadCSV(path){
 
 function parseCSV(text){
 
-    let rows=text.split("\n")
-    let result=[]
+    let rows = text.trim().split(/\r?\n/)
+    let result = []
+
     for(let i=1;i<rows.length;i++){
-        let r=rows[i].split(",")
-        if(r.length<3) continue
-            result.push({
-            field:r[0],
-            term:r[1],
-            meaning:r[2],
-            index:i-1
+
+        if(!rows[i].trim()) continue
+
+        let r = rows[i].split(",")
+
+        if(r.length < 3) continue
+
+        result.push({
+            field: r[0].trim(),
+            term: r[1].trim(),
+            meaning: r[2].trim(),
+            index: i-1
         })
     }
+
     return result
 }
-
 
 /* =====================
  分野リスト作成
@@ -277,7 +299,7 @@ function createFieldList(){
 
     let area=document.getElementById("fieldArea")
 
-    Object.keys(counts).forEach(field=>{
+    Object.keys(counts).sort().forEach(field=>{
 
         let label=document.createElement("label")
         label.innerHTML=
@@ -413,16 +435,29 @@ function generateChoices(q){
 
     let arr=[q]
 
+    // 同じ分野の問題だけ取得
+    let sameField = questions.filter(x =>
+        x.field === q.field && x.term !== q.term
+    )
+
+    shuffle(sameField)
+
+    for(let i=0;i<sameField.length && arr.length<4;i++){
+        arr.push(sameField[i])
+    }
+
+    // もし分野問題が足りなければ他分野から補充
     while(arr.length<4){
-        let r=questions[Math.floor(Math.random()*questions.length)]
-        if(!arr.includes(r)) arr.push(r)
+        let r = questions[Math.floor(Math.random()*questions.length)]
+        if(!arr.includes(r)){
+            arr.push(r)
+        }
     }
 
     shuffle(arr)
+
     return arr
-
 }
-
 
 /* =====================
  正解判定

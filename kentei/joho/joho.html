@@ -89,6 +89,8 @@
 
 <h3>弱点ランキング</h3>
 <div id="weakRanking"></div>
+<h3>分野別正答率</h3>
+<div id="fieldRates"></div>
 
 </div>
 
@@ -338,6 +340,22 @@ document.querySelectorAll("#fieldArea input").forEach(c=>c.checked=false)
 }
 
 
+/* =====================
+ モード説明
+===================== */
+
+document.getElementById("modeSelect").addEventListener("change",updateModeDesc)
+
+function updateModeDesc(){
+
+let m=document.getElementById("modeSelect").value
+
+document.getElementById("modeDescription").innerText=modeDesc[m]
+
+}
+
+updateModeDesc()
+
 
 /* =====================
  クイズ開始
@@ -401,47 +419,50 @@ nextQuestion()
 
 function nextQuestion(){
 
-let total=filtered.length
+    let total=filtered.length
 
-document.getElementById("progressText").innerText=
-(current+1)+" / "+total+" 問目"
+    document.getElementById("progressText").innerText=
+    (current+1)+" / "+total+" 問目"
 
-document.getElementById("progressBar").style.width=
-((current)/total*100)+"%"
+    document.getElementById("progressBar").style.width=
+    (current/total*100)+"%"
 
-document.getElementById("result").innerText=""
+    let total=filtered.length
 
-if(current>=filtered.length){
+    document.getElementById("progressText").innerText=
+    (current+1)+" / "+total+" 問目"
 
-showResult()
-return
+    document.getElementById("progressBar").style.width=
+    ((current)/total*100)+"%"
 
-}
+    document.getElementById("result").innerText=""
 
-let q=filtered[current]
+    if(current>=filtered.length){
+        showResult()
+        return
+    }
 
-document.getElementById("question").innerText=q.meaning
+    let q=filtered[current]
 
-let area=document.getElementById("choices")
-area.innerHTML=""
+    document.getElementById("question").innerText=q.meaning
 
-let choices=generateChoices(q)
+    let area=document.getElementById("choices")
+    area.innerHTML=""
 
-choices.forEach(c=>{
+    let choices=generateChoices(q)
 
-let btn=document.createElement("button")
+    choices.forEach(c=>{
 
-btn.className="quiz-btn"
-btn.innerText=c.term
+        let btn=document.createElement("button")
 
-btn.onclick=function(){
-checkAnswer(c.term,q.term,btn)
-}
+        btn.className="quiz-btn"
+        btn.innerText=c.term
 
-area.appendChild(btn)
-
-})
-
+        btn.onclick=function(){
+            checkAnswer(c.term,q.term,btn)
+        }
+        area.appendChild(btn)
+    })
 }
 
 
@@ -496,6 +517,8 @@ streak=0
 
 document.getElementById("result").innerText="不正解"
 
+updateFieldStats(filtered[current].field,a===c)
+
 wrong.push(filtered[current])
 
 }
@@ -515,24 +538,20 @@ updateFieldStats(filtered[current].field,a===c)
 
 function updateFieldStats(field,correct){
 
-let stats=JSON.parse(localStorage.getItem("fieldStats")||"{}")
+    let key="fieldStats_"+level
+    let stats=JSON.parse(localStorage.getItem(key)||"{}")
 
-if(!stats[field]){
+    if(!stats[field]){
+        stats[field]={correct:0,attempts:0}
+    }
 
-stats[field]={correct:0,attempts:0}
+    stats[field].attempts++
 
-}
+    if(correct){
+        stats[field].correct++
+    }
 
-stats[field].attempts++
-
-if(correct){
-
-stats[field].correct++
-
-}
-
-localStorage.setItem("fieldStats",JSON.stringify(stats))
-
+    localStorage.setItem(key,JSON.stringify(stats))
 }
 
 /* =====================
@@ -607,28 +626,46 @@ document.getElementById("studentStats").innerHTML=
 
 function showWeakRanking(){
 
-let stats=JSON.parse(localStorage.getItem("fieldStats")||"{}")
+    let key="fieldStats_"+level
+    let stats=JSON.parse(localStorage.getItem(key)||"{}")
+    let arr=Object.keys(stats).map(f=>{
+        let s=stats[f]
+        let rate=Math.round(s.correct/s.attempts*100)
+        return {field:f,rate:rate}
+    })
 
-let arr=Object.keys(stats).map(f=>{
+    arr.sort((a,b)=>a.rate-b.rate)
 
-let s=stats[f]
-let rate=Math.round(s.correct/s.attempts*100)
+    let html=""
 
-return {field:f,rate:rate}
+    arr.slice(0,3).forEach((r,i)=>{
+        html+=(i+1)+"位 "+r.field+" "+r.rate+"%<br>"
+    })
 
-})
+    document.getElementById("weakRanking").innerHTML=html
 
-arr.sort((a,b)=>a.rate-b.rate)
+    showFieldRates()
+}
+
+
+function showFieldRates(){
+
+let key="fieldStats_"+level
+let stats=JSON.parse(localStorage.getItem(key)||"{}")
 
 let html=""
 
-arr.slice(0,3).forEach((r,i)=>{
+Object.keys(stats).forEach(field=>{
 
-html+=(i+1)+"位 "+r.field+" "+r.rate+"%<br>"
+let s=stats[field]
+
+let rate=Math.round(s.correct/s.attempts*100)
+
+html+=field+"　"+rate+"% ("+s.correct+"/"+s.attempts+")<br>"
 
 })
 
-document.getElementById("weakRanking").innerHTML=html
+document.getElementById("fieldRates").innerHTML=html
 
 }
 
@@ -698,6 +735,46 @@ showStudy()
 }
 
 }
+
+//スワイプ対応
+
+let touchStartX=0
+let touchEndX=0
+
+const studyArea=document.getElementById("studyArea")
+
+studyArea.addEventListener("touchstart",e=>{
+
+touchStartX=e.changedTouches[0].screenX
+
+})
+
+studyArea.addEventListener("touchend",e=>{
+
+touchEndX=e.changedTouches[0].screenX
+
+handleSwipe()
+
+})
+
+function handleSwipe(){
+
+let diff=touchEndX-touchStartX
+
+if(diff>60){
+
+prevCard()
+
+}
+
+if(diff<-60){
+
+nextCard()
+
+}
+
+}
+
 
 </script>
 

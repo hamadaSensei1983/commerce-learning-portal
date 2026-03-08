@@ -211,12 +211,17 @@ button{
     box-shadow:0 12px 25px rgba(0,0,0,0.35);
 }
 
+.exam-btn{
+right:160px;
+}
+
+
 /* =============================
    分野選択チェックボックス整形
 ============================= */
 .field-grid{
     display:grid;
-    grid-template-columns:1fr 1fr;
+    grid-template-columns:repeat(3,1fr);
     gap:8px;
     margin-bottom:15px;
 }
@@ -362,3 +367,4 @@ button{
     transform:translateX(20px);
     opacity:0;
 }
+

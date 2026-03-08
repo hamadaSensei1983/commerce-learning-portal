@@ -105,11 +105,11 @@
 
 </div>
 
-<a href="index.html" class="portal-btn" style="right:160px">
+<a href="index.html" class="portal-btn exam-btn">
 検定トップ
 </a>
 
-<a href="../../index.html" class="portal-btn">
+<a href="../../index.html" class="portal-btn portal-main">
 ポータルへ戻る
 </a>
 
@@ -123,10 +123,10 @@ let score=0
 let mode=""
 
 const modeDesc={
-normal:"5問出題されます",
-challenge:"全問題出題。1問でも間違えると終了",
-review:"全問題出題。間違えた問題を再度出題",
-study:"カード形式で用語を学習"
+    normal:"5問出題されます",
+    challenge:"全問題出題。1問でも間違えると終了",
+    review:"全問題出題。間違えた問題を再度出題",
+    study:"カード形式で用語を学習"
 }
 
 const params=new URLSearchParams(location.search)
@@ -135,15 +135,15 @@ const level=params.get("level")
 document.getElementById("modeSelect").onchange=updateModeDesc
 
 function updateModeDesc(){
-let m=document.getElementById("modeSelect").value
-document.getElementById("modeDescription").innerText=modeDesc[m]
+    let m=document.getElementById("modeSelect").value
+    document.getElementById("modeDescription").innerText=modeDesc[m]
 }
 
 updateModeDesc()
 
 if(level==="3"){
-document.getElementById("examLevel").innerText="情報処理検定 3級"
-loadCSV("data/data3.csv")
+    document.getElementById("examLevel").innerText="情報処理検定 3級"
+    loadCSV("data/data3.csv")
 }
 
 if(level==="2"){
@@ -153,89 +153,119 @@ loadCSV("data/data2.csv")
 
 async function loadCSV(path){
 
-let res=await fetch(path)
-let text=await res.text()
+    let res=await fetch(path)
+    let text=await res.text()
 
-text=text.replace(/^\uFEFF/,"")
+    text=text.replace(/^\uFEFF/,"")
 
-questions=parseCSV(text)
+    questions=parseCSV(text)
 
-createFieldList()
+    createFieldList()
 
-setTimeout(()=>{
-loadingScreen.style.display="none"
-setupArea.classList.remove("hidden")
-},600)
+    setTimeout(()=>{
+    loadingScreen.style.display="none"
+    setupArea.classList.remove("hidden")
+    },600)
 
 }
 
 function parseCSV(text){
 
-let rows=[]
-let row=[]
-let cell=""
-let quote=false
+    let rows=[]
+    let row=[]
+    let cell=""
+    let quote=false
 
-for(let c of text){
+    for(let c of text){
 
-if(c=='"'){quote=!quote;continue}
+        if(c=='"'){quote=!quote;continue}
 
-if(c==","&&!quote){row.push(cell);cell="";continue}
+        if(c==","&&!quote){row.push(cell);cell="";continue}
 
-if(c=="\n"&&!quote){row.push(cell);rows.push(row);row=[];cell="";continue}
+        if(c=="\n"&&!quote){row.push(cell);rows.push(row);row=[];cell="";continue}
 
-cell+=c
+        cell+=c
+
+    }
+
+    row.push(cell)
+    rows.push(row)
+
+    let result=[]
+
+    for(let i=1;i<rows.length;i++){
+
+        let r=rows[i]
+
+        if(!r[0] || !r[1] || !r[2]) continue
+
+        result.push({
+        field:r[0].trim(),
+        term:r[1].trim(),
+        meaning:r[2].trim(),
+        index:i-1
+        })
+    }
+
+    return result
 
 }
 
-row.push(cell)
-rows.push(row)
-
-let result=[]
-
-for(let i=1;i<rows.length;i++){
-
-let r=rows[i]
-
-if(!r[0] || !r[1] || !r[2]) continue
-
-result.push({
-field:r[0].trim(),
-term:r[1].trim(),
-meaning:r[2].trim(),
-index:i-1
-})
-}
-
-return result
-
-}
 
 function createFieldList(){
 
-let fields=[...new Set(questions.map(q=>q.field))]
+let fieldCounts={}
+let fieldCorrect=getFieldStats()
 
-fields.forEach(f=>{
+questions.forEach(q=>{
+if(!fieldCounts[q.field]) fieldCounts[q.field]=0
+fieldCounts[q.field]++
+})
+
+let area=document.getElementById("fieldArea")
+area.innerHTML=""
+
+Object.keys(fieldCounts).forEach(field=>{
+
+let total=fieldCounts[field]
+
+let correct=fieldCorrect[field]?.correct || 0
+let attempts=fieldCorrect[field]?.attempts || 0
+
+let rate=attempts>0 ? Math.round(correct/attempts*100) : "-"
 
 let label=document.createElement("label")
 
-label.innerHTML='<input type="checkbox" value="'+f+'"> '+f
+label.innerHTML=
+'<input type="checkbox" value="'+field+'"> '
++ field
++ ' ('+total+') '
++ '<span style="font-size:12px;color:#666">'
++ '正解率:'+rate+'%'
++ '</span>'
 
-fieldArea.appendChild(label)
+area.appendChild(label)
 
 })
 
 }
 
 function selectAll(){
-document.querySelectorAll("#fieldArea input").forEach(c=>c.checked=true)
+    document.querySelectorAll("#fieldArea input").forEach(c=>c.checked=true)
 }
 
 function clearAll(){
-document.querySelectorAll("#fieldArea input").forEach(c=>c.checked=false)
+    document.querySelectorAll("#fieldArea input").forEach(c=>c.checked=false)
 }
 
 function startQuiz(){
+
+let selected=[...document.querySelectorAll("#fieldArea input:checked")].map(c=>c.value)
+
+if(selected.length===0){
+alert("分野を1つ以上選択してください")
+return
+}
 
 mode=document.getElementById("modeSelect").value
 
@@ -275,17 +305,15 @@ result.innerText=""
 nextBtn.classList.add("hidden")
 
 if(current>=filtered.length){
-
 showResult()
 return
-
 }
 
 updateProgress()
 
 let q=filtered[current]
 
-question.innerText=q.meaning
+document.getElementById("question").innerText=q.meaning
 
 let choices=generateChoices(q)
 
@@ -301,9 +329,11 @@ btn.className="quiz-btn"
 
 btn.innerText=c.term
 
-btn.onclick=function(){checkAnswer(c.term,q.term,btn)}
+btn.onclick=function(){
+checkAnswer(c.term,q.term,btn)
+}
 
-choicesArea.appendChild(btn)
+area.appendChild(btn)
 
 })
 
@@ -340,37 +370,57 @@ return arr
 
 }
 
-function checkAnswer(a,c,btn){
+function checkAnswer(answer,correct,btn){
+
+let q=filtered[current]
+
+let stats=getFieldStats()
+
+if(!stats[q.field]){
+
+stats[q.field]={
+correct:0,
+attempts:0
+}
+
+}
+
+stats[q.field].attempts++
 
 let buttons=document.querySelectorAll(".quiz-btn")
-
 buttons.forEach(b=>b.disabled=true)
 
-if(a===c){
+if(answer===correct){
 
 btn.classList.add("correct")
 
-result.innerText="正解！"
+document.getElementById("result").innerText="正解！"
 
 score++
+
+stats[q.field].correct++
 
 }else{
 
 btn.classList.add("incorrect")
 
-result.innerText="不正解"
+document.getElementById("result").innerText="不正解"
 
 wrong.push(filtered[current])
 
 buttons.forEach(b=>{
-if(b.innerText===c) b.classList.add("correct")
+if(b.innerText===correct){
+b.classList.add("correct")
+}
 })
 
 }
 
+localStorage.setItem("fieldStats",JSON.stringify(stats))
+
 current++
 
-nextBtn.classList.remove("hidden")
+document.getElementById("nextBtn").classList.remove("hidden")
 
 }
 
@@ -469,6 +519,17 @@ a[j]=t
 }
 
 }
+
+function getFieldStats(){
+
+let data=localStorage.getItem("fieldStats")
+
+if(!data) return {}
+
+return JSON.parse(data)
+
+}
+
 
 </script>
 

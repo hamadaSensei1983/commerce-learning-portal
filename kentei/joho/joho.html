@@ -249,9 +249,14 @@ async function loadCSV(path){
         document.getElementById("loadingScreen").style.display="none"
         document.getElementById("setupArea").classList.remove("hidden")
     }catch(e){
-        alert("CSV読み込みエラー\n"+e.message)
+
+        console.warn("CSV読み込み失敗",e)
+
+        // ローカル用にローディングを消す
+        document.getElementById("loadingScreen").style.display="none"
+        document.getElementById("setupArea").classList.remove("hidden")
+
     }
-    showStudentStats()
 }
 
 /* =====================
@@ -395,7 +400,7 @@ function nextQuestion(){
     (current+1)+" / "+total+" 問目"
 
     document.getElementById("progressBar").style.width=
-    (current/total*100)+"%"
+    ((current+1)/total*100)
 
     document.getElementById("result").innerText=""
 
@@ -463,43 +468,49 @@ function generateChoices(q){
  正解判定
 ===================== */
 
-let isReviewMode = false;
+function checkAnswer(selected,correct,btn){
 
-function startReview() {
-  isReviewMode = true;
-  currentIndex = 0;
-  questions = wrongQuestions;
-  showQuestion();
-}
+    let buttons=document.querySelectorAll("#choices button")
 
-function checkAnswer(selectedIndex) {
+    buttons.forEach(b=>b.disabled=true)
 
-  const correctIndex = currentQuestion.correct;
-  const buttons = document.querySelectorAll(".choice");
+    if(selected===correct){
 
-  buttons.forEach((btn, i) => {
+        btn.classList.add("correct-answer")
+        score++
+        streak++
 
-    btn.disabled = true;
+        document.getElementById("result").innerText="正解！"
 
-    if (i === correctIndex) {
-      btn.classList.add("correct-answer");
+        updateFieldStats(filtered[current].field,true)
+
+    }else{
+
+        btn.classList.add("wrong-answer")
+
+        buttons.forEach(b=>{
+            if(b.innerText===correct){
+                b.classList.add("correct-answer")
+            }
+        })
+
+        document.getElementById("result").innerText=
+        "不正解　正解："+correct
+
+        wrong.push(filtered[current])
+
+        streak=0
+
+        updateFieldStats(filtered[current].field,false)
+
+        if(mode==="challenge"){
+            showResult()
+            return
+        }
+
     }
 
-    if (i === selectedIndex && i !== correctIndex) {
-      btn.classList.add("wrong-answer");
-    }
-
-  });
-
-  if (selectedIndex === correctIndex) {
-
-    if (!isReviewMode) streak++;
-
-  } else {
-
-    if (!isReviewMode) streak = 0;
-
-  }
+    current++
 
 }
 

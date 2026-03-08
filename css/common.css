@@ -211,8 +211,12 @@ button{
     box-shadow:0 12px 25px rgba(0,0,0,0.35);
 }
 
+.portal-main{
+right:25px;
+}
+
 .exam-btn{
-right:160px;
+right:200px;
 }
 
 

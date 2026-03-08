@@ -463,27 +463,48 @@ function generateChoices(q){
  正解判定
 ===================== */
 
-function checkAnswer(a,c,btn){
+let isReviewMode = false;
 
-    let buttons=document.querySelectorAll(".quiz-btn")
-    buttons.forEach(b=>b.disabled=true)
-    let field=filtered[current].field
+function startReview() {
+  isReviewMode = true;
+  currentIndex = 0;
+  questions = wrongQuestions;
+  showQuestion();
+}
 
-    if(a===c){
-        btn.classList.add("correct")
-        streak++
-        score++
-        document.getElementById("result").innerText="正解！🔥"+streak+"連続"
-    }else{
-        btn.classList.add("incorrect")
-        streak=0
-        document.getElementById("result").innerText="不正解"
-        wrong.push(filtered[current])
+function checkAnswer(selectedIndex) {
+
+  const correctIndex = currentQuestion.correct;
+  const buttons = document.querySelectorAll(".choice");
+
+  buttons.forEach((btn, i) => {
+
+    btn.disabled = true;
+
+    if (i === correctIndex) {
+      btn.classList.add("correct-answer");
     }
 
-    updateFieldStats(field,a===c)
-    current++
-    document.getElementById("nextBtn").classList.remove("hidden")
+    if (i === selectedIndex && i !== correctIndex) {
+      btn.classList.add("wrong-answer");
+    }
+
+  });
+
+  if (selectedIndex === correctIndex) {
+
+    if (!isReviewMode) streak++;
+
+  } else {
+
+    if (!isReviewMode) streak = 0;
+
+  }
+
+}
+
+function finishReview() {
+  isReviewMode = false;
 }
 
 /* =====================

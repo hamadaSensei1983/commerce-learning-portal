@@ -197,13 +197,14 @@ for(let i=1;i<rows.length;i++){
 
 let r=rows[i]
 
+if(!r[0] || !r[1] || !r[2]) continue
+
 result.push({
-field:r[0],
-term:r[1],
-meaning:r[2],
+field:r[0].trim(),
+term:r[1].trim(),
+meaning:r[2].trim(),
 index:i-1
 })
-
 }
 
 return result
@@ -287,6 +288,10 @@ let q=filtered[current]
 question.innerText=q.meaning
 
 let choices=generateChoices(q)
+
+let area=document.getElementById("choices")
+
+area.innerHTML=""
 
 choices.forEach(c=>{
 

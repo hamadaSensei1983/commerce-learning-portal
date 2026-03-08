@@ -94,8 +94,6 @@
 
 </div>
 
-
-
 <!-- =====================
  クイズ画面
 ===================== -->
@@ -121,8 +119,6 @@
 <button id="nextBtn" class="main-btn hidden" onclick="nextQuestion()">次へ</button>
 
 </div>
-
-
 
 <!-- =====================
  結果画面
@@ -168,8 +164,6 @@
 
 </div>
 
-
-
 <a href="index.html" class="portal-btn exam-btn">
 検定トップ
 </a>
@@ -180,7 +174,6 @@
 
 
 <script>
-
 
 /* =====================
    グローバル変数
@@ -195,25 +188,16 @@ let score=0
 let mode=""
 let streak=0
 
-
-
 /* =====================
  モード説明
 ===================== */
 
 const modeDesc={
-
-normal:"5問出題されます",
-
-challenge:"全問題出題。1問でも間違えると終了",
-
-review:"間違えた問題を再出題",
-
-study:"カード形式で学習"
-
+    normal:"5問出題されます",
+    challenge:"全問題出題。1問でも間違えると終了",
+    review:"間違えた問題を再出題",
+    study:"カード形式で学習"
 }
-
-
 
 /* =====================
  レベル判定
@@ -223,16 +207,14 @@ const params=new URLSearchParams(location.search)
 const level=params.get("level")
 
 if(level==="3"){
-document.getElementById("examLevel").innerText="情報処理検定 3級"
-loadCSV("data/data3.csv")
+    document.getElementById("examLevel").innerText="情報処理検定 3級"
+    loadCSV("data/data3.csv")
 }
 
 if(level==="2"){
-document.getElementById("examLevel").innerText="情報処理検定 2級"
-loadCSV("data/data2.csv")
+    document.getElementById("examLevel").innerText="情報処理検定 2級"
+    loadCSV("data/data2.csv")
 }
-
-
 
 /* =====================
  CSV読み込み
@@ -241,13 +223,10 @@ loadCSV("data/data2.csv")
 async function loadCSV(path){
 
     try{
-
         let res=await fetch(path)
-
         if(!res.ok){
             throw new Error("CSVが見つかりません: "+path)
         }
-
         let text=await res.text()
         text=text.replace(/^\uFEFF/,"")
         questions=parseCSV(text)
@@ -256,13 +235,10 @@ async function loadCSV(path){
 
         document.getElementById("loadingScreen").style.display="none"
         document.getElementById("setupArea").classList.remove("hidden")
-
     }catch(e){
         alert("CSV読み込みエラー\n"+e.message)
     }
-
 }
-
 
 /* =====================
  CSVパーサー
@@ -270,31 +246,20 @@ async function loadCSV(path){
 
 function parseCSV(text){
 
-let rows=text.split("\n")
-
-let result=[]
-
-for(let i=1;i<rows.length;i++){
-
-let r=rows[i].split(",")
-
-if(r.length<3) continue
-
-result.push({
-
-field:r[0],
-term:r[1],
-meaning:r[2],
-index:i-1
-
-})
-
+    let rows=text.split("\n")
+    let result=[]
+    for(let i=1;i<rows.length;i++){
+        let r=rows[i].split(",")
+        if(r.length<3) continue
+            result.push({
+            field:r[0],
+            term:r[1],
+            meaning:r[2],
+            index:i-1
+        })
+    }
+    return result
 }
-
-return result
-
-}
-
 
 
 /* =====================
@@ -303,45 +268,40 @@ return result
 
 function createFieldList(){
 
-let counts={}
+    let counts={}
 
-questions.forEach(q=>{
+    questions.forEach(q=>{
 
-if(!counts[q.field]) counts[q.field]=0
-counts[q.field]++
+        if(!counts[q.field]) counts[q.field]=0
+            counts[q.field]++
 
-})
+    })
 
-let area=document.getElementById("fieldArea")
+    let area=document.getElementById("fieldArea")
 
-Object.keys(counts).forEach(field=>{
+    Object.keys(counts).forEach(field=>{
 
-let label=document.createElement("label")
+        let label=document.createElement("label")
+        label.innerHTML=
+        '<input type="checkbox" value="'+field+'"> '
+        +field+' ('+counts[field]+')'
+        area.appendChild(label)
 
-label.innerHTML=
-'<input type="checkbox" value="'+field+'"> '
-+field+' ('+counts[field]+')'
-
-area.appendChild(label)
-
-})
+    })
 
 }
-
-
 
 /* =====================
  分野選択操作
 ===================== */
 
 function selectAll(){
-document.querySelectorAll("#fieldArea input").forEach(c=>c.checked=true)
+    document.querySelectorAll("#fieldArea input").forEach(c=>c.checked=true)
 }
 
 function clearAll(){
-document.querySelectorAll("#fieldArea input").forEach(c=>c.checked=false)
+    document.querySelectorAll("#fieldArea input").forEach(c=>c.checked=false)
 }
-
 
 /* =====================
  モード説明
@@ -350,15 +310,11 @@ document.querySelectorAll("#fieldArea input").forEach(c=>c.checked=false)
 document.getElementById("modeSelect").addEventListener("change",updateModeDesc)
 
 function updateModeDesc(){
-
-let m=document.getElementById("modeSelect").value
-
-document.getElementById("modeDescription").innerText=modeDesc[m]
-
+    let m=document.getElementById("modeSelect").value
+    document.getElementById("modeDescription").innerText=modeDesc[m]
 }
 
 updateModeDesc()
-
 
 /* =====================
  クイズ開始
@@ -366,55 +322,46 @@ updateModeDesc()
 
 function startQuiz(){
 
-mode=document.getElementById("modeSelect").value
+    mode=document.getElementById("modeSelect").value
+    let selected=[...document.querySelectorAll("#fieldArea input:checked")].map(c=>c.value)
 
-let selected=[...document.querySelectorAll("#fieldArea input:checked")].map(c=>c.value)
+    if(selected.length===0){
+        alert("分野を1つ以上選択してください")
+        return
+    }
 
-if(selected.length===0){
+    filtered=questions.filter(q=>selected.includes(q.field))
 
-alert("分野を1つ以上選択してください")
-return
+    shuffle(filtered)
 
-}
-
-filtered=questions.filter(q=>selected.includes(q.field))
-
-shuffle(filtered)
-
-current=0
-score=0
-wrong=[]
-streak=0
+    current=0
+    score=0
+    wrong=[]
+    streak=0
 
 
-/* 学習モードならクイズ画面ではなく学習画面 */
+    /* 学習モードならクイズ画面ではなく学習画面 */
 
-if(mode==="study"){
-
-document.getElementById("setupArea").classList.add("hidden")
-document.getElementById("studyArea").classList.remove("hidden")
-
-startStudy()
-
-return
-}
+    if(mode==="study"){
+        document.getElementById("setupArea").classList.add("hidden")
+        document.getElementById("studyArea").classList.remove("hidden")
+        startStudy()
+        return
+    }
 
 
-/* 通常モードは5問に制限 */
+    /* 通常モードは5問に制限 */
 
-if(mode==="normal"){
+    if(mode==="normal"){
+        filtered=filtered.slice(0,5)
+    }
 
-filtered=filtered.slice(0,5)
+    document.getElementById("setupArea").classList.add("hidden")
+    document.getElementById("quizArea").classList.remove("hidden")
 
-}
-
-document.getElementById("setupArea").classList.add("hidden")
-document.getElementById("quizArea").classList.remove("hidden")
-
-nextQuestion()
+    nextQuestion()
 
 }
-
 
 /* =====================
  問題表示
@@ -460,29 +407,23 @@ function nextQuestion(){
     })
 }
 
-
 /* =====================
  選択肢生成
 ===================== */
 
 function generateChoices(q){
 
-let arr=[q]
+    let arr=[q]
 
-while(arr.length<4){
+    while(arr.length<4){
+        let r=questions[Math.floor(Math.random()*questions.length)]
+        if(!arr.includes(r)) arr.push(r)
+    }
 
-let r=questions[Math.floor(Math.random()*questions.length)]
-
-if(!arr.includes(r)) arr.push(r)
-
-}
-
-shuffle(arr)
-
-return arr
+    shuffle(arr)
+    return arr
 
 }
-
 
 
 /* =====================
@@ -493,7 +434,6 @@ function checkAnswer(a,c,btn){
 
     let buttons=document.querySelectorAll(".quiz-btn")
     buttons.forEach(b=>b.disabled=true)
-
     let field=filtered[current].field
 
     if(a===c){
@@ -541,19 +481,14 @@ function updateFieldStats(field,correct){
 
 function showResult(){
 
-document.getElementById("quizArea").classList.add("hidden")
-document.getElementById("resultArea").classList.remove("hidden")
-
-let rate=Math.round(score/filtered.length*100)
-
-document.getElementById("scoreText").innerText="正解数 "+score
-document.getElementById("rateText").innerText="正答率 "+rate+"%"
-
-saveStudentStats(rate)
+    document.getElementById("quizArea").classList.add("hidden")
+    document.getElementById("resultArea").classList.remove("hidden")
+    let rate=Math.round(score/filtered.length*100)
+    document.getElementById("scoreText").innerText="正解数 "+score
+    document.getElementById("rateText").innerText="正答率 "+rate+"%"
+    saveStudentStats(rate)
 
 }
-
-
 
 /* =====================
  成績保存
@@ -561,45 +496,34 @@ saveStudentStats(rate)
 
 function saveStudent(){
 
-let name=document.getElementById("studentNameInput").value
-
-localStorage.setItem("studentName",name)
-
-showStudentStats()
+    let name=document.getElementById("studentNameInput").value
+    localStorage.setItem("studentName",name)
+    showStudentStats()
 
 }
 
 function saveStudentStats(rate){
 
-let stats=JSON.parse(localStorage.getItem("studentStats")||"[]")
-
-stats.push(rate)
-
-localStorage.setItem("studentStats",JSON.stringify(stats))
-
-showStudentStats()
+    let stats=JSON.parse(localStorage.getItem("studentStats")||"[]")
+    stats.push(rate)
+    localStorage.setItem("studentStats",JSON.stringify(stats))
+    showStudentStats()
 
 }
 
 function showStudentStats(){
 
-let stats=JSON.parse(localStorage.getItem("studentStats")||"[]")
+    let stats=JSON.parse(localStorage.getItem("studentStats")||"[]")
+    if(stats.length===0) return
+    let avg=Math.round(stats.reduce((a,b)=>a+b)/stats.length)
+    let max=Math.max(...stats)
+    document.getElementById("studentStats").innerHTML=
 
-if(stats.length===0) return
-
-let avg=Math.round(stats.reduce((a,b)=>a+b)/stats.length)
-
-let max=Math.max(...stats)
-
-document.getElementById("studentStats").innerHTML=
-
-"試験回数 "+stats.length+"回<br>"+
-"平均正答率 "+avg+"%<br>"+
-"最高正答率 "+max+"%"
+    "試験回数 "+stats.length+"回<br>"+
+    "平均正答率 "+avg+"%<br>"+
+    "最高正答率 "+max+"%"
 
 }
-
-
 
 /* =====================
  弱点ランキング
@@ -616,7 +540,6 @@ function showWeakRanking(){
     })
 
     arr.sort((a,b)=>a.rate-b.rate)
-
     let html=""
 
     arr.slice(0,3).forEach((r,i)=>{
@@ -631,26 +554,21 @@ function showWeakRanking(){
 
 function showFieldRates(){
 
-let key="fieldStats_"+level
-let stats=JSON.parse(localStorage.getItem(key)||"{}")
+    let key="fieldStats_"+level
+    let stats=JSON.parse(localStorage.getItem(key)||"{}")
+    let html=""
 
-let html=""
+    Object.keys(stats).forEach(field=>{
 
-Object.keys(stats).forEach(field=>{
+        let s=stats[field]
+        let rate=Math.round(s.correct/s.attempts*100)
+        html+=field+"　"+rate+"% ("+s.correct+"/"+s.attempts+")<br>"
 
-let s=stats[field]
+    })
 
-let rate=Math.round(s.correct/s.attempts*100)
-
-html+=field+"　"+rate+"% ("+s.correct+"/"+s.attempts+")<br>"
-
-})
-
-document.getElementById("fieldRates").innerHTML=html
+    document.getElementById("fieldRates").innerHTML=html
 
 }
-
-
 
 /* =====================
  配列シャッフル
@@ -658,15 +576,15 @@ document.getElementById("fieldRates").innerHTML=html
 
 function shuffle(a){
 
-for(let i=a.length-1;i>0;i--){
+    for(let i=a.length-1;i>0;i--){
 
-let j=Math.floor(Math.random()*(i+1))
+        let j=Math.floor(Math.random()*(i+1))
 
-let t=a[i]
-a[i]=a[j]
-a[j]=t
+        let t=a[i]
+        a[i]=a[j]
+        a[j]=t
 
-}
+    }
 
 }
 
@@ -677,43 +595,35 @@ a[j]=t
 let studyIndex=0
 
 function startStudy(){
-
-studyIndex=0
-showStudy()
-
+    studyIndex=0
+    showStudy()
 }
 
 function showStudy(){
 
-let q=filtered[studyIndex]
+    let q=filtered[studyIndex]
 
-document.getElementById("studyTerm").innerText=q.term
-document.getElementById("studyMeaning").innerText=q.meaning
+    document.getElementById("studyTerm").innerText=q.term
+    document.getElementById("studyMeaning").innerText=q.meaning
 
-document.getElementById("cardPosition").innerText=
-(studyIndex+1)+" / "+filtered.length
+    document.getElementById("cardPosition").innerText=
+    (studyIndex+1)+" / "+filtered.length
 
 }
 
 function nextCard(){
-
-if(studyIndex<filtered.length-1){
-
-studyIndex++
-showStudy()
-
-}
-
+    if(studyIndex<filtered.length-1){
+        studyIndex++
+        showStudy()
+    }
 }
 
 function prevCard(){
 
-if(studyIndex>0){
-
-studyIndex--
-showStudy()
-
-}
+    if(studyIndex>0){
+        studyIndex--
+        showStudy()
+    }
 
 }
 
@@ -725,40 +635,29 @@ let touchEndX=0
 const studyArea=document.getElementById("studyArea")
 
 studyArea.addEventListener("touchstart",e=>{
-
-touchStartX=e.changedTouches[0].screenX
-
+    touchStartX=e.changedTouches[0].screenX
 })
 
 studyArea.addEventListener("touchend",e=>{
-
-touchEndX=e.changedTouches[0].screenX
-
-handleSwipe()
-
+    touchEndX=e.changedTouches[0].screenX
+    handleSwipe()
 })
 
 function handleSwipe(){
 
-let diff=touchEndX-touchStartX
+    let diff=touchEndX-touchStartX
 
-if(diff>60){
+    if(diff>60){
+        prevCard()
+    }
 
-prevCard()
-
-}
-
-if(diff<-60){
-
-nextCard()
+    if(diff<-60){
+        nextCard()
+    }
 
 }
-
-}
-
 
 </script>
 
 </body>
 </html>
-```

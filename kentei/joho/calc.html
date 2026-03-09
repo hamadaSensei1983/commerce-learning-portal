@@ -229,24 +229,22 @@ function binaryCalc(){
 
 function capacity(){
 
-    /* 解像度パターン */
-    let w=[640,800,1024][Math.floor(Math.random()*3)]
-    let h=[480,600,768][Math.floor(Math.random()*3)]
-    let bits=[8,16,24][Math.floor(Math.random()*3)]
+    let base = Math.random() < 0.5 ? 1000 : 1024
 
-    let bytes=w*h*(bits/8)
-    let kb=Math.floor(bytes/1024)
+    let width = [640,800,1024,1280][Math.floor(Math.random()*4)]
+    let height = [480,600,720,768][Math.floor(Math.random()*4)]
+    let bit = [8,16,24][Math.floor(Math.random()*3)]
 
-    correctAnswer=kb
+    let bytes = width * height * bit / 8
+    let kb = Math.round(bytes / base)
 
-    document.getElementById("question").innerText=
-    "画像容量は何KB？ 横"+w+" 縦"+h+" "+bits+"bit"
+    correctAnswer = kb + "KB"
 
-    /* 入力ボックス非表示 */
-    document.getElementById("answerInput").style.display="none"
-    document.querySelector(".main-btn").style.display="none"
+    document.getElementById("question").innerText =
+        width + "×" + height + "ピクセル、" +
+        bit + "bitカラーの画像の容量は約何KBか？\n" +
+        "ただし、1KB=" + base + "Bとする"
 
-    document.getElementById("choicesArea").style.display="block"
     createCapacityChoices(kb)
 
 }

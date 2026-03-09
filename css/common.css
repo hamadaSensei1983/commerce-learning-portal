@@ -407,10 +407,20 @@ button{
     margin-top:20px;
     display:flex;
     flex-wrap:wrap;
-    gap:10px;
     justify-content:center;
+    gap:12px;
 }
 
-#choicesArea button{
+.quiz-btn{
+    font-size:20px;
+    padding:12px 20px;
+    border:2px solid #333;
+    border-radius:10px;
+    background:white;
+    cursor:pointer;
     min-width:120px;
+}
+
+.quiz-btn:hover{
+    background:#f0f0f0;
 }

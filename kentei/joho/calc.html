@@ -140,7 +140,7 @@ function nextQuestion(){
     document.getElementById("nextBtn").classList.add("hidden")
     document.getElementById("answerInput").style.display="inline-block"
     document.querySelector(".main-btn").style.display="inline-block"
-    document.getElementById("choicesArea").classList.add("hidden")
+    document.getElementById("choicesArea").style.display="none"
 
     if(mode==="binToDec") binToDec()
     if(mode==="decToBin") decToBin()
@@ -196,34 +196,20 @@ function decToBin(){
 
 function binaryCalc(){
 
-    /*
-    検定対策仕様
-    ・+0 / -0 を出さない
-    ・負の結果を出さない
-    ・5〜6bit程度の問題
-    ・桁あふれ問題も出る
-    */
-
     let a=Math.floor(Math.random()*32)+1
     let b=Math.floor(Math.random()*31)+1
 
     let op=Math.random()<0.5?"+":"-"
 
-    /* 0を禁止 */
-
     while(b===0){
         b=Math.floor(Math.random()*31)+1
     }
-
-    /* 引き算で負を防ぐ */
 
     if(op==="-" && a<b){
         let t=a
         a=b
         b=t
     }
-
-    /* 正解計算 */
 
     if(op==="+"){
         correctAnswer=(a+b).toString(2)
@@ -232,7 +218,8 @@ function binaryCalc(){
     }
 
     document.getElementById("question").innerText=
-    a.toString(2)+" "+op+" "+b.toString(2)
+    a.toString(2)+" "+op+" "+b.toString(2)+
+    " の計算結果を2進数で答えなさい"
 
 }
 
@@ -259,6 +246,7 @@ function capacity(){
     document.getElementById("answerInput").style.display="none"
     document.querySelector(".main-btn").style.display="none"
 
+    document.getElementById("choicesArea").style.display="block"
     createCapacityChoices(kb)
 
 }
@@ -271,7 +259,6 @@ function createCapacityChoices(answer){
 
     const area=document.getElementById("choicesArea")
 
-    area.classList.remove("hidden")
     area.innerHTML=""
 
     let choices=[answer]

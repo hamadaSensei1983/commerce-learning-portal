@@ -10,67 +10,83 @@
 <body>
 
 <header class="app-header">
-<div class="header-left">
-    <img src="../../images/logo.png" class="header-icon">
-    <div>
-        <h1 class="site-title">情報処理検定</h1>
-        <div id="examLevel" class="exam-title"></div>
+    <div class="header-left">
+        <img src="../../images/logo.png" class="header-icon">
+        <div>
+            <h1 class="site-title">情報処理検定</h1>
+            <div id="examLevel" class="exam-title"></div>
+        </div>
     </div>
-</div>
 </header>
 
-
+<!-- 問題タイプ選択 -->
 <div class="card">
-    <h2>問題タイプを選択</h2>
-    <div id="modeButtons"></div>
+<h2>問題タイプを選択</h2>
+<div id="modeButtons"></div>
     <button class="control-btn" onclick="location.href='index.html'">
-        級選択へ戻る
+    級選択へ戻る
     </button>
 </div>
 
+<!-- クイズ画面 -->
 <div class="card hidden" id="quizArea">
-    <div id="question" class="calc-question"></div>
 
-    <div style="text-align:center">
-        <input id="answerInput" class="calc-input" inputmode="decimal">
-        <br><br>
-        <button class="main-btn" onclick="checkAnswer()">
-        答え合わせ
-        </button>
-        <button id="nextBtn" class="control-btn hidden" onclick="nextQuestion()">
-        次の問題
-        </button>
-    </div>
+<div id="question" class="calc-question"></div>
 
-    <div id="result"></div>
+<div style="text-align:center">
+
+    <input id="answerInput" class="calc-input" inputmode="decimal">
+
+    <br><br>
+
+    <button class="main-btn" onclick="checkAnswer()">
+    答え合わせ
+    </button>
+
+    <button id="nextBtn" class="control-btn hidden" onclick="nextQuestion()">
+    次の問題
+    </button>
+
 </div>
 
-<a href="index.html" class="portal-btn exam-btn">
-検定トップ
-</a>
+<div id="result"></div>
 
-<a href="../../index.html" class="portal-btn portal-main">
-ポータルへ戻る
-</a>
+</div>
+
+<a href="index.html" class="portal-btn exam-btn">検定トップ</a>
+<a href="../../index.html" class="portal-btn portal-main">ポータルへ戻る</a>
 
 <script>
+
+/* =====================
+   グローバル変数
+===================== */
 
 let level=""
 let mode=""
 let correctAnswer=""
+
+/* URLパラメータから級取得 */
 
 const params=new URLSearchParams(location.search)
 level=params.get("level")
 
 document.getElementById("examLevel").innerText=level+"級 計算問題"
 
+/* モードボタン作成 */
+
 createModeButtons()
+
+/* =====================
+   問題タイプボタン生成
+===================== */
 
 function createModeButtons(){
 
     const area=document.getElementById("modeButtons")
 
     if(level==="3"){
+
         area.innerHTML=`
         <button class="mode-btn" onclick="startGame('binToDec')">
         2進数 → 10進数
@@ -87,6 +103,7 @@ function createModeButtons(){
     }
 
     if(level==="2"){
+
         area.innerHTML=`
         <button class="mode-btn" onclick="startGame('binaryCalc')">
         2進数計算
@@ -100,13 +117,19 @@ function createModeButtons(){
 
 }
 
-function startGame(m){
+/* =====================
+   ゲーム開始
+===================== */
 
+function startGame(m){
     mode=m
     document.getElementById("quizArea").classList.remove("hidden")
     nextQuestion()
-
 }
+
+/* =====================
+   次の問題表示
+===================== */
 
 function nextQuestion(){
 
@@ -122,12 +145,18 @@ function nextQuestion(){
 
 }
 
-function mix(){
+/* =====================
+   ミックス問題
+===================== */
 
+function mix(){
     if(Math.random()<0.5) binToDec()
     else decToBin()
-
 }
+
+/* =====================
+   2進数 → 10進数
+===================== */
 
 function binToDec(){
 
@@ -141,6 +170,10 @@ function binToDec(){
 
 }
 
+/* =====================
+   10進数 → 2進数
+===================== */
+
 function decToBin(){
 
     let num=Math.floor(Math.random()*100)+13
@@ -152,11 +185,32 @@ function decToBin(){
 
 }
 
+/* =====================
+   2進数計算（2級）
+===================== */
+
 function binaryCalc(){
 
-    let a=Math.floor(Math.random()*15)+5
-    let b=Math.floor(Math.random()*10)
+    /*
+    検定対策仕様
+    ・+0 / -0 を出さない
+    ・負の結果を出さない
+    ・5〜6bit程度の問題
+    ・桁あふれ問題も出る
+    */
+
+    let a=Math.floor(Math.random()*32)+1
+    let b=Math.floor(Math.random()*31)+1
+
     let op=Math.random()<0.5?"+":"-"
+
+    /* 0を禁止 */
+
+    while(b===0){
+        b=Math.floor(Math.random()*31)+1
+    }
+
+    /* 引き算で負を防ぐ */
 
     if(op==="-" && a<b){
         let t=a
@@ -164,12 +218,22 @@ function binaryCalc(){
         b=t
     }
 
-    correctAnswer=(op==="+")?(a+b).toString(2):(a-b).toString(2)
+    /* 正解計算 */
+
+    if(op==="+"){
+        correctAnswer=(a+b).toString(2)
+    }else{
+        correctAnswer=(a-b).toString(2)
+    }
 
     document.getElementById("question").innerText=
     a.toString(2)+" "+op+" "+b.toString(2)
 
 }
+
+/* =====================
+   容量計算
+===================== */
 
 function capacity(){
 
@@ -186,6 +250,10 @@ function capacity(){
 
 }
 
+/* =====================
+   入力正規化
+===================== */
+
 function normalizeNumber(str){
 
     return str
@@ -194,27 +262,19 @@ function normalizeNumber(str){
     .replace(/＋/g,"+")
     .replace(/．/g,".")
     .replace(/，/g,",")
+    .replace(/\s+/g,"")
     .trim()
 
 }
 
-function normalizeNumber(str){
-
-    return str
-        .replace(/[０-９]/g,s=>String.fromCharCode(s.charCodeAt(0)-65248))
-        .replace(/－/g,"-")
-        .replace(/＋/g,"+")
-        .replace(/．/g,".")
-        .replace(/，/g,",")
-        .replace(/\s+/g,"")
-        .trim()
-
-}
+/* =====================
+   回答判定
+===================== */
 
 function checkAnswer(){
 
     let input=normalizeNumber(
-        document.getElementById("answerInput").value
+    document.getElementById("answerInput").value
     )
 
     if(input===""){
@@ -233,11 +293,15 @@ function checkAnswer(){
 
 }
 
-document.getElementById("answerBox")
+/* =====================
+   Enterキー回答
+===================== */
+
+document.getElementById("answerInput")
 .addEventListener("keydown",function(e){
 
-    if(e.key==="Enter"){
-        checkAnswer()
+if(e.key==="Enter"){
+    checkAnswer()
     }
 
 })

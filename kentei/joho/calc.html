@@ -253,42 +253,43 @@ function capacity(){
    容量の４択生成
 ===================== */
 
-function createCapacityChoices(answer){
+function createCapacityChoices(correctKB){
 
-    const area=document.getElementById("choicesArea")
+    let choices = []
+    choices.push(correctKB + "KB")
 
-    area.innerHTML=""
+    while(choices.length < 4){
 
-    let choices=[answer]
+        let delta = Math.floor(Math.random()*200)+50
+        let sign = Math.random()<0.5 ? -1 : 1
 
-    /* ダミー生成（近い値） */
+        let dummy = correctKB + sign*delta
 
-    while(choices.length<4){
+        if(dummy > 0){
 
-        let diff=Math.floor(Math.random()*200)+50
+            let text = dummy + "KB"
 
-        let dummy=Math.random()<0.5
-            ? answer+diff
-            : answer-diff
+            if(!choices.includes(text)){
+                choices.push(text)
+            }
 
-        dummy=Math.max(1,dummy)
-
-        if(!choices.includes(dummy)){
-            choices.push(dummy)
         }
+
     }
 
     shuffle(choices)
 
-    choices.forEach(v=>{
+    let area = document.getElementById("choicesArea")
+    area.innerHTML = ""
 
-        let btn=document.createElement("button")
+    choices.forEach(choice=>{
 
-        btn.className="quiz-btn"
-        btn.innerText=v+" KB"
+        let btn = document.createElement("button")
+        btn.className = "quiz-btn"
+        btn.innerText = choice
 
-        btn.onclick=function(){
-            checkCapacityAnswer(v)
+        btn.onclick = function(){
+            checkCapacityAnswer(choice)
         }
 
         area.appendChild(btn)
@@ -301,17 +302,13 @@ function createCapacityChoices(answer){
    ４択判定
 ===================== */
 
-function checkCapacityAnswer(val){
+function checkCapacityAnswer(choice){
 
-    if(val==correctAnswer){
-
-        document.getElementById("result").innerText="正解"
-
+    if(choice === correctAnswer){
+        document.getElementById("result").innerText = "正解"
     }else{
-
-        document.getElementById("result").innerText=
-        "不正解 正解："+correctAnswer+" KB"
-
+        document.getElementById("result").innerText =
+            "不正解　正解：" + correctAnswer
     }
 
     document.getElementById("nextBtn").classList.remove("hidden")

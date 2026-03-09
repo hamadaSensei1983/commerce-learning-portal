@@ -124,17 +124,16 @@ button{
 }
 
 /* 正解表示 */
-.correct{
-    background:var(--main-green) !important;
-    color:white !important;
-    border:none !important;
+.correct-answer {
+  background-color: #4CAF50;
+  color: white;
+  font-weight: bold;
 }
 
 /* 不正解表示 */
-.incorrect{
-    background:#d9534f !important;
-    color:white !important;
-    border:none !important;
+.wrong-answer {
+  background-color: #f44336;
+  color: white;
 }
 
 /* モード選択専用 */
@@ -363,3 +362,12 @@ button{
     opacity:0;
 }
 
+/* 学習カードアニメーション */
+
+.study-container{
+    overflow:hidden;
+}
+
+#studyCard{
+    transition: transform 0.35s ease;
+}

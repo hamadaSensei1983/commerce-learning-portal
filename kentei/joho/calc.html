@@ -32,7 +32,7 @@
     <div id="question" class="calc-question"></div>
 
     <div style="text-align:center">
-        <input id="answerInput" class="calc-input">
+        <input id="answerInput" class="calc-input" inputmode="decimal">
         <br><br>
         <button class="main-btn" onclick="checkAnswer()">
         答え合わせ
@@ -186,9 +186,36 @@ function capacity(){
 
 }
 
+function normalizeNumber(str){
+
+    return str
+    .replace(/[０-９]/g,s=>String.fromCharCode(s.charCodeAt(0)-65248))
+    .replace(/－/g,"-")
+    .replace(/＋/g,"+")
+    .replace(/．/g,".")
+    .replace(/，/g,",")
+    .trim()
+
+}
+
+function normalizeNumber(str){
+
+    return str
+        .replace(/[０-９]/g,s=>String.fromCharCode(s.charCodeAt(0)-65248))
+        .replace(/－/g,"-")
+        .replace(/＋/g,"+")
+        .replace(/．/g,".")
+        .replace(/，/g,",")
+        .replace(/\s+/g,"")
+        .trim()
+
+}
+
 function checkAnswer(){
 
-    let input=document.getElementById("answerInput").value.trim()
+    let input=normalizeNumber(
+        document.getElementById("answerInput").value
+    )
 
     if(input===""){
         alert("答えを入力してください")
@@ -205,6 +232,15 @@ function checkAnswer(){
     document.getElementById("nextBtn").classList.remove("hidden")
 
 }
+
+document.getElementById("answerBox")
+.addEventListener("keydown",function(e){
+
+    if(e.key==="Enter"){
+        checkAnswer()
+    }
+
+})
 
 </script>
 

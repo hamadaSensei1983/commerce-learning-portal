@@ -1,69 +1,57 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<link rel="stylesheet" href="../../css/common.css">
-
-<title>情報処理 計算問題</title>
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../../css/common.css">
+    <title>情報処理 計算問題</title>
 </head>
 
 <body>
 
 <header class="app-header">
 <div class="header-left">
-
-<img src="../../images/logo.png" class="header-icon">
-
-<div>
-<h1 class="site-title">情報処理検定</h1>
-<div id="examLevel" class="exam-title"></div>
-</div>
-
+    <img src="../../images/logo.png" class="header-icon">
+    <div>
+        <h1 class="site-title">情報処理検定</h1>
+        <div id="examLevel" class="exam-title"></div>
+    </div>
 </div>
 </header>
 
 
 <div class="card">
-
-<h2>問題タイプを選択</h2>
-
-<div id="modeButtons"></div>
-
-<button class="control-btn" onclick="location.href='index.html'">
-級選択へ戻る
-</button>
-
+    <h2>問題タイプを選択</h2>
+    <div id="modeButtons"></div>
+    <button class="control-btn" onclick="location.href='index.html'">
+        級選択へ戻る
+    </button>
 </div>
-
 
 <div class="card hidden" id="quizArea">
+    <div id="question" class="calc-question"></div>
 
-<div id="question" class="calc-question"></div>
+    <div style="text-align:center">
+        <input id="answerInput" class="calc-input">
+        <br><br>
+        <button class="main-btn" onclick="checkAnswer()">
+        答え合わせ
+        </button>
+        <button id="nextBtn" class="control-btn hidden" onclick="nextQuestion()">
+        次の問題
+        </button>
+    </div>
 
-<div style="text-align:center">
-
-<input id="answerInput" class="calc-input">
-
-<br><br>
-
-<button class="main-btn" onclick="checkAnswer()">
-答え合わせ
-</button>
-
-<button id="nextBtn" class="control-btn hidden" onclick="nextQuestion()">
-次の問題
-</button>
-
+    <div id="result"></div>
 </div>
 
-<div id="result"></div>
+<a href="index.html" class="portal-btn exam-btn">
+検定トップ
+</a>
 
-</div>
-
+<a href="../../index.html" class="portal-btn portal-main">
+ポータルへ戻る
+</a>
 
 <script>
 
@@ -80,155 +68,141 @@ createModeButtons()
 
 function createModeButtons(){
 
-const area=document.getElementById("modeButtons")
+    const area=document.getElementById("modeButtons")
 
-if(level==="3"){
+    if(level==="3"){
+        area.innerHTML=`
+        <button class="mode-btn" onclick="startGame('binToDec')">
+        2進数 → 10進数
+        </button>
 
-area.innerHTML=`
-<button class="mode-btn" onclick="startGame('binToDec')">
-2進数 → 10進数
-</button>
+        <button class="mode-btn" onclick="startGame('decToBin')">
+        10進数 → 2進数
+        </button>
 
-<button class="mode-btn" onclick="startGame('decToBin')">
-10進数 → 2進数
-</button>
+        <button class="mode-btn" onclick="startGame('mix')">
+        ミックス
+        </button>
+        `
+    }
 
-<button class="mode-btn" onclick="startGame('mix')">
-ミックス
-</button>
-`
+    if(level==="2"){
+        area.innerHTML=`
+        <button class="mode-btn" onclick="startGame('binaryCalc')">
+        2進数計算
+        </button>
 
-}
-
-if(level==="2"){
-
-area.innerHTML=`
-<button class="mode-btn" onclick="startGame('binaryCalc')">
-2進数計算
-</button>
-
-<button class="mode-btn" onclick="startGame('capacity')">
-容量計算
-</button>
-`
-
-}
+        <button class="mode-btn" onclick="startGame('capacity')">
+        容量計算
+        </button>
+        `
+    }
 
 }
 
 function startGame(m){
 
-mode=m
-
-document.getElementById("quizArea").classList.remove("hidden")
-
-nextQuestion()
+    mode=m
+    document.getElementById("quizArea").classList.remove("hidden")
+    nextQuestion()
 
 }
 
 function nextQuestion(){
 
-document.getElementById("result").innerText=""
-document.getElementById("answerInput").value=""
-document.getElementById("nextBtn").classList.add("hidden")
+    document.getElementById("result").innerText=""
+    document.getElementById("answerInput").value=""
+    document.getElementById("nextBtn").classList.add("hidden")
 
-if(mode==="binToDec") binToDec()
-if(mode==="decToBin") decToBin()
-if(mode==="mix") mix()
-
-if(mode==="binaryCalc") binaryCalc()
-if(mode==="capacity") capacity()
+    if(mode==="binToDec") binToDec()
+    if(mode==="decToBin") decToBin()
+    if(mode==="mix") mix()
+    if(mode==="binaryCalc") binaryCalc()
+    if(mode==="capacity") capacity()
 
 }
 
 function mix(){
 
-if(Math.random()<0.5) binToDec()
-else decToBin()
+    if(Math.random()<0.5) binToDec()
+    else decToBin()
 
 }
 
 function binToDec(){
 
-let num=Math.floor(Math.random()*100)+13
-let bin=num.toString(2)
+    let num=Math.floor(Math.random()*100)+13
+    let bin=num.toString(2)
 
-correctAnswer=num
+    correctAnswer=num
 
-document.getElementById("question").innerText=
-bin+" (2進数) → 10進数"
+    document.getElementById("question").innerText=
+    bin+" (2進数) → 10進数"
 
 }
 
 function decToBin(){
 
-let num=Math.floor(Math.random()*100)+13
+    let num=Math.floor(Math.random()*100)+13
 
-correctAnswer=num.toString(2)
+    correctAnswer=num.toString(2)
 
-document.getElementById("question").innerText=
-num+" (10進数) → 2進数"
+    document.getElementById("question").innerText=
+    num+" (10進数) → 2進数"
 
 }
 
 function binaryCalc(){
 
-let a=Math.floor(Math.random()*15)+5
-let b=Math.floor(Math.random()*10)
+    let a=Math.floor(Math.random()*15)+5
+    let b=Math.floor(Math.random()*10)
+    let op=Math.random()<0.5?"+":"-"
 
-let op=Math.random()<0.5?"+":"-"
+    if(op==="-" && a<b){
+        let t=a
+        a=b
+        b=t
+    }
 
-if(op==="-" && a<b){
+    correctAnswer=(op==="+")?(a+b).toString(2):(a-b).toString(2)
 
-let t=a
-a=b
-b=t
-
-}
-
-correctAnswer=(op==="+")?(a+b).toString(2):(a-b).toString(2)
-
-document.getElementById("question").innerText=
-a.toString(2)+" "+op+" "+b.toString(2)
+    document.getElementById("question").innerText=
+    a.toString(2)+" "+op+" "+b.toString(2)
 
 }
 
 function capacity(){
 
-let w=[640,800,1024][Math.floor(Math.random()*3)]
-let h=[480,600,768][Math.floor(Math.random()*3)]
-let bits=[8,16,24][Math.floor(Math.random()*3)]
+    let w=[640,800,1024][Math.floor(Math.random()*3)]
+    let h=[480,600,768][Math.floor(Math.random()*3)]
+    let bits=[8,16,24][Math.floor(Math.random()*3)]
 
-let bytes=w*h*(bits/8)
+    let bytes=w*h*(bits/8)
 
-correctAnswer=Math.floor(bytes/1024)
+    correctAnswer=Math.floor(bytes/1024)
 
-document.getElementById("question").innerText=
-"画像容量は何KB？ 横"+w+" 縦"+h+" "+bits+"bit"
+    document.getElementById("question").innerText=
+    "画像容量は何KB？ 横"+w+" 縦"+h+" "+bits+"bit"
 
 }
 
 function checkAnswer(){
 
-let input=document.getElementById("answerInput").value.trim()
+    let input=document.getElementById("answerInput").value.trim()
 
-if(input===""){
-alert("答えを入力してください")
-return
-}
+    if(input===""){
+        alert("答えを入力してください")
+        return
+    }
 
-if(input==correctAnswer){
+    if(input==correctAnswer){
+        document.getElementById("result").innerText="正解"
+    }else{
+        document.getElementById("result").innerText=
+        "不正解 正解："+correctAnswer
+    }
 
-document.getElementById("result").innerText="正解"
-
-}else{
-
-document.getElementById("result").innerText=
-"不正解 正解："+correctAnswer
-
-}
-
-document.getElementById("nextBtn").classList.remove("hidden")
+    document.getElementById("nextBtn").classList.remove("hidden")
 
 }
 

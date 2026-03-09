@@ -39,6 +39,8 @@
 
     <br><br>
 
+    <div id="choicesArea" class="hidden"></div>
+
     <button class="main-btn" onclick="checkAnswer()">
     答え合わせ
     </button>
@@ -136,6 +138,9 @@ function nextQuestion(){
     document.getElementById("result").innerText=""
     document.getElementById("answerInput").value=""
     document.getElementById("nextBtn").classList.add("hidden")
+    document.getElementById("answerInput").style.display="inline-block"
+    document.querySelector(".main-btn").style.display="inline-block"
+    document.getElementById("choicesArea").classList.add("hidden")
 
     if(mode==="binToDec") binToDec()
     if(mode==="decToBin") decToBin()
@@ -237,16 +242,94 @@ function binaryCalc(){
 
 function capacity(){
 
+    /* 解像度パターン */
     let w=[640,800,1024][Math.floor(Math.random()*3)]
     let h=[480,600,768][Math.floor(Math.random()*3)]
     let bits=[8,16,24][Math.floor(Math.random()*3)]
 
     let bytes=w*h*(bits/8)
+    let kb=Math.floor(bytes/1024)
 
-    correctAnswer=Math.floor(bytes/1024)
+    correctAnswer=kb
 
     document.getElementById("question").innerText=
     "画像容量は何KB？ 横"+w+" 縦"+h+" "+bits+"bit"
+
+    /* 入力ボックス非表示 */
+    document.getElementById("answerInput").style.display="none"
+    document.querySelector(".main-btn").style.display="none"
+
+    createCapacityChoices(kb)
+
+}
+
+/* =====================
+   容量の４択生成
+===================== */
+
+function createCapacityChoices(answer){
+
+    const area=document.getElementById("choicesArea")
+
+    area.classList.remove("hidden")
+    area.innerHTML=""
+
+    let choices=[answer]
+
+    /* ダミー生成（近い値） */
+
+    while(choices.length<4){
+
+        let diff=Math.floor(Math.random()*200)+50
+
+        let dummy=Math.random()<0.5
+            ? answer+diff
+            : answer-diff
+
+        dummy=Math.max(1,dummy)
+
+        if(!choices.includes(dummy)){
+            choices.push(dummy)
+        }
+    }
+
+    shuffle(choices)
+
+    choices.forEach(v=>{
+
+        let btn=document.createElement("button")
+
+        btn.className="quiz-btn"
+        btn.innerText=v+" KB"
+
+        btn.onclick=function(){
+            checkCapacityAnswer(v)
+        }
+
+        area.appendChild(btn)
+
+    })
+
+}
+
+/* =====================
+   ４択判定
+===================== */
+
+function checkCapacityAnswer(val){
+
+    if(val==correctAnswer){
+
+        document.getElementById("result").innerText="正解"
+
+    }else{
+
+        document.getElementById("result").innerText=
+        "不正解 正解："+correctAnswer+" KB"
+
+    }
+
+    document.getElementById("nextBtn").classList.remove("hidden")
 
 }
 

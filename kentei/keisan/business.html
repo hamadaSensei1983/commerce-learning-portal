@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link rel="stylesheet" href="../../css/common.css">
+
+<title>ビジネス計算検定</title>
+
+<style>
+
+/* 動画カード */
+
+.video-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
+    gap:16px;
+    margin-top:15px;
+}
+
+.video-card{
+    border:1px solid #ddd;
+    border-radius:10px;
+    overflow:hidden;
+    background:white;
+    box-shadow:0 4px 10px rgba(0,0,0,0.1);
+    transition:0.2s;
+}
+
+.video-card:hover{
+    transform:translateY(-3px);
+}
+
+.video-card img{
+    width:100%;
+}
+
+.video-title{
+    padding:10px;
+    font-size:14px;
+    text-align:center;
+}
+
+.video-card a{
+    text-decoration:none;
+    color:#333;
+}
+
+.grade-title{
+    margin-top:30px;
+    font-size:20px;
+    font-weight:bold;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<header class="app-header">
+
+<div class="header-left">
+
+<img src="../../images/logo.png" class="header-icon">
+
+<div>
+
+<h1 class="site-title">ビジネス計算検定</h1>
+
+<div class="exam-title">
+ビジネス計算部門　解説動画
+</div>
+
+</div>
+
+</div>
+
+</header>
+
+
+<div class="card">
+
+<div id="videoArea"></div>
+
+<a href="index.html" class="portal-btn exam-btn">
+部門選択へ戻る
+</a>
+
+<a href="../../index.html" class="portal-btn portal-main">
+ポータルへ戻る
+</a>
+
+</div>
+
+
+<script>
+
+/* CSV読み込み */
+
+fetch("url.csv")
+.then(res => res.text())
+.then(data => {
+
+    const lines = data.trim().split("\n").slice(1)
+
+    const videos = lines.map(line=>{
+        const parts = line.split("\t")
+        return {
+            grade:parts[0],
+            title:parts[1],
+            url:parts[2]
+        }
+    })
+
+    createVideoCards(videos)
+
+})
+
+function createVideoCards(videos){
+
+    const area=document.getElementById("videoArea")
+
+    const grades=["3","2","1"]
+
+    grades.forEach(g=>{
+
+        const list=videos.filter(v=>v.grade===g)
+
+        const title=document.createElement("div")
+        title.className="grade-title"
+        title.innerText=g+"級"
+
+        area.appendChild(title)
+
+        const grid=document.createElement("div")
+        grid.className="video-grid"
+
+        list.forEach(v=>{
+
+            const id=getYoutubeID(v.url)
+
+            const card=document.createElement("div")
+            card.className="video-card"
+
+            card.innerHTML=`
+            <a href="${v.url}" target="_blank">
+                <img src="https://img.youtube.com/vi/${id}/mqdefault.jpg">
+                <div class="video-title">${v.title}</div>
+            </a>
+            `
+
+            grid.appendChild(card)
+
+        })
+
+        area.appendChild(grid)
+
+    })
+
+}
+
+/* YouTube ID取得 */
+
+function getYoutubeID(url){
+
+    if(url.includes("youtu.be")){
+        return url.split("/").pop()
+    }
+
+    if(url.includes("watch?v=")){
+        return url.split("v=")[1].split("&")[0]
+    }
+
+    return ""
+
+}
+
+</script>
+
+</body>
+</html>

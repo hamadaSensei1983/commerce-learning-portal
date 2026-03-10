@@ -9,31 +9,34 @@
 
 <style>
 
-/* セクション */
+/* 教材カードグリッド */
 
-.section{
-    margin-bottom:30px;
+.study-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+    gap:20px;
 }
 
-.section h3{
-    border-left:6px solid var(--main-green);
-    padding-left:10px;
-    margin-bottom:10px;
+/* 教材カード */
+
+.study-card{
+    background:white;
+    padding:20px;
+    border-radius:12px;
+    box-shadow:var(--shadow);
+    border-top:6px solid var(--main-green);
 }
 
-/* リスト強調 */
-
-.point-list li{
-    margin-bottom:6px;
+.study-card h3{
+    margin-top:0;
 }
 
-/* 解答例 */
+/* 強調ボックス */
 
-.answer-box{
+.example-box{
     background:#f9f9f9;
-    padding:12px;
+    padding:10px;
     border-radius:6px;
-    border-left:5px solid var(--main-green);
     margin-top:10px;
 }
 
@@ -44,120 +47,127 @@
 <body>
 
 <header class="app-header">
+
     <div class="header-left">
+
         <img src="../../images/logo.png" class="header-icon">
+
         <div>
+
             <h1 class="site-title">ビジネス計算検定</h1>
             <div class="exam-title">
             普通計算部門 解説
             </div>
+
         </div>
+
     </div>
+
 </header>
 
 
 <div class="card">
 
-<!-- 問題構成 -->
+    <div class="study-grid">
 
-<div class="section">
+        <!-- 問題構成 -->
 
-<h3>普通計算の問題構成</h3>
+        <div class="study-card">
+            <h3>問題構成</h3>
+            <p>
+            普通計算では次の3種類の問題が出題されます。
+            </p>
+            <ul>
+            <li>乗算（かけ算）</li>
+            <li>除算（わり算）</li>
+            <li>見取算（加減算）</li>
+            </ul>
+            <p>
+            検定時間は30分です。
+            </p>
+        </div>
 
-<p>
-普通計算部門では、次の3種類の計算問題が出題されます。
-</p>
+        <!-- 出題される通貨 -->
 
-<ul class="point-list">
+        <div class="study-card">
+            <h3>通貨記号について</h3>
+            <p>
+            普通計算で出題される通貨の種類は次の通りです。
+            </p>
+            <ul>
+            <li>￥　円。日本の通貨。</li>
+            <li>＄　ドル。アメリカの通貨。</li>
+            <li>￡　ポンド。イギリスの通貨。</li>
+            <li>€　ユーロ。ヨーロッパの通貨。</li>
+            </ul>
+            <p>
+            通貨記号によって、答えの書き方が違います。
+            </p>
 
-<li><b>乗算</b>（かけ算）</li>
-
-<li><b>除算</b>（わり算）</li>
-
-<li><b>見取算</b>（たし算・ひき算の連続計算）</li>
-
-</ul>
-
-<p>
-制限時間内にできるだけ多くの問題を正確に解くことが求められます。
-</p>
-
-</div>
-
-
-<!-- 注意点 -->
-
-<div class="section">
-
-<h3>解くときの注意点</h3>
-
-<ul class="point-list">
-
-<li>問題をよく確認してから計算する</li>
-
-<li>桁数の入力ミスに注意する</li>
-
-<li>計算結果をもう一度確認する</li>
-
-<li>途中で迷った問題は後回しにする</li>
-
-</ul>
-
-</div>
+        </div>
 
 
-<!-- 解き方 -->
+        <!-- 注意点 -->
 
-<div class="section">
+        <div class="study-card">
 
-<h3>解き方のポイント</h3>
+            <h3>解くときの注意</h3>
 
-<ul class="point-list">
+            <ul>
+            <li>四捨五入モードにする</li>
+            <li>電卓の入力ミスに注意</li>
+            <li>桁数を必ず確認する</li>
+            <li>迷った問題は後回し</li>
+            </ul>
 
-<li>電卓のキー入力を正確に行う</li>
-
-<li>桁区切りを意識して入力する</li>
-
-<li>見取算は途中で区切って確認する</li>
-
-</ul>
-
-</div>
+        </div>
 
 
-<!-- 答えの書き方 -->
+        <!-- 解き方 -->
 
-<div class="section">
+        <div class="study-card">
 
-<h3>答えの書き方</h3>
+            <h3>解き方のポイント</h3>
 
-<p>
-解答欄には、計算結果を<strong>正確な数字</strong>で記入します。
-</p>
+            <ul>
+            <li>電卓入力を正確に行う</li>
+            <li>桁を意識して入力する</li>
+            <li>見取算は途中で確認する</li>
+            </ul>
 
-<div class="answer-box">
-
-例）  
-<br><br>
-
-125 × 48 ＝ <b>6000</b>
-
-</div>
-
-<p>
-桁数の書き間違いがないように注意しましょう。
-</p>
-
-</div>
+        </div>
 
 
-<a href="index.html" class="portal-btn exam-btn">
-部門選択へ戻る
-</a>
+        <!-- 答えの書き方 -->
 
-<a href="../../index.html" class="portal-btn portal-main">
-ポータルへ戻る
-</a>
+        <div class="study-card">
+
+            <h3>答えの書き方</h3>
+
+            <p>
+            解答欄には計算結果を正確に記入します。
+            </p>
+
+            <div class="example-box">
+
+                例<br><br>
+
+                125 × 48 = <b>6,000</b>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <a href="index.html" class="portal-btn exam-btn">
+    部門選択へ戻る
+    </a>
+
+    <a href="../../index.html" class="portal-btn portal-main">
+    ポータルへ戻る
+    </a>
 
 </div>
 

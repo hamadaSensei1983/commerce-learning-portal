@@ -54,6 +54,17 @@
     font-weight:bold;
 }
 
+details{
+    margin-top:20px;
+}
+
+summary{
+    font-size:20px;
+    font-weight:bold;
+    cursor:pointer;
+    padding:6px 0;
+}
+
 </style>
 
 </head>
@@ -129,11 +140,13 @@ function createVideoCards(videos){
 
         const list=videos.filter(v=>v.grade===g)
 
-        const title=document.createElement("div")
-        title.className="grade-title"
-        title.innerText=g+"級"
+        const block=document.createElement("details")
 
-        area.appendChild(title)
+        const summary=document.createElement("summary")
+        summary.className="grade-title"
+        summary.innerText=g+"級"
+
+        block.appendChild(summary)
 
         const grid=document.createElement("div")
         grid.className="video-grid"
@@ -156,7 +169,9 @@ function createVideoCards(videos){
 
         })
 
-        area.appendChild(grid)
+        block.appendChild(grid)
+
+        area.appendChild(block)
 
     })
 

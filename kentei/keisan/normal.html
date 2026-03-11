@@ -148,6 +148,22 @@ margin-top:6px;
 font-size:14px;
 }
 
+.restart-btn{
+margin-top:20px;
+padding:10px 20px;
+font-size:16px;
+background:var(--main-green);
+color:white;
+border:none;
+border-radius:8px;
+cursor:pointer;
+display:none;
+}
+
+.restart-btn:hover{
+opacity:0.9;
+}
+
 </style>
 
 </head>
@@ -155,7 +171,6 @@ font-size:14px;
 <body>
 
 <header class="app-header">
-
     <div class="header-left">
         <img src="../../images/logo.PNG" class="header-icon">
         <div>
@@ -165,14 +180,14 @@ font-size:14px;
             </div>
         </div>
     </div>
-
 </header>
 
 
 <div class="card">
 
+    <h2>普通計算部門について</h2>
     <div class="study-grid">
-
+     
         <!-- 問題構成 -->
 
         <div class="study-card">
@@ -186,7 +201,8 @@ font-size:14px;
             <li>見取算（加減算）</li>
             </ul>
             <p>
-            検定時間は30分です。
+            検定時間は30分です。<br>
+            それぞれ100点満点で合計210点以上で合格です。
             </p>
         </div>
 
@@ -198,10 +214,10 @@ font-size:14px;
             普通計算で出題される通貨の種類は次の通りです。
             </p>
             <ul>
-            <li>￥　円。日本の通貨。</li>
-            <li>＄　ドル。アメリカの通貨。</li>
-            <li>￡　ポンド。イギリスの通貨。</li>
-            <li>€　ユーロ。ヨーロッパの通貨。</li>
+            <li>￥　円</li>
+            <li>＄　ドル。</li>
+            <li>￡　ポンド。</li>
+            <li>€　ユーロ。</li>
             </ul>
             <p>
             通貨記号によって、答えの書き方が違います。
@@ -214,14 +230,20 @@ font-size:14px;
 
         <div class="study-card">
 
-            <h3>解くときの注意</h3>
+            <h3>解く前に</h3>
 
             <ul>
-            <li>四捨五入モードにする</li>
-            <li>電卓の入力ミスに注意</li>
-            <li>桁数を必ず確認する</li>
-            <li>迷った問題は後回し</li>
+            <li>４捨５入モードにする</li>
+            <li>小数の桁数に注意する</li>
             </ul>
+            <div class="example-box">
+                ￥<br>
+                　…<b>０桁</b>に設定する<br><br>
+                ＄，￡，€（乗算・除算）<br>
+                　…<b>２桁</b>に設定する<br><br>
+                ＄，￡，€（見取算）<br>
+                　…<b>ADD2</b>に設定する
+            </div>
 
         </div>
 
@@ -233,9 +255,12 @@ font-size:14px;
             <h3>解き方のポイント</h3>
 
             <ul>
-            <li>電卓入力を正確に行う</li>
-            <li>桁を意識して入力する</li>
-            <li>見取算は途中で確認する</li>
+            <li><b>速さより正確性を重視</b></li>
+            <div>意外とゆっくり打っても間に合います</div>
+            <li><b>間違えたらＡＣよりも▶ボタン</b></li>
+            <div>１桁ずつ消去したほうが効率的です</div>
+            <li><b>見取算は入力個所を指さし確認</b></li>
+            <div>途中でどこを入力しているのか行方不明になってしまいます</div>
             </ul>
 
         </div>
@@ -247,16 +272,39 @@ font-size:14px;
 
             <h3>答えの書き方</h3>
 
-            <p>
-            解答欄には計算結果を正確に記入します。
-            </p>
+            <ul>
+            <li>解答は丁寧に書く！</li>
+            <li>通貨記号は数字の先頭に書く</li>
+            <li>コンマは３桁ごとに書く</li>
+            <li>￥記号以外の答えは小数第２位まで書く</li>
+            </ul>
 
             <div class="example-box">
-
                 例<br><br>
 
-                125 × 48 = <b>6,000</b>
+                ￥125 × 48 = <b>￥6,000</b><br>
+                ＄120.25 × 35 = <b>＄4,208.75</b>
+            </div>
 
+        </div>
+
+        <div class="study-card">
+
+            <h3>見取算（＄，￡，€）の解き方</h3>
+
+            <p>
+            外国通貨は必ず小数が出てきます。丁寧に小数を入力していくと、
+            かなり時間がかかります。そこで「ADD2」の登場です。
+            これは、小数を無視して入力できる機能です。
+            </p>
+            <div class="example-box">
+                例<br><br>
+
+                ＄1,503.67 + ＄3,248.84 =<br><br>
+                小数を無視して入力<br>
+                150367 + 324884 =<br><br>
+                電卓には<br>
+                <b>「4,752.51」</b>と表示されます
             </div>
 
         </div>
@@ -270,6 +318,8 @@ font-size:14px;
     <div id="slideTitle" class="slide-title"></div>
 
     <div class="slide-stage">
+
+        <button class="nav-btn first" onclick="firstSlide()">⏮</button>
 
         <button class="nav-btn left" onclick="prevSlide()">◀</button>
 
@@ -290,6 +340,9 @@ font-size:14px;
         <div id="slideNumber" class="slide-number"></div>
 
     </div>
+    <button id="restartBtn" class="restart-btn" onclick="firstSlide()">
+    最初からもう一度
+    </button>
 
 </div>
 
@@ -428,8 +481,15 @@ function showSlide(){
     let progress=((currentSlide+1)/slides.length)*100
     document.getElementById("progressFill").style.width=progress+"%"
 
-}
+    /* 最後のスライドだけ再スタートボタン表示 */
 
+    if(currentSlide === slides.length-1){
+        document.getElementById("restartBtn").style.display="inline-block"
+    }else{
+        document.getElementById("restartBtn").style.display="none"
+    }
+
+}
 function nextSlide(){
 
     if(currentSlide<slides.length-1){
@@ -440,12 +500,15 @@ function nextSlide(){
 }
 
 function prevSlide(){
-
     if(currentSlide>0){
         currentSlide--
         showSlide()
     }
+}
 
+function firstSlide(){
+    currentSlide = 0
+    showSlide()
 }
 
 /* キーボード操作 */
@@ -458,6 +521,10 @@ document.addEventListener("keydown",function(e){
 
     if(e.key==="ArrowLeft"){
         prevSlide()
+    }
+
+    if(e.key==="Home"){
+        firstSlide()
     }
 
 })

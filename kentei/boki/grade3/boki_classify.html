@@ -9,6 +9,22 @@
 
 <style>
 
+/* 問題文 */
+#question{
+text-align:center;
+font-size:28px;
+margin-bottom:20px;
+}
+
+/* 結果表示 */
+.answer-box{
+margin-top:20px;
+font-weight:bold;
+font-size:18px;
+min-height:60px;
+}
+
+/* Tフォーム */
 .tform{
 
 display:grid;
@@ -26,30 +42,45 @@ margin-top:25px;
 .btn-asset{
 grid-row:1 / 3;
 grid-column:1;
+background:#4A90E2;
+color:white;
 }
 
 /* 負債 */
 .btn-liability{
 grid-row:1;
 grid-column:2;
+background:#E74C3C;
+color:white;
 }
 
 /* 資本 */
 .btn-capital{
 grid-row:2;
 grid-column:2;
+background:#9B59B6;
+color:white;
 }
 
 /* 費用（2行） */
 .btn-expense{
 grid-row:1 / 3;
 grid-column:3;
+background:#F39C12;
+color:white;
 }
 
 /* 収益（2行） */
 .btn-revenue{
 grid-row:1 / 3;
 grid-column:4;
+background:#27AE60;
+color:white;
+}
+
+/* ボタンホバー */
+.tform button:hover{
+opacity:0.85;
 }
 
 </style>
@@ -60,44 +91,48 @@ grid-column:4;
 
 <header class="app-header">
 
-    <div class="header-left">
-        <img src="../../../images/logo.png" class="header-icon">
-        <div>
-            <h1 class="site-title">検定対策システム</h1>
-            <div class="exam-title">全商簿記3級 勘定科目分類</div>
-        </div>
-    </div>
+<div class="header-left">
+<img src="../../../images/logo.png" class="header-icon">
+
+<div>
+<h1 class="site-title">検定対策システム</h1>
+<div class="exam-title">全商簿記3級 勘定科目分類</div>
+</div>
+
+</div>
 
 </header>
 
 
 <div class="card">
 
-    <h2 id="question"></h2>
+<h2 id="question"></h2>
 
-    <div class="tform">
+<div class="tform">
 
-        <button class="quiz-btn btn-asset"
-        onclick="check('資産')">資産</button>
+<button class="quiz-btn btn-asset"
+onclick="check('資産')">資産</button>
 
-        <button class="quiz-btn btn-liability"
-        onclick="check('負債')">負債</button>
+<button class="quiz-btn btn-liability"
+onclick="check('負債')">負債</button>
 
-        <button class="quiz-btn btn-expense"
-        onclick="check('費用')">費用</button>
+<button class="quiz-btn btn-expense"
+onclick="check('費用')">費用</button>
 
-        <button class="quiz-btn btn-revenue"
-        onclick="check('収益')">収益</button>
+<button class="quiz-btn btn-revenue"
+onclick="check('収益')">収益</button>
 
-        <button class="quiz-btn btn-capital"
-        onclick="check('資本')">資本</button>
-
-    </div>
-    <p id="result" class="answer-box"></p>
-
-    <button class="main-btn hidden" id="nextBtn" onclick="next()">次の問題</button>
+<button class="quiz-btn btn-capital"
+onclick="check('資本')">資本</button>
 
 </div>
+
+<p id="result" class="answer-box"></p>
+
+<button class="main-btn hidden" id="nextBtn" onclick="next()">次の問題</button>
+
+</div>
+
 
 <a href="../index.html" class="portal-btn exam-btn">簿記トップ</a>
 <a href="../../../index.html" class="portal-btn portal-main">ポータルへ戻る</a>
@@ -112,53 +147,76 @@ fetch("../data/boki3.csv")
 .then(res=>res.text())
 .then(text=>{
 
-    let rows=text.trim().split("\n").slice(1)
+let rows=text.trim().split("\n").slice(1)
 
-    data=rows.map(r=>{
+data=rows.map(r=>{
 
-    let c=r.split(",")
+let c=r.split(",")
 
-    return{
-    term:c[0].trim(),
-    type:c[1].trim(),
-    desc:c.slice(2).join(",").trim()
-    }
+return{
+term:c[0].trim(),
+type:c[1].trim(),
+desc:c.slice(2).join(",").trim()
+}
 
-    })
+})
 
-    next()
+next()
 
 })
 
 
 function next(){
 
-    current=data[Math.floor(Math.random()*data.length)]
+current=data[Math.floor(Math.random()*data.length)]
 
-    document.getElementById("question").innerText=current.term
+document.getElementById("question").innerText=current.term
 
-    document.getElementById("result").innerText=""
+document.getElementById("result").innerText=""
 
-    document.getElementById("nextBtn").classList.add("hidden")
+document.getElementById("nextBtn").classList.add("hidden")
+
+enableButtons()
 
 }
 
 
 function check(ans){
 
-    let result=document.getElementById("result")
+let result=document.getElementById("result")
 
-    if(ans===current.type){
-        result.innerHTML="〇 正解！"
-    }else{
-        result.innerHTML=
-        "× 不正解<br><br>"+
-        "正解： "+current.type+"<br>"+
-        "解説： "+current.desc
-    }
+disableButtons()
 
-    document.getElementById("nextBtn").classList.remove("hidden")
+if(ans===current.type){
 
+result.innerHTML="〇 正解！"
+
+}else{
+
+result.innerHTML=
+"× 不正解<br><br>"+
+"正解： "+current.type+"<br>"+
+"解説： "+current.desc
+
+}
+
+document.getElementById("nextBtn").classList.remove("hidden")
+
+}
+
+
+/* ボタン無効化 */
+
+function disableButtons(){
+document.querySelectorAll(".tform button").forEach(b=>{
+b.disabled=true
+})
+}
+
+function enableButtons(){
+document.querySelectorAll(".tform button").forEach(b=>{
+b.disabled=false
+})
 }
 
 </script>

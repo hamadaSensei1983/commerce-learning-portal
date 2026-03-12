@@ -173,6 +173,16 @@
 
     </div>
 
+    <div id="stats" style="text-align:center;margin-bottom:10px">
+    連続正解：0
+    </div>
+
+    <div id="instruction" style="text-align:center;font-size:18px;margin-bottom:8px">
+    次の取引の仕訳を示しなさい。
+    </div>
+
+    <h2 id="question"></h2>
+
     <h2 id="question"></h2>
 
     <div id="journalArea" style="display:none">
@@ -240,6 +250,7 @@ let allData=[]
 let data=[]
 let current
 let accounts=[]
+let streak = 0
 
 fetch("../data/journal3.csv")
 .then(res=>res.text())
@@ -340,6 +351,15 @@ function start(){
     document.getElementById("journalArea").style.display="block"
 
     next()
+
+    fieldStats = {}
+
+    data.forEach(q => {
+        if(!fieldStats[q.field]){
+            fieldStats[q.field] = {correct:0,total:0}
+        }
+    })
+
 }
 
 /* 次の問題 */
@@ -392,6 +412,8 @@ document.querySelectorAll(".money").forEach(el=>{
 /* チェック */
 function check(){
 
+    fieldStats[current.field].total++
+
     let ansD=[
         {a:v("d1"),m:n("dm1")},
         {a:v("d2"),m:n("dm2")}
@@ -427,9 +449,9 @@ function check(){
     let ok=compare(ansD,corD) && compare(ansC,corC)
 
     if(ok){
-
         document.getElementById("result").innerHTML="〇 正解！"
-
+        streak++
+        fieldStats[current.field].correct++
     }else{
 
         document.getElementById("result").innerHTML=
@@ -455,10 +477,15 @@ function check(){
         "</div><br>"+
 
         "解説："+current.desc
+        streak = 0
 
     }
 
     lockInputs()
+    document.getElementById("stats").innerText =
+    "連続正解：" + streak
+
+    showFieldStats()
 
 }
 
@@ -490,6 +517,21 @@ function lockInputs(){
     })
 
 }
+
+function showFieldStats(){
+
+    let html = "<br><b>分野別正解率</b><br>"
+
+    for(let f in fieldStats){
+        let s = fieldStats[f]
+        let rate = s.total ? Math.round(s.correct/s.total*100) : 0
+        html += f + " : " + rate + "% (" + s.correct + "/" + s.total + ")<br>"
+    }
+
+    document.getElementById("result").innerHTML += html
+
+}
+
 </script>
 
 </body>

@@ -150,37 +150,46 @@ let current
 let questions=[]
 let wrong=[]
 let index=0
+let correctCount=0
+
 
 fetch("../data/boki3.csv")
 .then(res=>res.text())
 .then(text=>{
 
-    let rows=text.trim().split("\n").slice(1)
+let rows=text.trim().split("\n").slice(1)
 
-    data=rows.map(r=>{
+data=rows.map(r=>{
 
-        let c=r.split(",")
+let c=r.split(",")
 
-        return{
-            term:c[0].trim(),
-            type:c[1].trim(),
-            desc:c.slice(2).join(",").trim()
-        }
-
-    })
-
-    /* 出題リスト作成 */
-
-    questions=[...data]
-
-    shuffle(questions)
-
-    index=0
-    wrong=[]
-
-    next()
+return{
+term:c[0].trim(),
+type:c[1].trim(),
+desc:c.slice(2).join(",").trim()
+}
 
 })
+
+startQuiz()
+
+})
+
+
+function startQuiz(){
+
+questions=[...data]
+
+shuffle(questions)
+
+index=0
+wrong=[]
+correctCount=0
+
+next()
+
+}
+
 
 function next(){
 
@@ -188,16 +197,9 @@ removeHighlight()
 
 if(index>=questions.length){
 
-document.getElementById("question").innerText="全問終了！"
-
-document.getElementById("result").innerHTML=
-"お疲れさまでした<br>"+
-"間違い："+wrong.length+"問<br><br>"+
-"<button onclick='reviewMode()'>復習モード</button>"
-
-document.getElementById("nextBtn").classList.add("hidden")
-
+finishQuiz()
 return
+
 }
 
 current=questions[index]
@@ -214,75 +216,126 @@ enableButtons()
 
 }
 
+
 function check(ans){
 
-    let result=document.getElementById("result")
+let result=document.getElementById("result")
 
-    disableButtons()
+disableButtons()
 
-    if(ans===current.type){
+if(ans===current.type){
 
-        result.innerHTML="〇 正解！"
+result.innerHTML="〇 正解！"
+correctCount++
 
-    }else{
+}else{
 
-        result.innerHTML=
-        "× 不正解<br><br>"+
-        "正解： "+current.type+"<br>"+
-        "解説： "+current.desc
+result.innerHTML=
+"× 不正解<br><br>"+
+"正解： "+current.type+"<br>"+
+"解説： "+current.desc
 
-    }
-
-    /* 正解ボタンを光らせる */
-    document.querySelectorAll(".tform button").forEach(b=>{
-        if(b.innerText===current.type){
-            b.classList.add("correct")
-        }
-    })
-
-    document.getElementById("nextBtn").classList.remove("hidden")
-
-    if(ans!==current.type){
-        wrong.push(current)
-    }
+wrong.push(current)
 
 }
 
-/* ボタン無効化 */
 
-function disableButtons(){
+/* 正解ボタンを光らせる */
+
 document.querySelectorAll(".tform button").forEach(b=>{
-b.disabled=true
-})
+
+if(b.innerText===current.type){
+b.classList.add("correct")
 }
 
-function enableButtons(){
-document.querySelectorAll(".tform button").forEach(b=>{
-b.disabled=false
 })
+
+
+document.getElementById("nextBtn").classList.remove("hidden")
+
 }
+
+
+/* 全問終了 */
+
+function finishQuiz(){
+
+let rate=Math.round((correctCount/questions.length)*100)
+
+document.getElementById("question").innerText="全問終了！"
+
+document.getElementById("result").innerHTML=
+
+"正解数："+correctCount+" / "+questions.length+"<br>"+
+"正解率："+rate+"％<br><br>"+
+"間違い："+wrong.length+"問<br><br>"+
+"<button onclick='reviewMode()'>復習モード</button><br><br>"+
+"<button onclick='startQuiz()'>もう一度チャレンジ</button>"
+
+document.getElementById("nextBtn").classList.add("hidden")
+
+disableButtons()
+
+}
+
+
+/* 復習モード */
 
 function reviewMode(){
 
-    questions=[...wrong]
-    wrong=[]
-    index=0
-    shuffle(questions)
-    next()
+questions=[...wrong]
+
+shuffle(questions)
+
+index=0
+correctCount=0
+wrong=[]
+
+next()
 
 }
 
+
+/* ボタン制御 */
+
+function disableButtons(){
+
+    document.querySelectorAll(".tform button").forEach(b=>{
+        b.disabled=true
+    })
+
+}
+
+function enableButtons(){
+
+    document.querySelectorAll(".tform button").forEach(b=>{
+        b.disabled=false
+    })
+
+}
+
+
+/* ハイライト解除 */
+
 function removeHighlight(){
+
     document.querySelectorAll(".tform button").forEach(b=>{
         b.classList.remove("correct")
     })
+
 }
+
+
+/* シャッフル */
 
 function shuffle(array){
 
     for(let i=array.length-1;i>0;i--){
+
         const j=Math.floor(Math.random()*(i+1))
+
         [array[i],array[j]]=[array[j],array[i]]
+
     }
 
 }

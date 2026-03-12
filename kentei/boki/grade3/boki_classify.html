@@ -258,11 +258,18 @@ function finishQuiz(){
 
 /* 復習モード */
 function reviewMode(){
+    if(wrong.length===0){
+        document.getElementById("result").innerHTML=
+        "間違えた問題はありません！<br><br>"+
+        "<button onclick='startQuiz()'>もう一度チャレンジ</button>"
+        return
+    }
     questions=[...wrong]
     shuffle(questions)
     index=0
     correctCount=0
     wrong=[]
+
     next()
 }
 

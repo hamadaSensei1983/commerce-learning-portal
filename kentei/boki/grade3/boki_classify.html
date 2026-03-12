@@ -97,17 +97,14 @@
 <header class="app-header">
 
     <div class="header-left">
-    <img src="../../../images/logo.png" class="header-icon">
-
-    <div>
-    <h1 class="site-title">検定対策システム</h1>
-    <div class="exam-title">全商簿記3級 勘定科目分類</div>
-    </div>
-
+        <img src="../../../images/logo.png" class="header-icon">
+        <div>
+            <h1 class="site-title">検定対策システム</h1>
+            <div class="exam-title">全商簿記3級 勘定科目分類</div>
+        </div>
     </div>
 
 </header>
-
 
 <div class="card">
 
@@ -115,20 +112,20 @@
 
     <div class="tform">
 
-    <button class="quiz-btn btn-asset"
-    onclick="check('資産')">資産</button>
+        <button class="quiz-btn btn-asset"
+        onclick="check('資産')">資産</button>
 
-    <button class="quiz-btn btn-liability"
-    onclick="check('負債')">負債</button>
+        <button class="quiz-btn btn-liability"
+        onclick="check('負債')">負債</button>
 
-    <button class="quiz-btn btn-expense"
-    onclick="check('費用')">費用</button>
+        <button class="quiz-btn btn-expense"
+        onclick="check('費用')">費用</button>
 
-    <button class="quiz-btn btn-revenue"
-    onclick="check('収益')">収益</button>
+        <button class="quiz-btn btn-revenue"
+        onclick="check('収益')">収益</button>
 
-    <button class="quiz-btn btn-capital"
-    onclick="check('資本')">資本</button>
+        <button class="quiz-btn btn-capital"
+        onclick="check('資本')">資本</button>
 
     </div>
 
@@ -187,7 +184,6 @@ fetch("../data/boki3.csv")
 })
 
 function startQuiz(){
-
     questions=[...data]
 
     shuffle(questions)
@@ -197,9 +193,7 @@ function startQuiz(){
     correctCount=0
 
     next()
-
 }
-
 
 function next(){
     removeHighlight()
@@ -232,27 +226,21 @@ function check(ans){
         "× 不正解<br><br>"+
         "正解： "+current.type+"<br>"+
         "解説： "+current.desc
-
         wrong.push(current)
     }
 
     /* 正解ボタンを光らせる */
-
     document.querySelectorAll(".tform button").forEach(b=>{
         if(b.innerText===current.type){
             b.classList.add("correct")
         }
     })
-
     document.getElementById("nextBtn").classList.remove("hidden")
-
 }
 
 
 /* 全問終了 */
-
 function finishQuiz(){
-
     let rate=Math.round((correctCount/questions.length)*100)
     document.getElementById("question").innerText="全問終了！"
     document.getElementById("result").innerHTML=
@@ -265,12 +253,10 @@ function finishQuiz(){
 
     document.getElementById("nextBtn").classList.add("hidden")
     disableButtons()
-
 }
 
 
 /* 復習モード */
-
 function reviewMode(){
     questions=[...wrong]
     shuffle(questions)
@@ -280,9 +266,7 @@ function reviewMode(){
     next()
 }
 
-
 /* ボタン制御 */
-
 function disableButtons(){
     document.querySelectorAll(".tform button").forEach(b=>{
         b.disabled=true
@@ -297,7 +281,6 @@ function enableButtons(){
 
 
 /* ハイライト解除 */
-
 function removeHighlight(){
     document.querySelectorAll(".tform button").forEach(b=>{
         b.classList.remove("correct")
@@ -306,11 +289,12 @@ function removeHighlight(){
 
 
 /* シャッフル */
-
 function shuffle(array){
-    for(let i=array.length-1;i>0;i--){
-        const j=Math.floor(Math.random()*(i+1))
-        [array[i],array[j]]=[array[j],array[i]]
+    for(var i=array.length-1;i>0;i--){
+        var j=Math.floor(Math.random()*(i+1))
+        var temp=array[i]
+        array[i]=array[j]
+        array[j]=temp
     }
 }
 

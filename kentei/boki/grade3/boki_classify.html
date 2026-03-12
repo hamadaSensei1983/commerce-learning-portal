@@ -144,27 +144,42 @@ let data=[]
 let current
 
 fetch("../data/boki3.csv")
-.then(res=>res.text())
-.then(text=>{
+.then(res=>{
 
-let rows=text.trim().split("\n").slice(1)
+    if(!res.ok){
+        throw new Error("CSV読み込み失敗")
+    }
 
-data=rows.map(r=>{
+    return res.text()
 
-let c=r.split(",")
+    })
+    .then(text=>{
 
-return{
-term:c[0].trim(),
-type:c[1].trim(),
-desc:c.slice(2).join(",").trim()
-}
+        let rows=text.trim().split("\n").slice(1)
+
+        data=rows.map(r=>{
+
+            let c=r.split(",")
+
+            return{
+            term:c[0].trim(),
+            type:c[1].trim(),
+            desc:c.slice(2).join(",").trim()
+            }
+
+        })
+
+        next()
+
+    })
+    .catch(err=>{
+
+    console.error(err)
+
+    document.getElementById("question").innerText=
+    "CSVが読み込めません"
 
 })
-
-next()
-
-})
-
 
 function next(){
 

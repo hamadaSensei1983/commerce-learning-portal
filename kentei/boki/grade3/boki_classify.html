@@ -9,79 +9,84 @@
 
 <style>
 
-/* 問題文 */
-#question{
-text-align:center;
-font-size:28px;
-margin-bottom:20px;
-}
+    /* 問題文 */
+    #question{
+    text-align:center;
+    font-size:28px;
+    margin-bottom:20px;
+    }
 
-/* 結果表示 */
-.answer-box{
-margin-top:20px;
-font-weight:bold;
-font-size:18px;
-min-height:60px;
-}
+    /* 結果表示 */
+    .answer-box{
+    margin-top:20px;
+    font-weight:bold;
+    font-size:18px;
+    min-height:60px;
+    }
 
-/* Tフォーム */
-.tform{
+    /* Tフォーム */
+    .tform{
 
-display:grid;
+    display:grid;
 
-grid-template-columns:1fr 1fr 1fr 1fr;
-grid-template-rows:90px 90px;
+    grid-template-columns:1fr 1fr 1fr 1fr;
+    grid-template-rows:90px 90px;
 
-gap:12px;
+    gap:12px;
 
-margin-top:25px;
+    margin-top:25px;
 
-}
+    }
 
-/* 資産（2行） */
-.btn-asset{
-grid-row:1 / 3;
-grid-column:1;
-background:#4A90E2;
-color:white;
-}
+    /* 資産 */
+    .btn-asset{
+    grid-row:1 / 3;
+    grid-column:1;
+    background:#a9c9ff;
+    color:black;
+    }
 
-/* 負債 */
-.btn-liability{
-grid-row:1;
-grid-column:2;
-background:#E74C3C;
-color:white;
-}
+    /* 負債 */
+    .btn-liability{
+    grid-row:1;
+    grid-column:2;
+    background:#ffb3b3;
+    color:black;
+    }
 
-/* 資本 */
-.btn-capital{
-grid-row:2;
-grid-column:2;
-background:#9B59B6;
-color:white;
-}
+    /* 資本 */
+    .btn-capital{
+    grid-row:2;
+    grid-column:2;
+    background:#e3c6ff;
+    color:black;
+    }
 
-/* 費用（2行） */
-.btn-expense{
-grid-row:1 / 3;
-grid-column:3;
-background:#F39C12;
-color:white;
-}
+    /* 費用 */
+    .btn-expense{
+    grid-row:1 / 3;
+    grid-column:3;
+    background:#ffd8a8;
+    color:black;
+    }
 
-/* 収益（2行） */
-.btn-revenue{
-grid-row:1 / 3;
-grid-column:4;
-background:#27AE60;
-color:white;
-}
+    /* 収益 */
+    .btn-revenue{
+    grid-row:1 / 3;
+    grid-column:4;
+    background:#b9f6ca;
+    color:black;
+    }
 
-/* ボタンホバー */
-.tform button:hover{
-opacity:0.85;
-}
+    /* ボタンホバー */
+    .tform button:hover{
+    opacity:0.85;
+    }
+
+    .correct{
+        outline:4px solid gold;
+        transform:scale(1.05);
+    }
 
 </style>
 
@@ -91,45 +96,45 @@ opacity:0.85;
 
 <header class="app-header">
 
-<div class="header-left">
-<img src="../../../images/logo.png" class="header-icon">
+    <div class="header-left">
+    <img src="../../../images/logo.png" class="header-icon">
 
-<div>
-<h1 class="site-title">検定対策システム</h1>
-<div class="exam-title">全商簿記3級 勘定科目分類</div>
-</div>
+    <div>
+    <h1 class="site-title">検定対策システム</h1>
+    <div class="exam-title">全商簿記3級 勘定科目分類</div>
+    </div>
 
-</div>
+    </div>
 
 </header>
 
 
 <div class="card">
 
-<h2 id="question"></h2>
+    <h2 id="question"></h2>
 
-<div class="tform">
+    <div class="tform">
 
-<button class="quiz-btn btn-asset"
-onclick="check('資産')">資産</button>
+    <button class="quiz-btn btn-asset"
+    onclick="check('資産')">資産</button>
 
-<button class="quiz-btn btn-liability"
-onclick="check('負債')">負債</button>
+    <button class="quiz-btn btn-liability"
+    onclick="check('負債')">負債</button>
 
-<button class="quiz-btn btn-expense"
-onclick="check('費用')">費用</button>
+    <button class="quiz-btn btn-expense"
+    onclick="check('費用')">費用</button>
 
-<button class="quiz-btn btn-revenue"
-onclick="check('収益')">収益</button>
+    <button class="quiz-btn btn-revenue"
+    onclick="check('収益')">収益</button>
 
-<button class="quiz-btn btn-capital"
-onclick="check('資本')">資本</button>
+    <button class="quiz-btn btn-capital"
+    onclick="check('資本')">資本</button>
 
-</div>
+    </div>
 
-<p id="result" class="answer-box"></p>
+    <p id="result" class="answer-box"></p>
 
-<button class="main-btn hidden" id="nextBtn" onclick="next()">次の問題</button>
+    <button class="main-btn hidden" id="nextBtn" onclick="next()">次の問題</button>
 
 </div>
 
@@ -142,6 +147,9 @@ onclick="check('資本')">資本</button>
 
 let data=[]
 let current
+let questions=[]
+let wrong=[]
+let index=0
 
 fetch("../data/boki3.csv")
 .then(res=>{
@@ -169,9 +177,14 @@ fetch("../data/boki3.csv")
 
         })
 
+        questions=[...data]
+        shuffle(questions)
         next()
 
     })
+
+
+    
     .catch(err=>{
 
     console.error(err)
@@ -183,7 +196,25 @@ fetch("../data/boki3.csv")
 
 function next(){
 
-current=data[Math.floor(Math.random()*data.length)]
+removeHighlight()
+
+if(index>=questions.length){
+
+document.getElementById("question").innerText="全問終了！"
+
+document.getElementById("result").innerHTML=
+"お疲れさまでした<br>"+
+"間違い："+wrong.length+"問<br><br>"+
+"<button onclick='reviewMode()'>復習モード</button>"
+
+document.getElementById("nextBtn").classList.add("hidden")
+
+return
+}
+
+current=questions[index]
+
+index++
 
 document.getElementById("question").innerText=current.term
 
@@ -195,30 +226,39 @@ enableButtons()
 
 }
 
-
 function check(ans){
 
-let result=document.getElementById("result")
+    let result=document.getElementById("result")
 
-disableButtons()
+    disableButtons()
 
-if(ans===current.type){
+    if(ans===current.type){
 
-result.innerHTML="〇 正解！"
+        result.innerHTML="〇 正解！"
 
-}else{
+    }else{
 
-result.innerHTML=
-"× 不正解<br><br>"+
-"正解： "+current.type+"<br>"+
-"解説： "+current.desc
+        result.innerHTML=
+        "× 不正解<br><br>"+
+        "正解： "+current.type+"<br>"+
+        "解説： "+current.desc
+
+    }
+
+    /* 正解ボタンを光らせる */
+    document.querySelectorAll(".tform button").forEach(b=>{
+        if(b.innerText===current.type){
+            b.classList.add("correct")
+        }
+    })
+
+    document.getElementById("nextBtn").classList.remove("hidden")
+
+    if(ans!==current.type){
+        wrong.push(current)
+    }
 
 }
-
-document.getElementById("nextBtn").classList.remove("hidden")
-
-}
-
 
 /* ボタン無効化 */
 
@@ -232,6 +272,31 @@ function enableButtons(){
 document.querySelectorAll(".tform button").forEach(b=>{
 b.disabled=false
 })
+}
+
+function reviewMode(){
+
+    questions=[...wrong]
+    wrong=[]
+    index=0
+    shuffle(questions)
+    next()
+
+}
+
+function removeHighlight(){
+    document.querySelectorAll(".tform button").forEach(b=>{
+        b.classList.remove("correct")
+    })
+}
+
+function shuffle(array){
+
+    for(let i=array.length-1;i>0;i--){
+        const j=Math.floor(Math.random()*(i+1))
+        [array[i],array[j]]=[array[j],array[i]]
+    }
+
 }
 
 </script>

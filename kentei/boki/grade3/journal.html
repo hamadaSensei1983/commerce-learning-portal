@@ -175,59 +175,57 @@
 
     <h2 id="question"></h2>
 
-<div id="journalArea" style="display:none">
+    <div id="journalArea" style="display:none">
 
-<div class="journal">
+        <div class="journal">
 
-    <!-- 借方 -->
+            <!-- 借方 -->
 
-    <div class="side">
+            <div class="side">
 
-        <div class="side-title">借方</div>
+                <div class="side-title">借方</div>
 
-        <div class="entry">
-            <select id="d1"></select>
-            <input id="dm1" class="money" inputmode="numeric">
+                <div class="entry">
+                    <select id="d1"></select>
+                    <input id="dm1" class="money" inputmode="numeric">
+                </div>
+
+                <div class="entry">
+                    <select id="d2"></select>
+                    <input id="dm2" class="money" inputmode="numeric">
+                </div>
+
+            </div>
+
+            <!-- 貸方 -->
+
+            <div class="side">
+
+                <div class="side-title">貸方</div>
+
+                <div class="entry">
+                    <select id="c1"></select>
+                    <input id="cm1" class="money" inputmode="numeric">
+                </div>
+
+                <div class="entry">
+                    <select id="c2"></select>
+                    <input id="cm2" class="money" inputmode="numeric">
+                </div>
+
+            </div>
+
         </div>
 
-        <div class="entry">
-            <select id="d2"></select>
-            <input id="dm2" class="money" inputmode="numeric">
+
+        <p id="result" class="answer-box"></p>
+
+        <div style="text-align:center">
+            <button class="main-btn" onclick="check()">答え合わせ</button>
+            <button class="main-btn" onclick="next()">次の問題</button>
         </div>
 
     </div>
-
-    <!-- 貸方 -->
-
-    <div class="side">
-
-        <div class="side-title">貸方</div>
-
-        <div class="entry">
-            <select id="c1"></select>
-            <input id="cm1" class="money" inputmode="numeric">
-        </div>
-
-        <div class="entry">
-            <select id="c2"></select>
-            <input id="cm2" class="money" inputmode="numeric">
-        </div>
-
-    </div>
-
-</div>
-
-
-<p id="result" class="answer-box"></p>
-
-<div style="text-align:center">
-
-<button class="main-btn" onclick="check()">答え合わせ</button>
-<button class="main-btn" onclick="next()">次の問題</button>
-
-</div>
-
-</div>
 
 </div>
 
@@ -247,187 +245,151 @@ fetch("../data/journal3.csv")
 .then(res=>res.text())
 .then(text=>{
 
-let rows=text.trim().split(/\r?\n/).slice(1)
+    let rows=text.trim().split(/\r?\n/).slice(1)
 
-allData=rows.map(r=>{
+    allData=rows.map(r=>{
 
-let c=r.split(",")
+        let c=r.split(",")
 
-return{
+        return{
 
-field:c[0],
-q:c[1],
+            field:c[0],
+            q:c[1],
 
-d1:c[2], dm1:Number(c[3]||0),
-d2:c[4], dm2:Number(c[5]||0),
+            d1:c[2], dm1:Number(c[3]||0),
+            d2:c[4], dm2:Number(c[5]||0),
 
-c1:c[6], cm1:Number(c[7]||0),
-c2:c[8], cm2:Number(c[9]||0),
+            c1:c[6], cm1:Number(c[7]||0),
+            c2:c[8], cm2:Number(c[9]||0),
 
-desc:c[10]
+            desc:c[10]
 
-}
+        }
 
-})
+    })
 
-init()
+    init()
 
 })
 
 
 function init(){
 
-let fields=[...new Set(allData.map(x=>x.field))]
+    let fields=[...new Set(allData.map(x=>x.field))]
+    let area=document.getElementById("fieldList")
 
-let area=document.getElementById("fieldList")
+    fields.forEach(f=>{
+        let label=document.createElement("label")
+        label.innerHTML=`<input type="checkbox" value="${f}"> ${f}`
+        area.appendChild(label)
+    })
 
-fields.forEach(f=>{
+    accounts=[...new Set(allData.flatMap(x=>[
+        x.d1,x.d2,x.c1,x.c2
+    ]).filter(Boolean))]
 
-let label=document.createElement("label")
-
-label.innerHTML=`<input type="checkbox" value="${f}"> ${f}`
-
-area.appendChild(label)
-
-})
-
-accounts=[...new Set(allData.flatMap(x=>[
-x.d1,x.d2,x.c1,x.c2
-]).filter(Boolean))]
-
-fillAccounts()
+    fillAccounts()
 
 }
-
 
 /* 勘定科目 */
-
 function fillAccounts(){
-
-["d1","d2","c1","c2"].forEach(id=>{
-
-let s=document.getElementById(id)
-
-let blank=document.createElement("option")
-blank.value=""
-blank.text=""
-
-s.appendChild(blank)
-
-accounts.forEach(a=>{
-
-let o=document.createElement("option")
-o.value=a
-o.text=a
-
-s.appendChild(o)
-
-})
-
-})
-
-}
-
-
-/* 全選択 */
-
-function selectAll(){
-
-document.querySelectorAll("#fieldList input")
-.forEach(x=>x.checked=true)
-
-}
-
-/* 全解除 */
-
-function clearAll(){
-
-document.querySelectorAll("#fieldList input")
-.forEach(x=>x.checked=false)
-
-}
-
-
-function start(){
-
-let selected=[...document.querySelectorAll("#fieldList input:checked")]
-.map(x=>x.value)
-
-if(selected.length===0){
-
-alert("分野を選択してください")
-
-return
-
-}
-
-data=allData.filter(x=>selected.includes(x.field))
-
-document.getElementById("journalArea").style.display="block"
-
-next()
-
-}
-
-
-/* 次の問題 */
-
-function next(){
-
-current=data[Math.floor(Math.random()*data.length)]
-
-document.getElementById("question").innerText=current.q
-
-document.getElementById("result").innerText=""
-
-clearInputs()
-
-}
-
-
-function clearInputs(){
-
-    ["dm1","dm2","cm1","cm2"].forEach(id=>{
-
-        let el=document.getElementById(id)
-
-        el.value=""
-        el.disabled=false
-
-    })
 
     ["d1","d2","c1","c2"].forEach(id=>{
 
+        let s=document.getElementById(id)
+        let blank=document.createElement("option")
+        blank.value=""
+        blank.text=""
+
+        s.appendChild(blank)
+
+        accounts.forEach(a=>{
+            let o=document.createElement("option")
+            o.value=a
+            o.text=a
+            s.appendChild(o)
+        })
+
+    })
+
+}
+
+/* 全選択 */
+function selectAll(){
+    document.querySelectorAll("#fieldList input")
+    .forEach(x=>x.checked=true)
+}
+
+/* 全解除 */
+function clearAll(){
+    document.querySelectorAll("#fieldList input")
+    .forEach(x=>x.checked=false)
+}
+
+function start(){
+    let selected=[...document.querySelectorAll("#fieldList input:checked")]
+    .map(x=>x.value)
+
+    if(selected.length===0){
+        alert("分野を選択してください")
+        return
+    }
+
+    data=allData.filter(x=>selected.includes(x.field))
+    document.getElementById("journalArea").style.display="block"
+
+    next()
+}
+
+/* 次の問題 */
+function next(){
+    current=data[Math.floor(Math.random()*data.length)]
+    document.getElementById("question").innerText=current.q
+    document.getElementById("result").innerText=""
+    clearInputs()
+}
+
+function clearInputs(){
+
+    ["d1","d2","c1","c2","dm1","dm2","cm1","cm2"].forEach(id=>{
+
         let el=document.getElementById(id)
 
-        el.value=""
+        if(!el) return
+
         el.disabled=false
+
+        if(el.tagName==="SELECT"){
+
+            el.selectedIndex=0
+
+        }else{
+
+            el.value=""
+
+        }
 
     })
 
 }
 
 /* カンマ処理 */
-
 document.querySelectorAll(".money").forEach(el=>{
 
-el.addEventListener("input",()=>{
+    el.addEventListener("input",()=>{
 
-let v=el.value.replace(/,/g,"")
+        let v=el.value.replace(/,/g,"")
 
-if(!isNaN(v) && v!==""){
+        if(!isNaN(v) && v!==""){
+            el.value=Number(v).toLocaleString()
+        }
 
-el.value=Number(v).toLocaleString()
-
-}
-
-})
+    })
 
 })
-
 
 /* チェック */
-
 function check(){
 
     let ansD=[
@@ -500,39 +462,34 @@ function check(){
 
 }
 
-
 function compare(a,b){
-
-a=a.filter(x=>x.m>0)
-b=b.filter(x=>x.m>0)
-
-if(a.length!==b.length) return false
-
-return a.every(x=>b.some(y=>x.a===y.a && x.m===y.m))
-
+    a=a.filter(x=>x.m>0)
+    b=b.filter(x=>x.m>0)
+    if(a.length!==b.length) return false
+    return a.every(x=>b.some(y=>x.a===y.a && x.m===y.m))
 }
 
-
 function v(id){
-return document.getElementById(id).value
+    return document.getElementById(id).value
 }
 
 function n(id){
-return Number(document.getElementById(id).value.replace(/,/g,"")||0)
+    return Number(document.getElementById(id).value.replace(/,/g,"")||0)
 }
 
 function lockInputs(){
 
-    ["d1","d2","c1","c2"].forEach(id=>{
-        document.getElementById(id).disabled=true
-    })
+    ["d1","d2","c1","c2","dm1","dm2","cm1","cm2"].forEach(id=>{
 
-    ["dm1","dm2","cm1","cm2"].forEach(id=>{
-        document.getElementById(id).disabled=true
+        let el=document.getElementById(id)
+
+        if(el){
+            el.disabled=true
+        }
+
     })
 
 }
-
 </script>
 
 </body>

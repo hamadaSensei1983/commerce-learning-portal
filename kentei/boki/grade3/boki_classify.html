@@ -152,45 +152,33 @@ let wrong=[]
 let index=0
 
 fetch("../data/boki3.csv")
-.then(res=>{
+.then(res=>res.text())
+.then(text=>{
 
-    if(!res.ok){
-        throw new Error("CSV読み込み失敗")
-    }
+    let rows=text.trim().split("\n").slice(1)
 
-    return res.text()
+    data=rows.map(r=>{
 
-    })
-    .then(text=>{
+        let c=r.split(",")
 
-        let rows=text.trim().split("\n").slice(1)
-
-        data=rows.map(r=>{
-
-            let c=r.split(",")
-
-            return{
+        return{
             term:c[0].trim(),
             type:c[1].trim(),
             desc:c.slice(2).join(",").trim()
-            }
-
-        })
-
-        next()
+        }
 
     })
 
+    /* 出題リスト作成 */
+
     questions=[...data]
+
     shuffle(questions)
+
+    index=0
+    wrong=[]
+
     next()
-    
-    .catch(err=>{
-
-    console.error(err)
-
-    document.getElementById("question").innerText=
-    "CSVが読み込めません"
 
 })
 

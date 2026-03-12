@@ -155,10 +155,13 @@ let correctCount=0
 
 fetch("../data/boki3.csv")
 .then(res=>{
-    if(!res.ok) throw new Error("CSV読み込み失敗")
+    if(!res.ok){
+        throw new Error("CSVファイルが見つかりません")
+    }
     return res.text()
 })
 .then(text=>{
+
     let rows=text.trim().split(/\r?\n/).slice(1)
 
     data=rows.map(r=>{
@@ -166,15 +169,22 @@ fetch("../data/boki3.csv")
         let c=r.split(",")
 
         return{
-            term:c[0].trim(),
-            type:c[1].trim().replace("\r",""),
-            desc:c.slice(2).join(",").trim()
+            term:(c[0]||"").trim(),
+            type:(c[1]||"").trim(),
+            desc:(c.slice(2).join(",")||"").trim()
         }
 
     })
-    startQuiz()
-})
 
+    startQuiz()
+
+})
+.catch(err=>{
+
+    document.getElementById("question").innerText="CSV読み込みエラー"
+    document.getElementById("result").innerText=err
+
+})
 
 function startQuiz(){
 

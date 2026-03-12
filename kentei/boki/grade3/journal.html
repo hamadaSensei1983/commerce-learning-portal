@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>簿記3級 仕訳トレーニング</title>
+
+<style>
+
+body{
+font-family:sans-serif;
+text-align:center;
+}
+
+.card{
+max-width:700px;
+margin:auto;
+padding:20px;
+}
+
+.row{
+display:grid;
+grid-template-columns:120px 1fr 120px;
+gap:10px;
+margin:8px 0;
+}
+
+select,input{
+font-size:16px;
+padding:5px;
+}
+
+button{
+margin-top:15px;
+padding:8px 20px;
+}
+
+.result{
+margin-top:20px;
+font-weight:bold;
+min-height:60px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="card">
+
+<h2>簿記3級 仕訳トレーニング</h2>
+
+<div id="fieldArea">
+分野選択
+<select id="fieldSelect"></select>
+<button onclick="start()">開始</button>
+</div>
+
+<h3 id="question"></h3>
+
+<div id="journal">
+
+<div class="row">
+<div>借方</div>
+<select id="d1"></select>
+<input id="dm1" type="number">
+</div>
+
+<div class="row">
+<div>借方</div>
+<select id="d2"></select>
+<input id="dm2" type="number">
+</div>
+
+<div class="row">
+<div>貸方</div>
+<select id="c1"></select>
+<input id="cm1" type="number">
+</div>
+
+<div class="row">
+<div>貸方</div>
+<select id="c2"></select>
+<input id="cm2" type="number">
+</div>
+
+</div>
+
+<button onclick="check()">答え合わせ</button>
+<button onclick="next()">次の問題</button>
+
+<div id="result" class="result"></div>
+
+</div>
+
+<script>
+
+let allData=[]
+let data=[]
+let current
+let accounts=[]
+
+fetch("../data/journal3.csv")
+.then(res=>res.text())
+.then(text=>{
+
+let rows=text.trim().split(/\r?\n/).slice(1)
+
+allData=rows.map(r=>{
+
+let c=r.split(",")
+
+return{
+field:c[0],
+q:c[1],
+
+d1:c[2], dm1:Number(c[3]||0),
+d2:c[4], dm2:Number(c[5]||0),
+
+c1:c[6], cm1:Number(c[7]||0),
+c2:c[8], cm2:Number(c[9]||0),
+
+desc:c[10]
+}
+
+})
+
+init()
+
+})
+
+function init(){
+
+let fields=[...new Set(allData.map(x=>x.field))]
+
+let select=document.getElementById("fieldSelect")
+
+fields.forEach(f=>{
+let o=document.createElement("option")
+o.value=f
+o.text=f
+select.appendChild(o)
+})
+
+accounts=[...new Set(allData.flatMap(x=>[
+x.d1,x.d2,x.c1,x.c2
+]).filter(Boolean))]
+
+fillAccounts()
+
+}
+
+function fillAccounts(){
+
+["d1","d2","c1","c2"].forEach(id=>{
+
+let s=document.getElementById(id)
+
+accounts.forEach(a=>{
+let o=document.createElement("option")
+o.value=a
+o.text=a
+s.appendChild(o)
+})
+
+})
+
+}
+
+function start(){
+
+let f=document.getElementById("fieldSelect").value
+
+data=allData.filter(x=>x.field===f)
+
+next()
+
+}
+
+function next(){
+
+current=data[Math.floor(Math.random()*data.length)]
+
+document.getElementById("question").innerText=current.q
+
+document.getElementById("result").innerText=""
+
+clearInputs()
+
+}
+
+function clearInputs(){
+
+["dm1","dm2","cm1","cm2"].forEach(id=>{
+document.getElementById(id).value=""
+})
+
+}
+
+function check(){
+
+let ans=[
+{a:d("d1"),m:n("dm1")},
+{a:d("d2"),m:n("dm2")}
+]
+
+let cor=[
+{a:current.d1,m:current.dm1},
+{a:current.d2,m:current.dm2}
+]
+
+let ansC=[
+{a:d("c1"),m:n("cm1")},
+{a:d("c2"),m:n("cm2")}
+]
+
+let corC=[
+{a:current.c1,m:current.cm1},
+{a:current.c2,m:current.cm2}
+]
+
+let debitSum=ans.reduce((s,x)=>s+x.m,0)
+let creditSum=ansC.reduce((s,x)=>s+x.m,0)
+
+if(debitSum!==creditSum){
+
+document.getElementById("result").innerHTML=
+"借方と貸方の金額が一致していません"
+
+return
+
+}
+
+let ok=compare(ans,cor) && compare(ansC,corC)
+
+if(ok){
+
+document.getElementById("result").innerHTML="〇 正解"
+
+}else{
+
+document.getElementById("result").innerHTML=
+"× 不正解<br>"+
+"正解<br>"+
+"借方："+current.d1+" "+current.dm1+
+(current.d2?" , "+current.d2+" "+current.dm2:"")+"<br>"+
+"貸方："+current.c1+" "+current.cm1+
+(current.c2?" , "+current.c2+" "+current.cm2:"")+"<br>"+
+"解説："+current.desc
+
+}
+
+}
+
+function compare(a,b){
+
+a=a.filter(x=>x.m>0)
+b=b.filter(x=>x.m>0)
+
+if(a.length!==b.length) return false
+
+return a.every(x=>b.some(y=>x.a===y.a && x.m===y.m))
+
+}
+
+function d(id){
+return document.getElementById(id).value
+}
+
+function n(id){
+return Number(document.getElementById(id).value||0)
+}
+
+</script>
+
+</body>
+</html>

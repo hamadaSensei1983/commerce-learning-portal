@@ -9,12 +9,30 @@
 
 <style>
 
-/* 問題文 */
+/* 問題 */
 
 #question{
 text-align:center;
 font-size:26px;
 margin-bottom:25px;
+}
+
+/* 分野選択 */
+
+.field-grid{
+
+display:grid;
+
+grid-template-columns:1fr 1fr;
+
+gap:8px;
+
+max-width:400px;
+
+margin:10px auto;
+
+text-align:left;
+
 }
 
 /* 仕訳エリア */
@@ -31,15 +49,16 @@ margin-top:20px;
 
 }
 
-/* 借方・貸方 */
-
 .side{
-
 text-align:center;
-
 }
 
-/* 行 */
+.side-title{
+font-weight:bold;
+margin-bottom:10px;
+}
+
+/* 入力行 */
 
 .entry{
 
@@ -67,9 +86,9 @@ font-size:16px;
 
 /* 金額 */
 
-input{
+.money{
 
-width:80px;
+width:90px;
 
 padding:5px;
 
@@ -78,18 +97,6 @@ font-size:16px;
 text-align:right;
 
 }
-
-/* 見出し */
-
-.side-title{
-
-font-weight:bold;
-
-margin-bottom:10px;
-
-}
-
-/* 結果 */
 
 .answer-box{
 
@@ -130,17 +137,32 @@ min-height:60px;
 
 <div class="card">
 
-<div id="fieldArea" style="text-align:center;margin-bottom:20px;">
+<!-- 分野選択 -->
 
-分野：
+<div id="fieldArea">
 
-<select id="fieldSelect"></select>
+<div style="text-align:center">
+
+<button onclick="selectAll()">全選択</button>
+<button onclick="clearAll()">全解除</button>
+
+</div>
+
+<div id="fieldList" class="field-grid"></div>
+
+<div style="text-align:center;margin-top:10px">
 
 <button class="main-btn" onclick="start()">開始</button>
 
 </div>
 
+</div>
+
+
 <h2 id="question"></h2>
+
+
+<div id="journalArea" style="display:none">
 
 <div class="journal">
 
@@ -151,23 +173,16 @@ min-height:60px;
 <div class="side-title">借方</div>
 
 <div class="entry">
-
 <select id="d1"></select>
-
-<input id="dm1" type="number">
-
+<input id="dm1" class="money" inputmode="numeric">
 </div>
 
 <div class="entry">
-
 <select id="d2"></select>
-
-<input id="dm2" type="number">
-
+<input id="dm2" class="money" inputmode="numeric">
 </div>
 
 </div>
-
 
 <!-- 貸方 -->
 
@@ -176,19 +191,13 @@ min-height:60px;
 <div class="side-title">貸方</div>
 
 <div class="entry">
-
 <select id="c1"></select>
-
-<input id="cm1" type="number">
-
+<input id="cm1" class="money" inputmode="numeric">
 </div>
 
 <div class="entry">
-
 <select id="c2"></select>
-
-<input id="cm2" type="number">
-
+<input id="cm2" class="money" inputmode="numeric">
 </div>
 
 </div>
@@ -201,8 +210,9 @@ min-height:60px;
 <div style="text-align:center">
 
 <button class="main-btn" onclick="check()">答え合わせ</button>
-
 <button class="main-btn" onclick="next()">次の問題</button>
+
+</div>
 
 </div>
 
@@ -256,20 +266,17 @@ function init(){
 
 let fields=[...new Set(allData.map(x=>x.field))]
 
-let select=document.getElementById("fieldSelect")
+let area=document.getElementById("fieldList")
 
 fields.forEach(f=>{
 
-let o=document.createElement("option")
+let label=document.createElement("label")
 
-o.value=f
+label.innerHTML=`<input type="checkbox" value="${f}"> ${f}`
 
-o.text=f
-
-select.appendChild(o)
+area.appendChild(label)
 
 })
-
 
 accounts=[...new Set(allData.flatMap(x=>[
 x.d1,x.d2,x.c1,x.c2
@@ -280,18 +287,24 @@ fillAccounts()
 }
 
 
+/* 勘定科目 */
+
 function fillAccounts(){
 
 ["d1","d2","c1","c2"].forEach(id=>{
 
 let s=document.getElementById(id)
 
+let blank=document.createElement("option")
+blank.value=""
+blank.text=""
+
+s.appendChild(blank)
+
 accounts.forEach(a=>{
 
 let o=document.createElement("option")
-
 o.value=a
-
 o.text=a
 
 s.appendChild(o)
@@ -303,16 +316,48 @@ s.appendChild(o)
 }
 
 
+/* 全選択 */
+
+function selectAll(){
+
+document.querySelectorAll("#fieldList input")
+.forEach(x=>x.checked=true)
+
+}
+
+/* 全解除 */
+
+function clearAll(){
+
+document.querySelectorAll("#fieldList input")
+.forEach(x=>x.checked=false)
+
+}
+
+
 function start(){
 
-let f=document.getElementById("fieldSelect").value
+let selected=[...document.querySelectorAll("#fieldList input:checked")]
+.map(x=>x.value)
 
-data=allData.filter(x=>x.field===f)
+if(selected.length===0){
+
+alert("分野を選択してください")
+
+return
+
+}
+
+data=allData.filter(x=>selected.includes(x.field))
+
+document.getElementById("journalArea").style.display="block"
 
 next()
 
 }
 
+
+/* 次の問題 */
 
 function next(){
 
@@ -330,13 +375,36 @@ clearInputs()
 function clearInputs(){
 
 ["dm1","dm2","cm1","cm2"].forEach(id=>{
-
 document.getElementById(id).value=""
+})
 
+["d1","d2","c1","c2"].forEach(id=>{
+document.getElementById(id).value=""
 })
 
 }
 
+
+/* カンマ処理 */
+
+document.querySelectorAll(".money").forEach(el=>{
+
+el.addEventListener("input",()=>{
+
+let v=el.value.replace(/,/g,"")
+
+if(!isNaN(v) && v!==""){
+
+el.value=Number(v).toLocaleString()
+
+}
+
+})
+
+})
+
+
+/* チェック */
 
 function check(){
 
@@ -421,15 +489,11 @@ return a.every(x=>b.some(y=>x.a===y.a && x.m===y.m))
 
 
 function v(id){
-
 return document.getElementById(id).value
-
 }
 
 function n(id){
-
-return Number(document.getElementById(id).value||0)
-
+return Number(document.getElementById(id).value.replace(/,/g,"")||0)
 }
 
 </script>

@@ -154,25 +154,25 @@ let correctCount=0
 
 
 fetch("../data/boki3.csv")
-.then(res=>res.text())
+.then(res=>{
+    if(!res.ok) throw new Error("CSV読み込み失敗")
+    return res.text()
+})
 .then(text=>{
-
-    let rows=text.trim().split("\n").slice(1)
+    let rows=text.trim().split(/\r?\n/).slice(1)
 
     data=rows.map(r=>{
 
-    let c=r.split(",")
+        let c=r.split(",")
 
-    return{
-    term:c[0].trim(),
-    type:c[1].trim(),
-    desc:c.slice(2).join(",").trim()
-    }
+        return{
+            term:c[0].trim(),
+            type:c[1].trim().replace("\r",""),
+            desc:c.slice(2).join(",").trim()
+        }
 
     })
-
     startQuiz()
-
 })
 
 

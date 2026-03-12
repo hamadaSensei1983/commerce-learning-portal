@@ -110,6 +110,115 @@ min-height:60px;
 
 }
 
+/* ===== 分野ボタン ===== */
+
+.field-controls{
+
+display:grid;
+
+grid-template-columns:1fr 1fr;
+
+gap:10px;
+
+max-width:400px;
+
+margin:10px auto;
+
+}
+
+
+/* ===== 仕訳カード ===== */
+
+.journal{
+
+display:grid;
+
+grid-template-columns:1fr 1fr;
+
+gap:30px;
+
+margin-top:20px;
+
+padding:15px;
+
+background:#f9fdf9;
+
+border-radius:10px;
+
+border:2px solid #d8ead8;
+
+}
+
+
+/* 左右エリア */
+
+.side{
+
+background:white;
+
+padding:15px;
+
+border-radius:8px;
+
+box-shadow:0 3px 8px rgba(0,0,0,0.08);
+
+}
+
+
+/* 見出し */
+
+.side-title{
+
+font-weight:bold;
+
+margin-bottom:10px;
+
+padding-bottom:6px;
+
+border-bottom:2px solid #eee;
+
+}
+
+
+/* 入力行 */
+
+.entry{
+
+display:flex;
+
+justify-content:space-between;
+
+gap:8px;
+
+margin:8px 0;
+
+}
+
+
+/* 正解表示 */
+
+.answer-journal{
+
+display:grid;
+
+grid-template-columns:1fr 1fr;
+
+gap:25px;
+
+margin-top:10px;
+
+}
+
+.answer-side{
+
+background:#f7fff7;
+
+padding:10px;
+
+border-radius:6px;
+
+}
+
 </style>
 
 </head>
@@ -143,12 +252,20 @@ min-height:60px;
 
 <div style="text-align:center">
 
-<button onclick="selectAll()">全選択</button>
-<button onclick="clearAll()">全解除</button>
-
-</div>
 
 <div id="fieldList" class="field-grid"></div>
+
+<div class="field-controls">
+
+    <button class="control-btn" onclick="selectAll()">
+    全選択
+    </button>
+
+    <button class="control-btn" onclick="clearAll()">
+    全解除
+    </button>
+
+</div>
 
 <div style="text-align:center;margin-top:10px">
 
@@ -461,13 +578,23 @@ document.getElementById("result").innerHTML=
 
 "× 不正解<br><br>"+
 
-"正解<br>"+
+"<b>正解</b>"+
 
-"借方："+current.d1+" "+current.dm1+
-(current.d2?" , "+current.d2+" "+current.dm2:"")+"<br>"+
+"<div class='answer-journal'>"+
 
-"貸方："+current.c1+" "+current.cm1+
-(current.c2?" , "+current.c2+" "+current.cm2:"")+"<br><br>"+
+"<div class='answer-side'>"+
+"<b>借方</b><br>"+
+current.d1+" "+current.dm1+"<br>"+
+(current.d2?current.d2+" "+current.dm2:"")+
+"</div>"+
+
+"<div class='answer-side'>"+
+"<b>貸方</b><br>"+
+current.c1+" "+current.cm1+"<br>"+
+(current.c2?current.c2+" "+current.cm2:"")+
+"</div>"+
+
+"</div><br>"+
 
 "解説："+current.desc
 

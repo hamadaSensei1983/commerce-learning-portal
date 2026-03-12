@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <title>簿記3級 勘定科目分類</title>
+
+    <link rel="stylesheet" href="../../../css/common.css">
+
+<style>
+
+    .tform{
+        display:grid;
+        grid-template-columns:1fr 1fr;
+        gap:12px;
+        margin-top:20px;
+    }
+
+    .tform-top{
+        grid-column:1 / 3;
+        text-align:center;
+    }
+
+    .tform-middle{
+        display:grid;
+        grid-template-columns:1fr 1fr;
+        gap:12px;
+    }
+
+    .tform-bottom{
+        margin-top:30px;
+        display:grid;
+        grid-template-columns:1fr 1fr;
+        gap:12px;
+    }
+
+    .answer-box{
+        margin-top:20px;
+        font-weight:bold;
+    }
+
+</style>
+
+</head>
+
+<body>
+
+<header class="app-header">
+
+    <div class="header-left">
+        <img src="../../../images/logo.png" class="header-icon">
+        <div>
+            <h1 class="site-title">検定対策システム</h1>
+            <div class="exam-title">全商簿記3級 勘定科目分類</div>
+        </div>
+    </div>
+
+</header>
+
+
+<div class="card">
+
+    <h2 id="question"></h2>
+
+    <div class="tform">
+
+        <div class="tform-top">
+            <button class="quiz-btn" onclick="check('負債')">負債</button>
+        </div>
+
+        <div class="tform-middle">
+            <button class="quiz-btn" onclick="check('資産')">資産</button>
+            <button class="quiz-btn" onclick="check('資本')">資本</button>
+        </div>
+
+        <div class="tform-bottom">
+            <button class="quiz-btn" onclick="check('費用')">費用</button>
+            <button class="quiz-btn" onclick="check('収益')">収益</button>
+        </div>
+
+    </div>
+
+    <p id="result" class="answer-box"></p>
+
+    <button class="main-btn hidden" id="nextBtn" onclick="next()">次の問題</button>
+
+</div>
+
+<a href="../index.html" class="portal-btn exam-btn">簿記トップ</a>
+<a href="../../../index.html" class="portal-btn portal-main">ポータルへ戻る</a>
+
+
+<script>
+
+let data=[]
+let current
+
+fetch("../data/boki3.csv")
+.then(res=>res.text())
+.then(text=>{
+
+    let rows=text.trim().split("\n").slice(1)
+
+    data=rows.map(r=>{
+
+    let c=r.split(",")
+
+    return{
+        term:c[0],
+        type:c[1],
+        desc:c[2]
+    }
+
+    })
+
+    next()
+
+})
+
+
+function next(){
+
+    current=data[Math.floor(Math.random()*data.length)]
+
+    document.getElementById("question").innerText=current.term
+
+    document.getElementById("result").innerText=""
+
+    document.getElementById("nextBtn").classList.add("hidden")
+
+}
+
+
+function check(ans){
+
+    let result=document.getElementById("result")
+
+    if(ans===current.type){
+        result.innerHTML="〇 正解！"
+    }else{
+        result.innerHTML=
+        "× 不正解<br>"+
+        "正解："+current.type+"<br>"+
+        current.desc
+    }
+
+    document.getElementById("nextBtn").classList.remove("hidden")
+
+}
+
+</script>
+
+</body>
+</html>

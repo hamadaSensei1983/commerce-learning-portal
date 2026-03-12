@@ -1,43 +1,106 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
 <meta charset="UTF-8">
 <title>簿記3級 仕訳トレーニング</title>
 
+<link rel="stylesheet" href="../../../css/common.css">
+
 <style>
 
-body{
-font-family:sans-serif;
+/* 問題文 */
+
+#question{
 text-align:center;
+font-size:26px;
+margin-bottom:25px;
 }
 
-.card{
-max-width:700px;
-margin:auto;
-padding:20px;
-}
+/* 仕訳エリア */
 
-.row{
+.journal{
+
 display:grid;
-grid-template-columns:120px 1fr 120px;
-gap:10px;
-margin:8px 0;
-}
 
-select,input{
-font-size:16px;
-padding:5px;
-}
+grid-template-columns:1fr 1fr;
 
-button{
-margin-top:15px;
-padding:8px 20px;
-}
+gap:40px;
 
-.result{
 margin-top:20px;
+
+}
+
+/* 借方・貸方 */
+
+.side{
+
+text-align:center;
+
+}
+
+/* 行 */
+
+.entry{
+
+display:flex;
+
+justify-content:center;
+
+gap:8px;
+
+margin:8px 0;
+
+}
+
+/* プルダウン */
+
+select{
+
+width:130px;
+
+padding:5px;
+
+font-size:16px;
+
+}
+
+/* 金額 */
+
+input{
+
+width:80px;
+
+padding:5px;
+
+font-size:16px;
+
+text-align:right;
+
+}
+
+/* 見出し */
+
+.side-title{
+
 font-weight:bold;
+
+margin-bottom:10px;
+
+}
+
+/* 結果 */
+
+.answer-box{
+
+margin-top:20px;
+
+font-size:18px;
+
+font-weight:bold;
+
 min-height:60px;
+
 }
 
 </style>
@@ -46,52 +109,109 @@ min-height:60px;
 
 <body>
 
+<header class="app-header">
+
+<div class="header-left">
+
+<img src="../../../images/logo.png" class="header-icon">
+
+<div>
+
+<h1 class="site-title">検定対策システム</h1>
+
+<div class="exam-title">全商簿記3級 仕訳トレーニング</div>
+
+</div>
+
+</div>
+
+</header>
+
+
 <div class="card">
 
-<h2>簿記3級 仕訳トレーニング</h2>
+<div id="fieldArea" style="text-align:center;margin-bottom:20px;">
 
-<div id="fieldArea">
-分野選択
+分野：
+
 <select id="fieldSelect"></select>
-<button onclick="start()">開始</button>
+
+<button class="main-btn" onclick="start()">開始</button>
+
 </div>
 
-<h3 id="question"></h3>
+<h2 id="question"></h2>
 
-<div id="journal">
+<div class="journal">
 
-<div class="row">
-<div>借方</div>
+<!-- 借方 -->
+
+<div class="side">
+
+<div class="side-title">借方</div>
+
+<div class="entry">
+
 <select id="d1"></select>
+
 <input id="dm1" type="number">
+
 </div>
 
-<div class="row">
-<div>借方</div>
+<div class="entry">
+
 <select id="d2"></select>
+
 <input id="dm2" type="number">
+
 </div>
 
-<div class="row">
-<div>貸方</div>
+</div>
+
+
+<!-- 貸方 -->
+
+<div class="side">
+
+<div class="side-title">貸方</div>
+
+<div class="entry">
+
 <select id="c1"></select>
+
 <input id="cm1" type="number">
+
 </div>
 
-<div class="row">
-<div>貸方</div>
+<div class="entry">
+
 <select id="c2"></select>
+
 <input id="cm2" type="number">
+
+</div>
+
 </div>
 
 </div>
 
-<button onclick="check()">答え合わせ</button>
-<button onclick="next()">次の問題</button>
 
-<div id="result" class="result"></div>
+<p id="result" class="answer-box"></p>
+
+<div style="text-align:center">
+
+<button class="main-btn" onclick="check()">答え合わせ</button>
+
+<button class="main-btn" onclick="next()">次の問題</button>
 
 </div>
+
+</div>
+
+
+<a href="../index.html" class="portal-btn exam-btn">簿記トップ</a>
+<a href="../../../index.html" class="portal-btn portal-main">ポータルへ戻る</a>
+
 
 <script>
 
@@ -111,6 +231,7 @@ allData=rows.map(r=>{
 let c=r.split(",")
 
 return{
+
 field:c[0],
 q:c[1],
 
@@ -121,6 +242,7 @@ c1:c[6], cm1:Number(c[7]||0),
 c2:c[8], cm2:Number(c[9]||0),
 
 desc:c[10]
+
 }
 
 })
@@ -129,6 +251,7 @@ init()
 
 })
 
+
 function init(){
 
 let fields=[...new Set(allData.map(x=>x.field))]
@@ -136,11 +259,17 @@ let fields=[...new Set(allData.map(x=>x.field))]
 let select=document.getElementById("fieldSelect")
 
 fields.forEach(f=>{
+
 let o=document.createElement("option")
+
 o.value=f
+
 o.text=f
+
 select.appendChild(o)
+
 })
+
 
 accounts=[...new Set(allData.flatMap(x=>[
 x.d1,x.d2,x.c1,x.c2
@@ -150,6 +279,7 @@ fillAccounts()
 
 }
 
+
 function fillAccounts(){
 
 ["d1","d2","c1","c2"].forEach(id=>{
@@ -157,15 +287,21 @@ function fillAccounts(){
 let s=document.getElementById(id)
 
 accounts.forEach(a=>{
+
 let o=document.createElement("option")
+
 o.value=a
+
 o.text=a
+
 s.appendChild(o)
+
 })
 
 })
 
 }
+
 
 function start(){
 
@@ -176,6 +312,7 @@ data=allData.filter(x=>x.field===f)
 next()
 
 }
+
 
 function next(){
 
@@ -189,37 +326,50 @@ clearInputs()
 
 }
 
+
 function clearInputs(){
 
 ["dm1","dm2","cm1","cm2"].forEach(id=>{
+
 document.getElementById(id).value=""
+
 })
 
 }
 
+
 function check(){
 
-let ans=[
-{a:d("d1"),m:n("dm1")},
-{a:d("d2"),m:n("dm2")}
-]
+let ansD=[
 
-let cor=[
-{a:current.d1,m:current.dm1},
-{a:current.d2,m:current.dm2}
+{a:v("d1"),m:n("dm1")},
+{a:v("d2"),m:n("dm2")}
+
 ]
 
 let ansC=[
-{a:d("c1"),m:n("cm1")},
-{a:d("c2"),m:n("cm2")}
+
+{a:v("c1"),m:n("cm1")},
+{a:v("c2"),m:n("cm2")}
+
+]
+
+let corD=[
+
+{a:current.d1,m:current.dm1},
+{a:current.d2,m:current.dm2}
+
 ]
 
 let corC=[
+
 {a:current.c1,m:current.cm1},
 {a:current.c2,m:current.cm2}
+
 ]
 
-let debitSum=ans.reduce((s,x)=>s+x.m,0)
+
+let debitSum=ansD.reduce((s,x)=>s+x.m,0)
 let creditSum=ansC.reduce((s,x)=>s+x.m,0)
 
 if(debitSum!==creditSum){
@@ -231,26 +381,32 @@ return
 
 }
 
-let ok=compare(ans,cor) && compare(ansC,corC)
+let ok=compare(ansD,corD) && compare(ansC,corC)
 
 if(ok){
 
-document.getElementById("result").innerHTML="〇 正解"
+document.getElementById("result").innerHTML="〇 正解！"
 
 }else{
 
 document.getElementById("result").innerHTML=
-"× 不正解<br>"+
+
+"× 不正解<br><br>"+
+
 "正解<br>"+
+
 "借方："+current.d1+" "+current.dm1+
 (current.d2?" , "+current.d2+" "+current.dm2:"")+"<br>"+
+
 "貸方："+current.c1+" "+current.cm1+
-(current.c2?" , "+current.c2+" "+current.cm2:"")+"<br>"+
+(current.c2?" , "+current.c2+" "+current.cm2:"")+"<br><br>"+
+
 "解説："+current.desc
 
 }
 
 }
+
 
 function compare(a,b){
 
@@ -263,12 +419,17 @@ return a.every(x=>b.some(y=>x.a===y.a && x.m===y.m))
 
 }
 
-function d(id){
+
+function v(id){
+
 return document.getElementById(id).value
+
 }
 
 function n(id){
+
 return Number(document.getElementById(id).value||0)
+
 }
 
 </script>

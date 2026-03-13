@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>簿記3級 仕訳トレーニング</title>
-  ../../../css/common.css
+  <link rel="stylesheet" href="../../../css/common.css">
   <style>
     /* 問題 */
     #question{
@@ -98,7 +98,7 @@
 <body>
 <header class="app-header">
   <div class="header-left">
-    ../../../images/logo.png
+    <img src="../../../images/logo.png" class="header-icon">
     <div>
       <h1 class="site-title">検定対策システム</h1>
       <div class="exam-title">全商簿記3級 仕訳トレーニング</div>
@@ -106,10 +106,12 @@
   </div>
 </header>
 
-<!-- ローディング画面 -->
+<!-- =====================
+  ローディング画面
+===================== -->
 <div id="loadingScreen">
   <div style="text-align:center">
-    ../../../images/logo.png
+    <img src="../../../images/logo.png" style="width:90px;margin-bottom:20px">
     <div class="spinner"></div>
     <p style="margin-top:15px;font-weight:bold">
       問題を読み込み中...
@@ -117,9 +119,11 @@
   </div>
 </div>
 
-<!-- メインカード（最初は非表示） -->
+<!-- =====================
+  メインカード（最初は非表示）
+===================== -->
 <div class="card hidden" id="mainCard">
-  <!-- 分野選択 -->
+  <!-- 分野選択＆ステータス -->
   <div id="fieldArea">
     <div style="text-align:center">
       <div id="fieldList" class="field-grid"></div>
@@ -184,23 +188,25 @@
   </div>
 </div>
 
-../index.html簿記トップ</a>
-../../../index.htmlポータルへ戻る</a>
+<a href="../index.html" class="portal-btn exam-btn">簿記トップ</a>
+<a href="../../../index.html" class="portal-btn portal-main">ポータルへ戻る</a>
 
 <script>
-let allData = [];
-let data    = [];
+let allData   = [];
+let data      = [];
 let current;
-let accounts = [];
-let streak = 0;
+let accounts  = [];
+let streak    = 0;
 let bestStreak = 0;
 let autoNextTimer = null;
-let fieldStats = {};   // 分野別成績
+let fieldStats = {};
 
 // ローディング1秒ルール用
 const loadStartTime = Date.now();
 
-// CSV読み込み
+/* =====================
+   CSV読み込み
+===================== */
 fetch("../data/journal3.csv")
   .then(res => {
     if(!res.ok){
@@ -226,6 +232,7 @@ fetch("../data/journal3.csv")
         desc  : c[10]
       };
     });
+
     init();
 
     const elapsed     = Date.now() - loadStartTime;
@@ -255,6 +262,9 @@ fetch("../data/journal3.csv")
     document.getElementById("result").innerText   = err.message || err;
   });
 
+/* =====================
+   初期化
+===================== */
 function init(){
   // 分野リスト作成
   let fields = [...new Set(allData.map(x => x.field))];
@@ -265,13 +275,13 @@ function init(){
     area.appendChild(label);
   });
 
-  // 勘定科目リスト作成
+  // 勘定科目リスト
   accounts = [...new Set(allData.flatMap(x => [
     x.d1, x.d2, x.c1, x.c2
   ]).filter(Boolean))];
   fillAccounts();
 
-  // 金額入力にカンマフォーマット
+  // 金額入力カンマフォーマット
   document.querySelectorAll(".money").forEach(el => {
     el.addEventListener("input", () => {
       let v = el.value.replace(/,/g,"");
@@ -286,7 +296,7 @@ function init(){
   updateStreakDisplay();
 }
 
-/* 勘定科目をプルダウンに反映 */
+/* 勘定科目プルダウンに反映 */
 function fillAccounts(){
   ["d1","d2","c1","c2"].forEach(id => {
     let s = document.getElementById(id);
@@ -317,18 +327,16 @@ function saveBestStreak(){
 
 /* ストリーク表示更新 */
 function updateStreakDisplay(){
-  const stats = document.getElementById("stats");
-  if(!stats) return;
-  stats.innerText = "連続正解：" + streak + "（最高：" + bestStreak + "）";
+  const statsDiv = document.getElementById("stats");
+  if(!statsDiv) return;
+  statsDiv.innerText = "連続正解：" + streak + "（最高：" + bestStreak + "）";
 }
 
-/* 全選択 */
+/* 全選択 / 全解除 */
 function selectAll(){
   document.querySelectorAll("#fieldList input")
     .forEach(x => x.checked = true);
 }
-
-/* 全解除 */
 function clearAll(){
   document.querySelectorAll("#fieldList input")
     .forEach(x => x.checked = false);
@@ -375,7 +383,7 @@ function next(){
   document.getElementById("result").innerHTML  = "";
   clearInputs();
 
-  // 次の問題ボタンは隠しておく（不正解のときだけ表示）
+  // 「次の問題」ボタンを隠す（不正解のときだけ表示）
   const nextBtn = document.getElementById("nextBtn");
   if(nextBtn) nextBtn.classList.add("hidden");
 }
@@ -521,3 +529,4 @@ function showFieldStats(){
 </script>
 </body>
 </html>
+``

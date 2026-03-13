@@ -201,6 +201,9 @@ let streak    = 0;         // 連続正解数
 let bestStreak = 0;        // 最高連続正解数
 let autoNextTimer = null;  // 正解時の自動次問題タイマー
 let fieldStats = {};       // 分野別成績
+let quizOrder = [];   // シャッフル後の問題並び
+let quizIndex = 0;    // 現在の問題番号
+
 
 const loadStartTime = Date.now(); // ローディング開始時刻
 const typeOrder = ["資産","負債","資本","費用","収益"];
@@ -431,6 +434,10 @@ function start(){
   streak = 0;
   updateStreakDisplay();
 
+  // ★★★ ここが変更点：data をシャッフルして順番確定
+  quizOrder = shuffle([...data]);
+  quizIndex = 0;
+
   document.getElementById("journalArea").style.display = "block";
   next();
 }
@@ -443,9 +450,17 @@ function next(){
     autoNextTimer = null;
   }
 
-  if(!data || data.length === 0) return;
+  if(!quizOrder || quizOrder.length === 0) return;
 
-  current = data[Math.floor(Math.random() * data.length)];
+  // ★★★ ここが「シャッフル出題」
+  if(quizIndex >= quizOrder.length){
+    quizOrder = shuffle([...data]); // 全問終わったら再シャッフル
+    quizIndex = 0;
+  }
+
+  current = quizOrder[quizIndex];
+  quizIndex++;
+
   document.getElementById("question").innerText = current.q;
   document.getElementById("result").innerHTML  = "";
   clearInputs();
@@ -493,6 +508,17 @@ function lockInputs(){
 /* チェック（一問一回だけ有効） */
 function check(){
   const checkBtn = document.getElementById("checkBtn");
+  // どの科目も金額も入力されていない場合は採点しない
+  if(
+    !v("d1") && !v("d2") && !v("c1") && !v("c2") &&
+    n("dm1") === 0 && n("dm2") === 0 && n("cm1") === 0 && n("cm2") === 0
+  ){
+    document.getElementById("result").innerHTML =
+      "科目と金額を入力してください";
+    checkBtn.disabled = false; // 再入力OKに戻す
+    return;
+  }
+
   if(checkBtn.disabled) return;    // 既に採点済みなら何もしない
   checkBtn.disabled = true;        // 連打防止
 
@@ -599,6 +625,17 @@ function showFieldStats(){
   }
   document.getElementById("result").innerHTML += html;
 }
+
+/* 問題シャッフル用 */
+function shuffle(a){
+  for(let i=a.length-1; i>0; i--){
+    let j = Math.floor(Math.random()*(i+1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+
 </script>
 </body>
 </html>

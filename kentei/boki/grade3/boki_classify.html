@@ -88,7 +88,18 @@
       border:2px solid var(--main-green);
     }
 
-    /* 学習モード用の位置表示（common.cssの .study-position を補完） */
+    /* 学習モード用：フィルタ部分 */
+    #filterArea{
+      text-align:center;
+      margin-bottom:10px;
+      font-size:14px;
+    }
+    #filterArea label{
+      margin:0 6px;
+      cursor:pointer;
+    }
+
+    /* 学習モード用の位置表示 */
     .study-position{
       margin-top:6px;
       font-size:14px;
@@ -126,6 +137,17 @@
   <div id="studyArea">
     <h2 style="text-align:center;">勘定科目を眺めて学習しよう</h2>
 
+    <!-- 分類フィルタ -->
+    <div id="filterArea">
+      <span style="margin-right:8px;">表示する分類：</span>
+      <label><input type="checkbox" value="資産" checked onchange="updateStudyFilter()">資産</label>
+      <label><input type="checkbox" value="負債" checked onchange="updateStudyFilter()">負債</label>
+      <label><input type="checkbox" value="費用" checked onchange="updateStudyFilter()">費用</label>
+      <label><input type="checkbox" value="収益" checked onchange="updateStudyFilter()">収益</label>
+      <label><input type="checkbox" value="資本" checked onchange="updateStudyFilter()">資本</label>
+    </div>
+
+    <!-- カード表示部分 -->
     <div class="study-row" id="studyCard">
       <button class="nav-square" onclick="prevStudy()">◀</button>
       <div class="study-center">
@@ -256,16 +278,34 @@
   //  学習モード
   // =========================
   function initStudyMode(){
-    studyList = [...data];
+    // チェックボックスの状態に応じて絞り込み
+    updateStudyFilter();
+  }
+
+  function updateStudyFilter(){
+    const checkedTypes = [...document.querySelectorAll("#filterArea input:checked")]
+      .map(c => c.value);
+
+    if(checkedTypes.length === 0){
+      // 何も選ばれていないとき
+      studyList = [];
+      studyIndex = 0;
+      showStudyCard();
+      return;
+    }
+
+    // data（CSVの順＝五十音順）から、選択された分類だけ抽出
+    studyList = data.filter(d => checkedTypes.includes(d.type));
     studyIndex = 0;
     showStudyCard();
   }
 
   function showStudyCard(){
     if(studyList.length === 0){
-      document.getElementById("studyTerm").innerText = "データが読み込まれていません";
+      document.getElementById("studyTerm").innerText = "";
       document.getElementById("studyType").innerText = "";
-      document.getElementById("studyDesc").innerText = "";
+      document.getElementById("studyDesc").innerText =
+        "表示する分類にチェックを入れてください。";
       document.getElementById("studyPosition").innerText = "";
       return;
     }
@@ -292,7 +332,7 @@
   }
 
   // =========================
-  //  テストモード（これまでの処理＋α）
+  //  テストモード（分類当て）
   // =========================
   function startQuiz(){
     questions = [...data];

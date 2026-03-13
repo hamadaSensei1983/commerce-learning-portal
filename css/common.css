@@ -300,11 +300,11 @@ button{
 }
 
 .study-meaning-box{
-    min-height:100px;      /* ← 高さ固定 */
-    padding:15px;
+    min-height:90px;      /* ← 高さ固定 */
+    padding:10px;
     border-radius:10px;
     background:#f9f9f9;
-    margin-bottom:15px;
+    margin-bottom:10px;
     display:flex;
     align-items:center;
     justify-content:center;

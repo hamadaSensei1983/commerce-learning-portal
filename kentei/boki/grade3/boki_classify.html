@@ -195,6 +195,11 @@
     <h2>次の勘定科目は以下のどの分類に該当するか答えなさい。</h2>
     <h2 id="question"></h2>
 
+    <!-- 連続正解数の表示 -->
+    <p id="streakInfo" style="text-align:center; font-weight:bold; margin-bottom:8px;">
+    連続正解数：0問
+    </p>
+
     <div class="tform">
       <button class="quiz-btn btn-asset"    onclick="check('資産')">資産</button>
       <button class="quiz-btn btn-liability" onclick="check('負債')">負債</button>
@@ -228,6 +233,11 @@
   // 学習モード用
   let studyList = [];
   let studyIndex = 0;
+  
+  // 連続正解数と自動遷移タイマー
+  let streak = 0;
+  let autoNextTimer = null;
+
 
   // =========================
   //  CSV読み込み
@@ -412,10 +422,28 @@
     index = 0;
     wrong = [];
     correctCount = 0;
+    
+    // 連続正解数リセット
+    streak = 0;
+    updateStreakDisplay();
+
     next();
   }
 
+  function updateStreakDisplay(){
+    const elm = document.getElementById("streakInfo");
+    if(!elm) return;
+    elm.innerText = "連続正解数：" + streak + "問";
+  }
+
   function next(){
+
+   // ★追加：自動遷移タイマーが残っていればクリア
+    if(autoNextTimer !== null){
+      clearTimeout(autoNextTimer);
+      autoNextTimer = null;
+    }
+
     removeHighlight();
 
     if(index >= questions.length){
@@ -431,33 +459,63 @@
     enableButtons();
   }
 
-  function check(ans){
-    let result = document.getElementById("result");
-    disableButtons();
+function check(ans){
+  let result = document.getElementById("result");
+  disableButtons();
 
-    if(ans === current.type){
-      result.innerHTML = "〇 正解！";
-      correctCount++;
-    }else{
-      result.innerHTML =
-        "× 不正解<br><br>" +
-        "正解：" + current.type + "<br>" +
-        "解説：" + current.desc;
-      wrong.push(current);
-    }
+  if(ans === current.type){
+    // ★正解時
+    result.innerHTML = "〇 正解！";
 
-    // 正解ボタンを光らせる
-    document.querySelectorAll(".tform button").forEach(b => {
-      if(b.innerText === current.type){
-        b.classList.add("correct");
-      }
-    });
+    correctCount++;
 
+    // 連続正解数を増やす
+    streak++;
+    updateStreakDisplay();
+
+    // 「次の問題」ボタンは出さない（押させない）
+    document.getElementById("nextBtn").classList.add("hidden");
+
+    // 1秒後に自動で次の問題へ（最終問題なら finishQuiz が呼ばれる）
+    autoNextTimer = setTimeout(() => {
+      autoNextTimer = null;
+      next();
+    }, 1000);
+
+  }else{
+    // ★不正解時
+    result.innerHTML =
+      "× 不正解<br><br>" +
+      "正解：" + current.type + "<br>" +
+      "解説：" + current.desc;
+    wrong.push(current);
+
+    // 連続正解数リセット
+    streak = 0;
+    updateStreakDisplay();
+
+    // この問題はゆっくり読ませたいので、
+    // 「次の問題」ボタンを表示し、生徒に押させる
     document.getElementById("nextBtn").classList.remove("hidden");
   }
 
+  // 正解ボタンを光らせる（この処理は従来どおり）
+  document.querySelectorAll(".tform button").forEach(b => {
+    if(b.innerText === current.type){
+      b.classList.add("correct");
+    }
+  });
+}
+
   // 全問終了
   function finishQuiz(){
+
+    // ★念のため自動遷移タイマーを停止
+      if(autoNextTimer !== null){
+        clearTimeout(autoNextTimer);
+        autoNextTimer = null;
+      }
+
     let rate = Math.round((correctCount / questions.length) * 100);
     document.getElementById("question").innerText = "全問終了！";
     document.getElementById("result").innerHTML =

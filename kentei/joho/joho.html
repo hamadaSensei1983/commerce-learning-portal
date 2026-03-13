@@ -1,810 +1,626 @@
 <!DOCTYPE html>
 <html lang="ja">
-
 <head>
-<meta charset="UTF-8">
-<title>情報処理検定 用語問題</title>
-
-<link rel="stylesheet" href="../../css/common.css">
-
+  <meta charset="UTF-8">
+  <title>情報処理検定 用語問題</title>
+  <link rel="stylesheet" href="../../css/common.css">
 </head>
-
 <body>
-
 <header class="app-header">
-
-<div class="header-left">
-
-<img src="../../images/logo.png" class="header-icon">
-
-<div>
-<h1 class="site-title">検定対策システム</h1>
-<div class="exam-title" id="examLevel"></div>
-</div>
-
-</div>
+  <div class="header-left">
+    <img src="../../images/logo.png" class="header-icon">
+    <div>
+      <h1 class="site-title">検定対策システム</h1>
+      <div class="exam-level" id="examLevel"></div>
+    </div>
+  </div>
 </header>
 
-
 <!-- =====================
- ローディング画面
+  ローディング画面
 ===================== -->
-
 <div id="loadingScreen">
-
-<div style="text-align:center">
-
-<img src="../../images/logo.png" style="width:90px;margin-bottom:20px">
-
-<div class="spinner"></div>
-
-<p style="margin-top:15px;font-weight:bold">
-問題を読み込み中...
-</p>
-
+  <div style="text-align:center">
+    <img src="../../images/logo.png" style="width:90px;margin-bottom:20px">
+    <div class="spinner"></div>
+    <p style="margin-top:15px;font-weight:bold">
+      問題を読み込み中...
+    </p>
+  </div>
 </div>
-
-</div>
-
-
 
 <!-- =====================
- 初期設定画面
+  初期設定画面
 ===================== -->
-
 <div class="card hidden" id="setupArea">
+  <h3>生徒名</h3>
+  <input id="studentNameInput" style="width:100%;padding:8px">
+  <button class="control-btn" onclick="saveStudent()">保存</button>
+  <div id="studentStats"></div>
 
-    <h3>生徒名</h3>
-    <input id="studentNameInput" style="width:100%;padding:8px">
-    <button class="control-btn" onclick="saveStudent()">保存</button>
-    <div id="studentStats"></div>
+  <h3>分野選択</h3>
+  <div id="fieldArea" class="field-grid"></div>
+  <button class="control-btn" onclick="selectAll()">全選択</button>
+  <button class="control-btn" onclick="clearAll()">全解除</button>
 
-    <h3>分野選択</h3>
-    <div id="fieldArea" class="field-grid"></div>
-    <button class="control-btn" onclick="selectAll()">全選択</button>
-    <button class="control-btn" onclick="clearAll()">全解除</button>
-
-    <h3>モード選択</h3>
-    <select id="modeSelect" style="width:100%;padding:10px">
+  <h3>モード選択</h3>
+  <select id="modeSelect" style="width:100%;padding:10px">
     <option value="normal">通常モード</option>
     <option value="challenge">チャレンジモード</option>
     <option value="review">復習モード</option>
     <option value="study">学習モード</option>
-    </select>
+  </select>
+  <div id="modeDescription"></div>
+  <button class="main-btn" onclick="startQuiz()">開始</button>
 
-    <div id="modeDescription"></div>
-    <button class="main-btn" onclick="startQuiz()">開始</button>
+  <h3>弱点ランキング</h3>
+  <div id="weakRanking"></div>
 
-    <h3>弱点ランキング</h3>
-    <div id="weakRanking"></div>
-    <h3>分野別正答率</h3>
-    <div id="fieldRates"></div>
-
+  <h3>分野別正答率</h3>
+  <div id="fieldRates"></div>
 </div>
 
 <!-- =====================
- クイズ画面
+  クイズ画面
 ===================== -->
-
 <div class="card hidden" id="quizArea">
-
-    <div class="progress-wrapper">
-
+  <div class="progress-wrapper">
     <div id="progressText"></div>
-
     <div class="progress-bar">
-        <div id="progressBar" class="progress-bar-fill"></div>
+      <div id="progressBar" class="progress-bar-fill"></div>
     </div>
+  </div>
 
-</div>
-
-<h3 id="question"></h3>
-
-<div id="choices"></div>
-
-<p id="result"></p>
-
-<button id="nextBtn" class="main-btn hidden" onclick="nextQuestion()">次へ</button>
-
+  <h3 id="question"></h3>
+  <div id="choices"></div>
+  <p id="result"></p>
+  <button id="nextBtn" class="main-btn hidden" onclick="nextQuestion()">次へ</button>
 </div>
 
 <!-- =====================
- 結果画面
+  結果画面
 ===================== -->
-
 <div class="card hidden" id="resultArea">
-
-<h2>結果</h2>
-
-<p id="scoreText"></p>
-<p id="rateText"></p>
-<p id="rankText"></p>
-
-<button class="main-btn" onclick="location.reload()">もう一度</button>
-<button class="control-btn" onclick="retryWrong()">復習する</button>
-<button class="control-btn" onclick="backToSetup()">分野選択に戻る</button>
-
+  <h2>結果</h2>
+  <p id="scoreText"></p>
+  <p id="rateText"></p>
+  <p id="rankText"></p>
+  <button class="main-btn" onclick="location.reload()">もう一度</button>
+  <button class="control-btn" onclick="retryWrong()">復習する</button>
+  <button class="control-btn" onclick="backToSetup()">分野選択に戻る</button>
 </div>
 
-
-
 <!-- =====================
- 学習モード
+  学習モード
 ===================== -->
-
 <div class="card hidden" id="studyArea">
-
-    <div class="study-row">
-        <button class="nav-square" onclick="prevCard()">◀</button>
-        <div>
-            <h2 id="studyTerm"></h2>
-            <div id="cardPosition"></div>
-        </div>
-        <button class="nav-square" onclick="nextCard()">▶</button>
-
+  <div class="study-container">
+    <div class="study-row" id="studyCard">
+      <button class="nav-square" onclick="prevCard()">◀</button>
+      <div>
+        <h2 id="studyTerm"></h2>
+        <div id="cardPosition"></div>
+      </div>
+      <button class="nav-square" onclick="nextCard()">▶</button>
     </div>
-
-    <div class="study-meaning-box" id="studyMeaning"></div>
-    <button class="control-btn" onclick="backToSetup()">分野選択に戻る</button>
-
+    <!-- ★ もともと抜けていた説明表示エリアを追加 -->
+    <div class="study-meaning-box" style="margin-top:10px;">
+      <span id="studyMeaning"></span>
+    </div>
+  </div>
 </div>
 
 <h3>CSVテスト（ローカル用）</h3>
 <input type="file" accept=".csv" onchange="loadLocalCSV(this.files[0])">
 
 <a href="index.html" class="portal-btn exam-btn">
-検定トップ
+  検定トップ
 </a>
-
 <a href="../../index.html" class="portal-btn portal-main">
-ポータルへ戻る
+  ポータルへ戻る
 </a>
-
 
 <script>
-
 /* =====================
    グローバル変数
 ===================== */
+let questions = [];
+let filtered = [];
+let wrong = [];
+let current = 0;
+let score = 0;
+let mode = "";
+let streak = 0;
+const quizState = {
+  pool: [],
+  queue: [],
+  wrong: [],
+  index: 0,
+  score: 0,
+  mode: ""
+};
 
-let questions=[]
-let filtered=[]
-let wrong=[]
-let current=0
-let score=0
-let mode=""
-let streak=0
-const quizState={
-    pool:[],
-    queue:[],
-    wrong:[],
-    index:0,
-    score:0,
-    mode:""
-}
-
-
-/* =====================
- モード説明
-===================== */
-
-const modeDesc={
-    normal:"5問出題されます",
-    challenge:"全問題出題。1問でも間違えると終了",
-    review:"間違えた問題を再出題",
-    study:"カード形式で学習"
-}
+// ▼ ローディング開始時刻（1秒ルール用）
+const loadStartTime = Date.now();
 
 /* =====================
- レベル判定
+   モード説明
 ===================== */
+const modeDesc = {
+  normal: "5問出題されます",
+  challenge: "全問題出題。1問でも間違えると終了",
+  review: "間違えた問題を再出題",
+  study: "カード形式で学習"
+};
 
-const params=new URLSearchParams(location.search)
-const level=params.get("level")
+/* =====================
+   レベル判定
+===================== */
+const params = new URLSearchParams(location.search);
+const level = params.get("level");
 
-if(level==="3"){
-    document.getElementById("examLevel").innerText="情報処理検定 3級"
-    loadCSV("data/data3.csv")
+if (level === "3") {
+  document.getElementById("examLevel").innerText = "情報処理検定 3級";
+  loadCSV("data/data3.csv");
 }
-
-if(level==="2"){
-    document.getElementById("examLevel").innerText="情報処理検定 2級"
-    loadCSV("data/data2.csv")
+if (level === "2") {
+  document.getElementById("examLevel").innerText = "情報処理検定 2級";
+  loadCSV("data/data2.csv");
 }
 
 /* =====================
- CSV読み込み
+   CSV読み込み
 ===================== */
 
-/* =====================
-   ローカルCSVテスト用
-===================== */
+/* ローカルCSVテスト用 */
+function loadLocalCSV(file) {
+  let reader = new FileReader();
+  reader.onload = function (e) {
+    let text = e.target.result;
+    questions = parseCSV(text);
+    createFieldList();
+    showWeakRanking();
+    // ローカル用：すぐにローディングを消す（1秒ルールはオンライン読み込み側で適用）
+    document.getElementById("loadingScreen").style.display = "none";
+    document.getElementById("setupArea").classList.remove("hidden");
+  };
+  reader.readAsText(file);
+}
 
-function loadLocalCSV(file){
-
-    let reader = new FileReader()
-
-    reader.onload = function(e){
-
-        let text = e.target.result
-
-        questions = parseCSV(text)
-
-        createFieldList()
-        showWeakRanking()
-
-        document.getElementById("loadingScreen").style.display="none"
-        document.getElementById("setupArea").classList.remove("hidden")
-
+// オンライン用CSV読み込み（1秒ルール適用）
+async function loadCSV(path) {
+  try {
+    let res = await fetch(path);
+    if (!res.ok) {
+      throw new Error("CSVが見つかりません: " + path);
     }
+    let text = await res.text();
+    text = text.replace(/^\uFEFF/, "");
+    questions = parseCSV(text);
+    createFieldList();
+    showWeakRanking();
 
-    reader.readAsText(file)
-}
+    // ▼ ここから「最低1秒表示」ロジック
+    const elapsed = Date.now() - loadStartTime;
+    const minDuration = 1000; // 最低表示時間（ミリ秒）
 
-async function loadCSV(path){
+    const showSetup = () => {
+      document.getElementById("loadingScreen").style.display = "none";
+      document.getElementById("setupArea").classList.remove("hidden");
+    };
 
-    try{
-        let res=await fetch(path)
-        if(!res.ok){
-            throw new Error("CSVが見つかりません: "+path)
-        }
-        let text=await res.text()
-        text=text.replace(/^\uFEFF/,"")
-        questions=parseCSV(text)
-        createFieldList()
-        showWeakRanking()
-
-        document.getElementById("loadingScreen").style.display="none"
-        document.getElementById("setupArea").classList.remove("hidden")
-    }catch(e){
-
-        console.warn("CSV読み込み失敗",e)
-
-        // ローカル用にローディングを消す
-        document.getElementById("loadingScreen").style.display="none"
-        document.getElementById("setupArea").classList.remove("hidden")
-
+    if (elapsed >= minDuration) {
+      showSetup();
+    } else {
+      setTimeout(showSetup, minDuration - elapsed);
     }
+    // ▲ ここまで 1秒ルール
+
+  } catch (e) {
+    console.warn("CSV読み込み失敗", e);
+    // エラー時もローディングを消して初期画面を出す
+    document.getElementById("loadingScreen").style.display = "none";
+    document.getElementById("setupArea").classList.remove("hidden");
+  }
 }
 
 /* =====================
- CSVパーサー
+   CSVパーサー
 ===================== */
-
-function parseCSV(text){
-
-    let rows = text.trim().split(/\r?\n/)
-    let result = []
-
-    for(let i=1;i<rows.length;i++){
-
-        let line = rows[i].trim()
-        if(!line) continue
-
-        let cols=[]
-        let current=""
-        let inQuotes=false
-
-        for(let c of line){
-
-            if(c === '"'){
-                inQuotes = !inQuotes
-                continue
-            }
-
-            if(c === "," && !inQuotes){
-                cols.push(current)
-                current=""
-            }else{
-                current += c
-            }
-
-        }
-
-        cols.push(current)
-
-        if(cols.length < 3) continue
-
-        result.push({
-            field: cols[0].trim(),
-            term: cols[1].trim(),
-            meaning: cols.slice(2).join(",").trim(),
-            index: i-1
-        })
-
+function parseCSV(text) {
+  let rows = text.trim().split(/\r?\n/);
+  let result = [];
+  for (let i = 1; i < rows.length; i++) {
+    let line = rows[i].trim();
+    if (!line) continue;
+    let cols = [];
+    let current = "";
+    let inQuotes = false;
+    for (let c of line) {
+      if (c === '"') {
+        inQuotes = !inQuotes;
+        continue;
+      }
+      if (c === "," && !inQuotes) {
+        cols.push(current);
+        current = "";
+      } else {
+        current += c;
+      }
     }
-
-    return result
+    cols.push(current);
+    if (cols.length < 3) continue;
+    result.push({
+      field: cols[0].trim(),
+      term: cols[1].trim(),
+      meaning: cols.slice(2).join(",").trim(),
+      index: i - 1
+    });
+  }
+  return result;
 }
 
 /* =====================
- 分野リスト作成
+   分野リスト作成
 ===================== */
-
-function createFieldList(){
-
-    let counts={}
-
-    questions.forEach(q=>{
-
-        if(!counts[q.field]) counts[q.field]=0
-            counts[q.field]++
-
-    })
-
-    let area=document.getElementById("fieldArea")
-
-    Object.keys(counts).sort().forEach(field=>{
-
-        let label=document.createElement("label")
-        label.innerHTML=
-        '<input type="checkbox" value="'+field+'"> '
-        +field+' ('+counts[field]+')'
-        area.appendChild(label)
-
-    })
-
+function createFieldList() {
+  let counts = {};
+  questions.forEach(q => {
+    if (!counts[q.field]) counts[q.field] = 0;
+    counts[q.field]++;
+  });
+  let area = document.getElementById("fieldArea");
+  area.innerHTML = "";
+  Object.keys(counts).sort().forEach(field => {
+    let label = document.createElement("label");
+    label.innerHTML =
+      '<input type="checkbox" value="' + field + '"> ' +
+      field + ' (' + counts[field] + ')';
+    area.appendChild(label);
+  });
 }
 
 /* =====================
- 分野選択操作
+   分野選択操作
 ===================== */
-
-function selectAll(){
-    document.querySelectorAll("#fieldArea input").forEach(c=>c.checked=true)
+function selectAll() {
+  document.querySelectorAll("#fieldArea input").forEach(c => c.checked = true);
 }
-
-function clearAll(){
-    document.querySelectorAll("#fieldArea input").forEach(c=>c.checked=false)
+function clearAll() {
+  document.querySelectorAll("#fieldArea input").forEach(c => c.checked = false);
 }
 
 /* =====================
- モード説明
+   モード説明
 ===================== */
+document.getElementById("modeSelect").addEventListener("change", updateModeDesc);
 
-document.getElementById("modeSelect").addEventListener("change",updateModeDesc)
-
-function updateModeDesc(){
-    let m=document.getElementById("modeSelect").value
-    document.getElementById("modeDescription").innerText=modeDesc[m]
+function updateModeDesc() {
+  let m = document.getElementById("modeSelect").value;
+  document.getElementById("modeDescription").innerText = modeDesc[m];
 }
-
-updateModeDesc()
+updateModeDesc();
 
 /* =====================
- クイズ開始
+   クイズ開始
 ===================== */
+function startQuiz() {
+  const selected = [...document.querySelectorAll("#fieldArea input:checked")].map(c => c.value);
+  if (selected.length === 0) {
+    alert("分野を1つ以上選択してください");
+    return;
+  }
 
-function startQuiz(){
+  quizState.mode = document.getElementById("modeSelect").value;
+  quizState.pool = questions.filter(q => selected.includes(q.field));
+  shuffle(quizState.pool);
+  quizState.index = 0;
+  quizState.score = 0;
+  quizState.wrong = [];
 
-    const selected=[...document.querySelectorAll("#fieldArea input:checked")].map(c=>c.value)
+  if (quizState.mode === "study") {
+    filtered = [...quizState.pool];
+    document.getElementById("setupArea").classList.add("hidden");
+    document.getElementById("studyArea").classList.remove("hidden");
+    startStudy();
+    return;
+  }
 
-    if(selected.length===0){
-        alert("分野を1つ以上選択してください")
-        return
+  if (quizState.mode === "normal") {
+    quizState.queue = quizState.pool.slice(0, 5);
+  } else if (quizState.mode === "challenge") {
+    quizState.queue = [...quizState.pool];
+  } else if (quizState.mode === "review") {
+    if (quizState.wrong.length === 0) {
+      alert("復習問題がありません");
+      return;
     }
+    quizState.queue = [...quizState.wrong];
+  }
 
-    quizState.mode=document.getElementById("modeSelect").value
-
-    quizState.pool=questions.filter(q=>selected.includes(q.field))
-
-    shuffle(quizState.pool)
-
-    quizState.index=0
-    quizState.score=0
-    quizState.wrong=[]
-
-    if(quizState.mode==="study"){
-
-        filtered=[...quizState.pool]
-
-        document.getElementById("setupArea").classList.add("hidden")
-        document.getElementById("studyArea").classList.remove("hidden")
-
-        startStudy()
-        return
-    }
-
-    if(quizState.mode==="normal"){
-
-        quizState.queue=quizState.pool.slice(0,5)
-
-    }else if(quizState.mode==="challenge"){
-
-        quizState.queue=[...quizState.pool]
-
-    }else if(quizState.mode==="review"){
-
-        if(quizState.wrong.length===0){
-            alert("復習問題がありません")
-            return
-        }
-
-        quizState.queue=[...quizState.wrong]
-    }
-
-    document.getElementById("setupArea").classList.add("hidden")
-    document.getElementById("quizArea").classList.remove("hidden")
-
-    nextQuestion()
+  document.getElementById("setupArea").classList.add("hidden");
+  document.getElementById("quizArea").classList.remove("hidden");
+  nextQuestion();
 }
 
 /* =====================
- 問題表示
+   問題表示
 ===================== */
+function nextQuestion() {
+  const total = quizState.queue.length;
+  if (quizState.index >= total) {
+    showResult();
+    return;
+  }
+  const q = quizState.queue[quizState.index];
+  document.getElementById("progressText").innerText =
+    (quizState.index + 1) + " / " + total + " 問目";
+  document.getElementById("progressBar").style.width =
+    ((quizState.index + 1) / total * 100) + "%";
 
-function nextQuestion(){
+  document.getElementById("result").innerText = "";
+  document.getElementById("question").innerText = q.meaning;
 
-    const total=quizState.queue.length
-
-    if(quizState.index>=total){
-        showResult()
-        return
-    }
-
-    const q=quizState.queue[quizState.index]
-
-    document.getElementById("progressText").innerText=
-    (quizState.index+1)+" / "+total+" 問目"
-
-    document.getElementById("progressBar").style.width=
-    ((quizState.index+1)/total*100)+"%"
-
-    document.getElementById("result").innerText=""
-
-    document.getElementById("question").innerText=q.meaning
-
-    const area=document.getElementById("choices")
-    area.innerHTML=""
-
-    const choices=generateChoices(q)
-
-    choices.forEach(c=>{
-
-        const btn=document.createElement("button")
-
-        btn.className="quiz-btn"
-        btn.innerText=c.term
-
-        btn.onclick=()=>checkAnswer(c.term,q.term,btn)
-
-        area.appendChild(btn)
-
-    })
+  const area = document.getElementById("choices");
+  area.innerHTML = "";
+  const choices = generateChoices(q);
+  choices.forEach(c => {
+    const btn = document.createElement("button");
+    btn.className = "quiz-btn";
+    btn.innerText = c.term;
+    btn.onclick = () => checkAnswer(c.term, q.term, btn);
+    area.appendChild(btn);
+  });
 }
 
 /* =====================
- 選択肢生成
+   選択肢生成
 ===================== */
-
-function generateChoices(q){
-
-    let arr=[q]
-
-    // 同じ分野の問題だけ取得
-    let sameField = questions.filter(x =>
-        x.field === q.field && x.term !== q.term
-    )
-
-    shuffle(sameField)
-
-    for(let i=0;i<sameField.length && arr.length<4;i++){
-        arr.push(sameField[i])
+function generateChoices(q) {
+  let arr = [q];
+  // 同じ分野の問題だけ取得
+  let sameField = questions.filter(x =>
+    x.field === q.field && x.term !== q.term
+  );
+  shuffle(sameField);
+  for (let i = 0; i < sameField.length && arr.length < 4; i++) {
+    arr.push(sameField[i]);
+  }
+  // もし分野問題が足りなければ他分野から補充
+  while (arr.length < 4) {
+    let r = questions[Math.floor(Math.random() * questions.length)];
+    if (!arr.includes(r)) {
+      arr.push(r);
     }
-
-    // もし分野問題が足りなければ他分野から補充
-    while(arr.length<4){
-        let r = questions[Math.floor(Math.random()*questions.length)]
-        if(!arr.includes(r)){
-            arr.push(r)
-        }
-    }
-
-    shuffle(arr)
-
-    return arr
+  }
+  shuffle(arr);
+  return arr;
 }
 
 /* =====================
- 正解判定
+   正解判定
 ===================== */
+function checkAnswer(selected, correct, btn) {
+  const buttons = document.querySelectorAll("#choices button");
+  buttons.forEach(b => b.disabled = true);
 
-function checkAnswer(selected,correct,btn){
+  const q = quizState.queue[quizState.index];
 
-    const buttons=document.querySelectorAll("#choices button")
+  if (selected === correct) {
+    btn.classList.add("correct-answer");
+    quizState.score++;
+    document.getElementById("result").innerText = "正解！";
+    updateFieldStats(q.field, true);
+  } else {
+    btn.classList.add("wrong-answer");
+    buttons.forEach(b => {
+      if (b.innerText === correct) {
+        b.classList.add("correct-answer");
+      }
+    });
+    document.getElementById("result").innerText =
+      "不正解　正解：" + correct;
+    quizState.wrong.push(q);
+    updateFieldStats(q.field, false);
 
-    buttons.forEach(b=>b.disabled=true)
-
-    const q=quizState.queue[quizState.index]
-
-    if(selected===correct){
-
-        btn.classList.add("correct-answer")
-
-        quizState.score++
-
-        document.getElementById("result").innerText="正解！"
-
-        updateFieldStats(q.field,true)
-
-    }else{
-
-        btn.classList.add("wrong-answer")
-
-        buttons.forEach(b=>{
-            if(b.innerText===correct){
-                b.classList.add("correct-answer")
-            }
-        })
-
-        document.getElementById("result").innerText=
-        "不正解　正解："+correct
-
-        quizState.wrong.push(q)
-
-        updateFieldStats(q.field,false)
-
-        if(quizState.mode==="challenge"){
-            setTimeout(showResult,1000)
-            return
-        }
+    if (quizState.mode === "challenge") {
+      setTimeout(showResult, 1000);
+      return;
     }
+  }
 
-    quizState.index++
-
-    setTimeout(nextQuestion,1000)
-
-}
-
-function finishReview() {
-  isReviewMode = false;
+  quizState.index++;
+  setTimeout(nextQuestion, 1000);
 }
 
 /* =====================
- 弱点ランキング更新
+   弱点ランキング更新
 ====================== */
-
-function updateFieldStats(field,correct){
-
-    let key="fieldStats_"+level
-    let stats=JSON.parse(localStorage.getItem(key)||"{}")
-
-    if(!stats[field]){
-        stats[field]={correct:0,attempts:0}
-    }
-
-    stats[field].attempts++
-
-    if(correct){
-        stats[field].correct++
-    }
-
-    localStorage.setItem(key,JSON.stringify(stats))
+function updateFieldStats(field, correct) {
+  let key = "fieldStats_" + level;
+  let stats = JSON.parse(localStorage.getItem(key) || "{}");
+  if (!stats[field]) {
+    stats[field] = { correct: 0, attempts: 0 };
+  }
+  stats[field].attempts++;
+  if (correct) {
+    stats[field].correct++;
+  }
+  localStorage.setItem(key, JSON.stringify(stats));
 }
 
 /* =====================
- 結果画面
+   結果画面
 ===================== */
-
-function showResult(){
-
-    document.getElementById("quizArea").classList.add("hidden")
-    document.getElementById("resultArea").classList.remove("hidden")
-
-    const total=quizState.queue.length
-
-    const rate=Math.round(quizState.score/total*100)
-
-    document.getElementById("scoreText").innerText="正解数 "+quizState.score
-    document.getElementById("rateText").innerText="正答率 "+rate+"%"
-
-    saveStudentStats(rate)
+function showResult() {
+  document.getElementById("quizArea").classList.add("hidden");
+  document.getElementById("resultArea").classList.remove("hidden");
+  const total = quizState.queue.length;
+  const rate = Math.round(quizState.score / total * 100);
+  document.getElementById("scoreText").innerText = "正解数 " + quizState.score;
+  document.getElementById("rateText").innerText = "正答率 " + rate + "%";
+  saveStudentStats(rate);
 }
 
 /* =====================
- 成績保存
+   成績保存
 ===================== */
-
-function saveStudent(){
-
-    let name=document.getElementById("studentNameInput").value
-    localStorage.setItem("studentName",name)
-    showStudentStats()
-
+function saveStudent() {
+  let name = document.getElementById("studentNameInput").value;
+  localStorage.setItem("studentName", name);
+  showStudentStats();
 }
-
-function saveStudentStats(rate){
-
-    let stats=JSON.parse(localStorage.getItem("studentStats")||"[]")
-    stats.push(rate)
-    localStorage.setItem("studentStats",JSON.stringify(stats))
-    showStudentStats()
-
+function saveStudentStats(rate) {
+  let stats = JSON.parse(localStorage.getItem("studentStats") || "[]");
+  stats.push(rate);
+  localStorage.setItem("studentStats", JSON.stringify(stats));
+  showStudentStats();
 }
-
-function showStudentStats(){
-
-    let stats=JSON.parse(localStorage.getItem("studentStats")||"[]")
-    if(stats.length===0) return
-    let avg=Math.round(stats.reduce((a,b)=>a+b)/stats.length)
-    let max=Math.max(...stats)
-    document.getElementById("studentStats").innerHTML=
-
-    "試験回数 "+stats.length+"回<br>"+
-    "平均正答率 "+avg+"%<br>"+
-    "最高正答率 "+max+"%"
-
+function showStudentStats() {
+  let stats = JSON.parse(localStorage.getItem("studentStats") || "[]");
+  if (stats.length === 0) return;
+  let avg = Math.round(stats.reduce((a, b) => a + b) / stats.length);
+  let max = Math.max(...stats);
+  document.getElementById("studentStats").innerHTML =
+    "試験回数 " + stats.length + "回<br>" +
+    "平均正答率 " + avg + "%<br>" +
+    "最高正答率 " + max + "%";
 }
 
 /* =====================
- 弱点ランキング
+   弱点ランキング表示
 ===================== */
-
-function showWeakRanking(){
-
-    let key="fieldStats_"+level
-    let stats=JSON.parse(localStorage.getItem(key)||"{}")
-    let arr=Object.keys(stats).map(f=>{
-        let s=stats[f]
-        let rate=Math.round(s.correct/s.attempts*100)
-        return {field:f,rate:rate}
-    })
-
-    arr.sort((a,b)=>a.rate-b.rate)
-    let html=""
-
-    arr.slice(0,3).forEach((r,i)=>{
-        html+=(i+1)+"位 "+r.field+" "+r.rate+"%<br>"
-    })
-
-    document.getElementById("weakRanking").innerHTML=html
-
-    showFieldRates()
+function showWeakRanking() {
+  let key = "fieldStats_" + level;
+  let stats = JSON.parse(localStorage.getItem(key) || "{}");
+  let arr = Object.keys(stats).map(f => {
+    let s = stats[f];
+    let rate = Math.round(s.correct / s.attempts * 100);
+    return { field: f, rate: rate };
+  });
+  arr.sort((a, b) => a.rate - b.rate);
+  let html = "";
+  arr.slice(0, 3).forEach((r, i) => {
+    html += (i + 1) + "位 " + r.field + " " + r.rate + "%<br>";
+  });
+  document.getElementById("weakRanking").innerHTML = html;
+  showFieldRates();
 }
-
-
-function showFieldRates(){
-
-    let key="fieldStats_"+level
-    let stats=JSON.parse(localStorage.getItem(key)||"{}")
-    let html=""
-
-    Object.keys(stats).forEach(field=>{
-
-        let s=stats[field]
-        let rate=Math.round(s.correct/s.attempts*100)
-        html+=field+"　"+rate+"% ("+s.correct+"/"+s.attempts+")<br>"
-
-    })
-
-    document.getElementById("fieldRates").innerHTML=html
-
+function showFieldRates() {
+  let key = "fieldStats_" + level;
+  let stats = JSON.parse(localStorage.getItem(key) || "{}");
+  let html = "";
+  Object.keys(stats).forEach(field => {
+    let s = stats[field];
+    let rate = Math.round(s.correct / s.attempts * 100);
+    html += field + "　" + rate + "% (" + s.correct + "/" + s.attempts + ")<br>";
+  });
+  document.getElementById("fieldRates").innerHTML = html;
 }
 
 /* =====================
- 配列シャッフル
+   配列シャッフル
 ===================== */
-
-function shuffle(a){
-
-    for(let i=a.length-1;i>0;i--){
-
-        let j=Math.floor(Math.random()*(i+1))
-
-        let t=a[i]
-        a[i]=a[j]
-        a[j]=t
-
-    }
-
+function shuffle(a) {
+  for (let i = a.length - 1; i > 0; i--) {
+    let j = Math.floor(Math.random() * (i + 1));
+    let t = a[i];
+    a[i] = a[j];
+    a[j] = t;
+  }
 }
 
 /* =====================
- 学習モード用
+   学習モード用
 ===================== */
-
-let studyIndex=0
-
-function startStudy(){
-    studyIndex=0
-    showStudy()
+let studyIndex = 0;
+function startStudy() {
+  studyIndex = 0;
+  showStudy();
 }
-
-function showStudy(){
-
-    let q=filtered[studyIndex]
-
-    document.getElementById("studyTerm").innerText=q.term
-    document.getElementById("studyMeaning").innerText=q.meaning
-
-    document.getElementById("cardPosition").innerText=
-    (studyIndex+1)+" / "+filtered.length
-
+function showStudy() {
+  let q = filtered[studyIndex];
+  document.getElementById("studyTerm").innerText = q.term;
+  document.getElementById("studyMeaning").innerText = q.meaning;
+  document.getElementById("cardPosition").innerText =
+    (studyIndex + 1) + " / " + filtered.length;
 }
-
-function nextCard(){
-    if(studyIndex<filtered.length-1){
-        studyIndex++
-        showStudy()
+function slideCard(direction) {
+  const card = document.getElementById("studyCard");
+  card.style.transform = "translateX(" + direction * 40 + "px)";
+  setTimeout(() => {
+    if (direction < 0) {
+      if (studyIndex < filtered.length - 1) studyIndex++;
+    } else {
+      if (studyIndex > 0) studyIndex--;
     }
+    showStudy();
+    card.style.transition = "none";
+    card.style.transform = "translateX(" + -direction * 40 + "px)";
+    setTimeout(() => {
+      card.style.transition = "transform 0.35s ease";
+      card.style.transform = "translateX(0)";
+    }, 20);
+  }, 120);
 }
-
-function prevCard(){
-
-    if(studyIndex>0){
-        studyIndex--
-        showStudy()
-    }
-
+function nextCard() {
+  slideCard(-1);
+}
+function prevCard() {
+  slideCard(1);
 }
 
 /* =====================
- 分野選択へ戻る
+   分野選択へ戻る
 ===================== */
-
-function backToSetup(){
-
-    document.getElementById("quizArea").classList.add("hidden")
-    document.getElementById("resultArea").classList.add("hidden")
-    document.getElementById("studyArea").classList.add("hidden")
-    document.getElementById("setupArea").classList.remove("hidden")
-    document.getElementById("nextBtn").classList.add("hidden")
-
-    showWeakRanking()
-
+function backToSetup() {
+  document.getElementById("quizArea").classList.add("hidden");
+  document.getElementById("resultArea").classList.add("hidden");
+  document.getElementById("studyArea").classList.add("hidden");
+  document.getElementById("setupArea").classList.remove("hidden");
+  document.getElementById("nextBtn").classList.add("hidden");
+  showWeakRanking();
 }
 
-//スワイプ対応
+/* =====================
+   学習モード：スワイプ対応
+===================== */
+let touchStartX = 0;
+let touchEndX = 0;
+const studyArea = document.getElementById("studyArea");
 
-let touchStartX=0
-let touchEndX=0
-
-const studyArea=document.getElementById("studyArea")
-
-studyArea.addEventListener("touchstart",e=>{
-    touchStartX=e.changedTouches[0].screenX
-})
-
-studyArea.addEventListener("touchend",e=>{
-    touchEndX=e.changedTouches[0].screenX
-    handleSwipe()
-})
-
-function handleSwipe(){
-
-    let diff=touchEndX-touchStartX
-
-    if(diff>60){
-        prevCard()
-    }
-
-    if(diff<-60){
-        nextCard()
-    }
-
+studyArea.addEventListener("touchstart", e => {
+  touchStartX = e.changedTouches[0].screenX;
+});
+studyArea.addEventListener("touchend", e => {
+  touchEndX = e.changedTouches[0].screenX;
+  handleSwipe();
+});
+function handleSwipe() {
+  let diff = touchEndX - touchStartX;
+  if (diff > 60) {
+    prevCard();
+  }
+  if (diff < -60) {
+    nextCard();
+  }
 }
 
-//復習用
-
-function retryWrong(){
-
-    if(quizState.wrong.length===0){
-        alert("復習する問題がありません")
-        return
-    }
-
-    quizState.queue=[...quizState.wrong]
-    quizState.index=0
-    quizState.score=0
-
-    document.getElementById("resultArea").classList.add("hidden")
-    document.getElementById("quizArea").classList.remove("hidden")
-
-    nextQuestion()
-
+/* =====================
+   復習用
+===================== */
+function retryWrong() {
+  if (quizState.wrong.length === 0) {
+    alert("復習する問題がありません");
+    return;
+  }
+  quizState.queue = [...quizState.wrong];
+  quizState.index = 0;
+  quizState.score = 0;
+  document.getElementById("resultArea").classList.add("hidden");
+  document.getElementById("quizArea").classList.remove("hidden");
+  nextQuestion();
 }
-
 </script>
-
 </body>
 </html>

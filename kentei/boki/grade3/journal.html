@@ -1,538 +1,523 @@
 <!DOCTYPE html>
 <html lang="ja">
-
 <head>
-    <meta charset="UTF-8">
-    <title>簿記3級 仕訳トレーニング</title>
-    <link rel="stylesheet" href="../../../css/common.css">
-
-    <style>
-
-        /* 問題 */
-        #question{
-            text-align:center;
-            font-size:26px;
-            margin-bottom:25px;
-        }
-
-        /* 分野選択 */
-        .field-grid{
-            display:grid;
-            grid-template-columns:1fr 1fr;
-            gap:8px;
-            max-width:400px;
-            margin:10px auto;
-            text-align:left;
-        }
-
-        /* 仕訳エリア */
-        .journal{
-            display:grid;
-            grid-template-columns:1fr 1fr;
-            gap:40px;
-            margin-top:20px;
-        }
-
-        .side{
-            text-align:center;
-        }
-
-        .side-title{
-            font-weight:bold;
-            margin-bottom:10px;
-        }
-
-        /* 入力行 */
-        .entry{
-            display:flex;
-            justify-content:center;
-            gap:8px;
-            margin:8px 0;
-        }
-
-        /* プルダウン */
-        select{
-            width:130px;
-            padding:5px;
-            font-size:16px;
-        }
-
-        /* 金額 */
-        .money{
-            width:90px;
-            padding:5px;
-            font-size:16px;
-            text-align:right;
-        }
-
-        .answer-box{
-            margin-top:20px;
-            font-size:18px;
-            font-weight:bold;
-            min-height:60px;
-        }
-
-        /* ===== 分野ボタン ===== */
-        .field-controls{
-            display:grid;
-            grid-template-columns:1fr 1fr;
-            gap:10px;
-            max-width:400px;
-            margin:10px auto;
-        }
-
-        /* ===== 仕訳カード ===== */
-        .journal{
-            display:grid;
-            grid-template-columns:1fr 1fr;
-            gap:30px;
-            margin-top:20px;
-            padding:15px;
-            background:#f9fdf9;
-            border-radius:10px;
-            border:2px solid #d8ead8;
-        }
-
-        /* 左右エリア */
-        .side{
-            background:white;
-            padding:15px;
-            border-radius:8px;
-            box-shadow:0 3px 8px rgba(0,0,0,0.08);
-        }
-
-        /* 見出し */
-        .side-title{
-            font-weight:bold;
-            margin-bottom:10px;
-            padding-bottom:6px;
-            border-bottom:2px solid #eee;
-        }
-
-        /* 入力行 */
-        .entry{
-            display:flex;
-            justify-content:space-between;
-            gap:8px;
-            margin:8px 0;
-        }
-
-
-        /* 正解表示 */
-        .answer-journal{
-            display:grid;
-            grid-template-columns:1fr 1fr;
-            gap:25px;
-            margin-top:10px;
-        }
-
-        .answer-side{
-            background:#f7fff7;
-            padding:10px;
-            border-radius:6px;
-        }
-
-    </style>
-
+  <meta charset="UTF-8">
+  <title>簿記3級 仕訳トレーニング</title>
+  ../../../css/common.css
+  <style>
+    /* 問題 */
+    #question{
+      text-align:center;
+      font-size:26px;
+      margin-bottom:25px;
+    }
+    /* 分野選択 */
+    .field-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+      max-width:400px;
+      margin:10px auto;
+      text-align:left;
+    }
+    /* 分野ボタン */
+    .field-controls{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+      max-width:400px;
+      margin:10px auto;
+    }
+    /* 仕訳カード */
+    .journal{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:30px;
+      margin-top:20px;
+      padding:15px;
+      background:#f9fdf9;
+      border-radius:10px;
+      border:2px solid #d8ead8;
+    }
+    /* 左右エリア */
+    .side{
+      background:white;
+      padding:15px;
+      border-radius:8px;
+      box-shadow:0 3px 8px rgba(0,0,0,0.08);
+      text-align:center;
+    }
+    /* 見出し */
+    .side-title{
+      font-weight:bold;
+      margin-bottom:10px;
+      padding-bottom:6px;
+      border-bottom:2px solid #eee;
+    }
+    /* 入力行 */
+    .entry{
+      display:flex;
+      justify-content:space-between;
+      gap:8px;
+      margin:8px 0;
+    }
+    /* プルダウン */
+    select{
+      width:130px;
+      padding:5px;
+      font-size:16px;
+    }
+    /* 金額 */
+    .money{
+      width:90px;
+      padding:5px;
+      font-size:16px;
+      text-align:right;
+    }
+    .answer-box{
+      margin-top:20px;
+      font-size:18px;
+      font-weight:bold;
+      min-height:60px;
+    }
+    /* 正解表示用の仕訳 */
+    .answer-journal{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:25px;
+      margin-top:10px;
+    }
+    .answer-side{
+      background:#f7fff7;
+      padding:10px;
+      border-radius:6px;
+      text-align:left;
+    }
+  </style>
 </head>
-
 <body>
-
 <header class="app-header">
-    <div class="header-left">
-        <img src="../../../images/logo.png" class="header-icon">
-        <div>
-            <h1 class="site-title">検定対策システム</h1>
-            <div class="exam-title">全商簿記3級 仕訳トレーニング</div>
-        </div>
+  <div class="header-left">
+    ../../../images/logo.png
+    <div>
+      <h1 class="site-title">検定対策システム</h1>
+      <div class="exam-title">全商簿記3級 仕訳トレーニング</div>
     </div>
+  </div>
 </header>
 
-<div class="card">
+<!-- ローディング画面 -->
+<div id="loadingScreen">
+  <div style="text-align:center">
+    ../../../images/logo.png
+    <div class="spinner"></div>
+    <p style="margin-top:15px;font-weight:bold">
+      問題を読み込み中...
+    </p>
+  </div>
+</div>
 
-<!-- 分野選択 -->
-
-<div id="fieldArea">
-
+<!-- メインカード（最初は非表示） -->
+<div class="card hidden" id="mainCard">
+  <!-- 分野選択 -->
+  <div id="fieldArea">
     <div style="text-align:center">
-
-        <div id="fieldList" class="field-grid"></div>
-
-            <div class="field-controls">
-                <button class="control-btn" onclick="selectAll()">
-                全選択
-                </button>
-                <button class="control-btn" onclick="clearAll()">
-                全解除
-                </button>
-            </div>
-
-        <div style="text-align:center;margin-top:10px">
-            <button class="main-btn" onclick="start()">開始</button>
-        </div>
-
+      <div id="fieldList" class="field-grid"></div>
+      <div class="field-controls">
+        <button class="control-btn" onclick="selectAll()">
+          全選択
+        </button>
+        <button class="control-btn" onclick="clearAll()">
+          全解除
+        </button>
+      </div>
+      <div style="text-align:center;margin-top:10px">
+        <button class="main-btn" onclick="start()">開始</button>
+      </div>
     </div>
 
-    <div id="stats" style="text-align:center;margin-bottom:10px">
-    連続正解：0
+    <div id="stats" style="text-align:center;margin:10px 0;font-weight:bold;">
+      連続正解：0（最高：0）
     </div>
 
     <div id="instruction" style="text-align:center;font-size:18px;margin-bottom:8px">
-    次の取引の仕訳を示しなさい。
+      次の取引の仕訳を示しなさい。
     </div>
-
-    <h2 id="question"></h2>
 
     <h2 id="question"></h2>
 
     <div id="journalArea" style="display:none">
-
-        <div class="journal">
-
-            <!-- 借方 -->
-
-            <div class="side">
-
-                <div class="side-title">借方</div>
-
-                <div class="entry">
-                    <select id="d1"></select>
-                    <input id="dm1" class="money" inputmode="numeric">
-                </div>
-
-                <div class="entry">
-                    <select id="d2"></select>
-                    <input id="dm2" class="money" inputmode="numeric">
-                </div>
-
-            </div>
-
-            <!-- 貸方 -->
-
-            <div class="side">
-
-                <div class="side-title">貸方</div>
-
-                <div class="entry">
-                    <select id="c1"></select>
-                    <input id="cm1" class="money" inputmode="numeric">
-                </div>
-
-                <div class="entry">
-                    <select id="c2"></select>
-                    <input id="cm2" class="money" inputmode="numeric">
-                </div>
-
-            </div>
-
+      <div class="journal">
+        <!-- 借方 -->
+        <div class="side">
+          <div class="side-title">借方</div>
+          <div class="entry">
+            <select id="d1"></select>
+            <input id="dm1" class="money" inputmode="numeric">
+          </div>
+          <div class="entry">
+            <select id="d2"></select>
+            <input id="dm2" class="money" inputmode="numeric">
+          </div>
         </div>
-
-
-        <p id="result" class="answer-box"></p>
-
-        <div style="text-align:center">
-            <button class="main-btn" onclick="check()">答え合わせ</button>
-            <button class="main-btn" onclick="next()">次の問題</button>
+        <!-- 貸方 -->
+        <div class="side">
+          <div class="side-title">貸方</div>
+          <div class="entry">
+            <select id="c1"></select>
+            <input id="cm1" class="money" inputmode="numeric">
+          </div>
+          <div class="entry">
+            <select id="c2"></select>
+            <input id="cm2" class="money" inputmode="numeric">
+          </div>
         </div>
+      </div>
 
+      <p id="result" class="answer-box"></p>
+
+      <div style="text-align:center">
+        <button class="main-btn" onclick="check()">答え合わせ</button>
+        <button class="main-btn hidden" id="nextBtn" onclick="next()">次の問題</button>
+      </div>
     </div>
-
+  </div>
 </div>
 
-
-<a href="../index.html" class="portal-btn exam-btn">簿記トップ</a>
-<a href="../../../index.html" class="portal-btn portal-main">ポータルへ戻る</a>
-
+../index.html簿記トップ</a>
+../../../index.htmlポータルへ戻る</a>
 
 <script>
+let allData = [];
+let data    = [];
+let current;
+let accounts = [];
+let streak = 0;
+let bestStreak = 0;
+let autoNextTimer = null;
+let fieldStats = {};   // 分野別成績
 
-let allData=[]
-let data=[]
-let current
-let accounts=[]
-let streak = 0
+// ローディング1秒ルール用
+const loadStartTime = Date.now();
 
+// CSV読み込み
 fetch("../data/journal3.csv")
-.then(res=>res.text())
-.then(text=>{
+  .then(res => {
+    if(!res.ok){
+      throw new Error("CSVファイルが見つかりません");
+    }
+    return res.text();
+  })
+  .then(text => {
+    let rows = text.trim().split(/\r?\n/).slice(1);
+    allData = rows.map(r => {
+      let c = r.split(",");
+      return {
+        field : c[0],
+        q     : c[1],
+        d1    : c[2],
+        dm1   : Number(c[3] || 0),
+        d2    : c[4],
+        dm2   : Number(c[5] || 0),
+        c1    : c[6],
+        cm1   : Number(c[7] || 0),
+        c2    : c[8],
+        cm2   : Number(c[9] || 0),
+        desc  : c[10]
+      };
+    });
+    init();
 
-    let rows=text.trim().split(/\r?\n/).slice(1)
-
-    allData=rows.map(r=>{
-
-        let c=r.split(",")
-
-        return{
-
-            field:c[0],
-            q:c[1],
-
-            d1:c[2], dm1:Number(c[3]||0),
-            d2:c[4], dm2:Number(c[5]||0),
-
-            c1:c[6], cm1:Number(c[7]||0),
-            c2:c[8], cm2:Number(c[9]||0),
-
-            desc:c[10]
-
-        }
-
-    })
-
-    init()
-
-})
-
+    const elapsed     = Date.now() - loadStartTime;
+    const minDuration = 1000;
+    const showMain = () => {
+      const loading = document.getElementById("loadingScreen");
+      const card    = document.getElementById("mainCard");
+      if(loading) loading.style.display = "none";
+      if(card) card.classList.remove("hidden");
+      // ロード後にストリーク表示を初期化
+      loadBestStreak();
+      updateStreakDisplay();
+    };
+    if(elapsed >= minDuration){
+      showMain();
+    }else{
+      setTimeout(showMain, minDuration - elapsed);
+    }
+  })
+  .catch(err => {
+    console.error("CSV読み込み失敗", err);
+    const loading = document.getElementById("loadingScreen");
+    const card    = document.getElementById("mainCard");
+    if(loading) loading.style.display = "none";
+    if(card) card.classList.remove("hidden");
+    document.getElementById("question").innerText = "CSV読み込みエラー";
+    document.getElementById("result").innerText   = err.message || err;
+  });
 
 function init(){
+  // 分野リスト作成
+  let fields = [...new Set(allData.map(x => x.field))];
+  let area   = document.getElementById("fieldList");
+  fields.forEach(f => {
+    let label = document.createElement("label");
+    label.innerHTML = `<input type="checkbox" value="${f}"> ${f}`;
+    area.appendChild(label);
+  });
 
-    let fields=[...new Set(allData.map(x=>x.field))]
-    let area=document.getElementById("fieldList")
+  // 勘定科目リスト作成
+  accounts = [...new Set(allData.flatMap(x => [
+    x.d1, x.d2, x.c1, x.c2
+  ]).filter(Boolean))];
+  fillAccounts();
 
-    fields.forEach(f=>{
-        let label=document.createElement("label")
-        label.innerHTML=`<input type="checkbox" value="${f}"> ${f}`
-        area.appendChild(label)
-    })
+  // 金額入力にカンマフォーマット
+  document.querySelectorAll(".money").forEach(el => {
+    el.addEventListener("input", () => {
+      let v = el.value.replace(/,/g,"");
+      if(!isNaN(v) && v !== ""){
+        el.value = Number(v).toLocaleString();
+      }
+    });
+  });
 
-    accounts=[...new Set(allData.flatMap(x=>[
-        x.d1,x.d2,x.c1,x.c2
-    ]).filter(Boolean))]
-
-    fillAccounts()
-
+  // 最高連続正解数を読み込む
+  loadBestStreak();
+  updateStreakDisplay();
 }
 
-/* 勘定科目 */
+/* 勘定科目をプルダウンに反映 */
 function fillAccounts(){
+  ["d1","d2","c1","c2"].forEach(id => {
+    let s = document.getElementById(id);
+    s.innerHTML = "";
+    let blank = document.createElement("option");
+    blank.value = "";
+    blank.text  = "";
+    s.appendChild(blank);
+    accounts.forEach(a => {
+      let o = document.createElement("option");
+      o.value = a;
+      o.text  = a;
+      s.appendChild(o);
+    });
+  });
+}
 
-    ["d1","d2","c1","c2"].forEach(id=>{
+/* 最高連続正解数 読込・保存 */
+function loadBestStreak(){
+  const key = "journal3_bestStreak";
+  const v   = localStorage.getItem(key);
+  bestStreak = v ? parseInt(v,10) : 0;
+}
+function saveBestStreak(){
+  const key = "journal3_bestStreak";
+  localStorage.setItem(key, String(bestStreak));
+}
 
-        let s=document.getElementById(id)
-        let blank=document.createElement("option")
-        blank.value=""
-        blank.text=""
-
-        s.appendChild(blank)
-
-        accounts.forEach(a=>{
-            let o=document.createElement("option")
-            o.value=a
-            o.text=a
-            s.appendChild(o)
-        })
-
-    })
-
+/* ストリーク表示更新 */
+function updateStreakDisplay(){
+  const stats = document.getElementById("stats");
+  if(!stats) return;
+  stats.innerText = "連続正解：" + streak + "（最高：" + bestStreak + "）";
 }
 
 /* 全選択 */
 function selectAll(){
-    document.querySelectorAll("#fieldList input")
-    .forEach(x=>x.checked=true)
+  document.querySelectorAll("#fieldList input")
+    .forEach(x => x.checked = true);
 }
 
 /* 全解除 */
 function clearAll(){
-    document.querySelectorAll("#fieldList input")
-    .forEach(x=>x.checked=false)
+  document.querySelectorAll("#fieldList input")
+    .forEach(x => x.checked = false);
 }
 
+/* 開始 */
 function start(){
-    let selected=[...document.querySelectorAll("#fieldList input:checked")]
-    .map(x=>x.value)
+  let selected = [...document.querySelectorAll("#fieldList input:checked")]
+    .map(x => x.value);
+  if(selected.length === 0){
+    alert("分野を選択してください");
+    return;
+  }
+  data = allData.filter(x => selected.includes(x.field));
 
-    if(selected.length===0){
-        alert("分野を選択してください")
-        return
+  // 分野別成績リセット
+  fieldStats = {};
+  data.forEach(q => {
+    if(!fieldStats[q.field]){
+      fieldStats[q.field] = {correct:0, total:0};
     }
+  });
 
-    data=allData.filter(x=>selected.includes(x.field))
-    document.getElementById("journalArea").style.display="block"
+  // 連続正解リセット（最高値は保持）
+  streak = 0;
+  updateStreakDisplay();
 
-    next()
-
-    fieldStats = {}
-
-    data.forEach(q => {
-        if(!fieldStats[q.field]){
-            fieldStats[q.field] = {correct:0,total:0}
-        }
-    })
-
+  document.getElementById("journalArea").style.display = "block";
+  next();
 }
 
 /* 次の問題 */
 function next(){
-    current=data[Math.floor(Math.random()*data.length)]
-    document.getElementById("question").innerText=current.q
-    document.getElementById("result").innerText=""
-    clearInputs()
+  // 自動遷移タイマーが残っていれば止める
+  if(autoNextTimer !== null){
+    clearTimeout(autoNextTimer);
+    autoNextTimer = null;
+  }
+
+  if(!data || data.length === 0) return;
+
+  current = data[Math.floor(Math.random() * data.length)];
+  document.getElementById("question").innerText = current.q;
+  document.getElementById("result").innerHTML  = "";
+  clearInputs();
+
+  // 次の問題ボタンは隠しておく（不正解のときだけ表示）
+  const nextBtn = document.getElementById("nextBtn");
+  if(nextBtn) nextBtn.classList.add("hidden");
 }
 
+/* 入力欄クリア＆有効化 */
 function clearInputs(){
-
-    ["d1","d2","c1","c2","dm1","dm2","cm1","cm2"].forEach(id=>{
-
-        let el=document.getElementById(id)
-
-        if(!el) return
-
-        el.disabled=false
-
-        if(el.tagName==="SELECT"){
-
-            el.selectedIndex=0
-
-        }else{
-
-            el.value=""
-
-        }
-
-    })
-
+  ["d1","d2","c1","c2","dm1","dm2","cm1","cm2"].forEach(id => {
+    let el = document.getElementById(id);
+    if(!el) return;
+    el.disabled = false;
+    if(el.tagName === "SELECT"){
+      el.selectedIndex = 0;
+    }else{
+      el.value = "";
+    }
+  });
 }
 
-/* カンマ処理 */
-document.querySelectorAll(".money").forEach(el=>{
+/* 値取得 */
+function v(id){
+  return document.getElementById(id).value;
+}
+function n(id){
+  const raw = document.getElementById(id).value.replace(/,/g,"");
+  return Number(raw || 0);
+}
 
-    el.addEventListener("input",()=>{
-
-        let v=el.value.replace(/,/g,"")
-
-        if(!isNaN(v) && v!==""){
-            el.value=Number(v).toLocaleString()
-        }
-
-    })
-
-})
+/* 入力ロック */
+function lockInputs(){
+  ["d1","d2","c1","c2","dm1","dm2","cm1","cm2"].forEach(id => {
+    let el = document.getElementById(id);
+    if(el){
+      el.disabled = true;
+    }
+  });
+}
 
 /* チェック */
 function check(){
+  if(!current) return;
 
-    fieldStats[current.field].total++
+  fieldStats[current.field].total++;
 
-    let ansD=[
-        {a:v("d1"),m:n("dm1")},
-        {a:v("d2"),m:n("dm2")}
-    ]
+  let ansD = [
+    {a:v("d1"), m:n("dm1")},
+    {a:v("d2"), m:n("dm2")}
+  ];
+  let ansC = [
+    {a:v("c1"), m:n("cm1")},
+    {a:v("c2"), m:n("cm2")}
+  ];
+  let corD = [
+    {a:current.d1, m:current.dm1},
+    {a:current.d2, m:current.dm2}
+  ];
+  let corC = [
+    {a:current.c1, m:current.cm1},
+    {a:current.c2, m:current.cm2}
+  ];
 
-    let ansC=[
-        {a:v("c1"),m:n("cm1")},
-        {a:v("c2"),m:n("cm2")}
-    ]
+  // 借方・貸方合計チェック
+  let debitSum  = ansD.reduce((s,x) => s + x.m, 0);
+  let creditSum = ansC.reduce((s,x) => s + x.m, 0);
+  if(debitSum !== creditSum){
+    document.getElementById("result").innerHTML =
+      "借方と貸方の金額が一致していません";
+    return;
+  }
 
-    let corD=[
-        {a:current.d1,m:current.dm1},
-        {a:current.d2,m:current.dm2}
-    ]
+  let ok = compare(ansD, corD) && compare(ansC, corC);
+  const result = document.getElementById("result");
 
-    let corC=[
-        {a:current.c1,m:current.cm1},
-        {a:current.c2,m:current.cm2}
-    ]
-
-    let debitSum=ansD.reduce((s,x)=>s+x.m,0)
-    let creditSum=ansC.reduce((s,x)=>s+x.m,0)
-
-    if(debitSum!==creditSum){
-
-        document.getElementById("result").innerHTML=
-        "借方と貸方の金額が一致していません"
-
-        return
-
+  if(ok){
+    result.innerHTML = "〇 正解！";
+    streak++;
+    if(streak > bestStreak){
+      bestStreak = streak;
+      saveBestStreak();
     }
+    fieldStats[current.field].correct++;
+    updateStreakDisplay();
 
-    let ok=compare(ansD,corD) && compare(ansC,corC)
+    lockInputs();
+    showFieldStats();
 
-    if(ok){
-        document.getElementById("result").innerHTML="〇 正解！"
-        streak++
-        fieldStats[current.field].correct++
-    }else{
+    // 正解時はテンポ良く：1秒後に自動で次の問題へ
+    autoNextTimer = setTimeout(() => {
+      autoNextTimer = null;
+      next();
+    }, 1000);
 
-        document.getElementById("result").innerHTML=
+  }else{
+    let html =
+      "× 不正解<br><br>" +
+      "<b>正解</b>" +
+      "<div class='answer-journal'>" +
+        "<div class='answer-side'>" +
+          "<b>借方</b><br>" +
+          current.d1 + " " + current.dm1.toLocaleString() + "<br>" +
+          (current.d2 ? current.d2 + " " + current.dm2.toLocaleString() : "") +
+        "</div>" +
+        "<div class='answer-side'>" +
+          "<b>貸方</b><br>" +
+          current.c1 + " " + current.cm1.toLocaleString() + "<br>" +
+          (current.c2 ? current.c2 + " " + current.cm2.toLocaleString() : "") +
+        "</div>" +
+      "</div><br>" +
+      "解説：" + (current.desc || "");
 
-        "× 不正解<br><br>"+
+    result.innerHTML = html;
 
-        "<b>正解</b>"+
+    // ストリークリセット
+    streak = 0;
+    updateStreakDisplay();
 
-        "<div class='answer-journal'>"+
+    lockInputs();
+    showFieldStats();
 
-        "<div class='answer-side'>"+
-        "<b>借方</b><br>"+
-        current.d1+" "+current.dm1+"<br>"+
-        (current.d2?current.d2+" "+current.dm2:"")+
-        "</div>"+
-
-        "<div class='answer-side'>"+
-        "<b>貸方</b><br>"+
-        current.c1+" "+current.cm1+"<br>"+
-        (current.c2?current.c2+" "+current.cm2:"")+
-        "</div>"+
-
-        "</div><br>"+
-
-        "解説："+current.desc
-        streak = 0
-
-    }
-
-    lockInputs()
-    document.getElementById("stats").innerText =
-    "連続正解：" + streak
-
-    showFieldStats()
-
+    // 不正解時は「次の問題」ボタンを押すまで進まない
+    const nextBtn = document.getElementById("nextBtn");
+    if(nextBtn) nextBtn.classList.remove("hidden");
+  }
 }
 
-function compare(a,b){
-    a=a.filter(x=>x.m>0)
-    b=b.filter(x=>x.m>0)
-    if(a.length!==b.length) return false
-    return a.every(x=>b.some(y=>x.a===y.a && x.m===y.m))
+/* 勘定科目＋金額の比較（順不同OK） */
+function compare(a, b){
+  a = a.filter(x => x.m > 0);
+  b = b.filter(x => x.m > 0);
+  if(a.length !== b.length) return false;
+  return a.every(x => b.some(y => x.a === y.a && x.m === y.m));
 }
 
-function v(id){
-    return document.getElementById(id).value
-}
-
-function n(id){
-    return Number(document.getElementById(id).value.replace(/,/g,"")||0)
-}
-
-function lockInputs(){
-
-    ["d1","d2","c1","c2","dm1","dm2","cm1","cm2"].forEach(id=>{
-
-        let el=document.getElementById(id)
-
-        if(el){
-            el.disabled=true
-        }
-
-    })
-
-}
-
+/* 分野別正解率表示 */
 function showFieldStats(){
-
-    let html = "<br><b>分野別正解率</b><br>"
-
-    for(let f in fieldStats){
-        let s = fieldStats[f]
-        let rate = s.total ? Math.round(s.correct/s.total*100) : 0
-        html += f + " : " + rate + "% (" + s.correct + "/" + s.total + ")<br>"
-    }
-
-    document.getElementById("result").innerHTML += html
-
+  let html = "<br><b>分野別正解率</b><br>";
+  for(let f in fieldStats){
+    let s    = fieldStats[f];
+    let rate = s.total ? Math.round(s.correct / s.total * 100) : 0;
+    html += f + " : " + rate + "% (" + s.correct + "/" + s.total + ")<br>";
+  }
+  document.getElementById("result").innerHTML += html;
 }
-
 </script>
-
 </body>
 </html>

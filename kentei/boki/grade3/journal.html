@@ -201,9 +201,8 @@ let streak    = 0;         // 連続正解数
 let bestStreak = 0;        // 最高連続正解数
 let autoNextTimer = null;  // 正解時の自動次問題タイマー
 let fieldStats = {};       // 分野別成績
-let quizOrder = [];   // シャッフル後の問題並び
-let quizIndex = 0;    // 現在の問題番号
-
+let quizOrder = [];        // シャッフル後の問題並び
+let quizIndex = 0;         // 現在の問題番号
 
 const loadStartTime = Date.now(); // ローディング開始時刻
 const typeOrder = ["資産","負債","資本","費用","収益"];
@@ -243,7 +242,9 @@ function parseCSV(text){
 function toNumber(v){
   if(!v) return 0;
   const s = String(v).replace(/,/g,"").trim();
-  return s === "" ? 0 : Number(s);
+  if(s === "") return 0;
+  const num = Number(s);
+  return isNaN(num) ? 0 : num;
 }
 
 /* =====================
@@ -288,7 +289,6 @@ Promise.all([
     const type = (cols[1] || "").trim(); // 分類（資産・負債・資本・費用・収益）
     if(!name || !type) return;
     if(!accountMaster[type]) accountMaster[type] = [];
-    // 重複チェック
     if(!accountMaster[type].includes(name)){
       accountMaster[type].push(name);
     }
@@ -412,7 +412,16 @@ function clearAll(){
     .forEach(x => x.checked = false);
 }
 
-/* 開始 */
+/* 配列シャッフル */
+function shuffle(a){
+  for(let i=a.length-1; i>0; i--){
+    let j = Math.floor(Math.random()*(i+1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/* 開始（シャッフル方式） */
 function start(){
   let selected = [...document.querySelectorAll("#fieldList input:checked")]
     .map(x => x.value);
@@ -434,7 +443,7 @@ function start(){
   streak = 0;
   updateStreakDisplay();
 
-  // ★★★ ここが変更点：data をシャッフルして順番確定
+  // data をシャッフルして順番確定
   quizOrder = shuffle([...data]);
   quizIndex = 0;
 
@@ -442,7 +451,7 @@ function start(){
   next();
 }
 
-/* 次の問題 */
+/* 次の問題（シャッフル順に出題） */
 function next(){
   // 自動遷移タイマーが残っていれば止める
   if(autoNextTimer !== null){
@@ -452,9 +461,9 @@ function next(){
 
   if(!quizOrder || quizOrder.length === 0) return;
 
-  // ★★★ ここが「シャッフル出題」
+  // 全問出し切ったら再シャッフル
   if(quizIndex >= quizOrder.length){
-    quizOrder = shuffle([...data]); // 全問終わったら再シャッフル
+    quizOrder = shuffle([...data]);
     quizIndex = 0;
   }
 
@@ -491,8 +500,10 @@ function v(id){
   return document.getElementById(id).value;
 }
 function n(id){
-  const raw = document.getElementById(id).value.replace(/,/g,"");
-  return Number(raw || 0);
+  const raw = document.getElementById(id).value.replace(/,/g,"").trim();
+  if(raw === "") return 0;
+  const num = Number(raw);
+  return isNaN(num) ? 0 : num;
 }
 
 /* 入力ロック */
@@ -508,24 +519,13 @@ function lockInputs(){
 /* チェック（一問一回だけ有効） */
 function check(){
   const checkBtn = document.getElementById("checkBtn");
-  // どの科目も金額も入力されていない場合は採点しない
-  if(
-    !v("d1") && !v("d2") && !v("c1") && !v("c2") &&
-    n("dm1") === 0 && n("dm2") === 0 && n("cm1") === 0 && n("cm2") === 0
-  ){
-    document.getElementById("result").innerHTML =
-      "科目と金額を入力してください";
-    checkBtn.disabled = false; // 再入力OKに戻す
-    return;
-  }
-
-  if(checkBtn.disabled) return;    // 既に採点済みなら何もしない
-  checkBtn.disabled = true;        // 連打防止
+  const result   = document.getElementById("result");
 
   if(!current) return;
+  // すでに正しく採点済みなら無視（連打防止）
+  if(checkBtn.disabled) return;
 
-  fieldStats[current.field].total++;
-
+  // 現在の入力を取得
   let ansD = [
     {a:v("d1"), m:n("dm1")},
     {a:v("d2"), m:n("dm2")}
@@ -534,6 +534,35 @@ function check(){
     {a:v("c1"), m:n("cm1")},
     {a:v("c2"), m:n("cm2")}
   ];
+
+  let debitSum  = ansD.reduce((s,x) => s + x.m, 0);
+  let creditSum = ansC.reduce((s,x) => s + x.m, 0);
+
+  // どの科目も金額も入っていない（実質何もしていない）場合
+  const allAccountEmpty =
+    !v("d1") && !v("d2") && !v("c1") && !v("c2");
+  if(allAccountEmpty && debitSum === 0 && creditSum === 0){
+    result.innerHTML = "科目と金額を入力してください";
+    // 採点していないので checkBtn は有効のままでOK
+    return;
+  }
+
+  // 金額合計が0円同士（科目だけ選んで金額未入力など）
+  if(debitSum === 0 && creditSum === 0){
+    result.innerHTML = "金額を入力してください";
+    return;
+  }
+
+  // 金額が一致していない場合
+  if(debitSum !== creditSum){
+    result.innerHTML = "借方と貸方の金額が一致していません";
+    return;
+  }
+
+  // ここまで来たら「採点してよい入力」とみなしてボタンを無効化
+  checkBtn.disabled = true;
+
+  // 正しい仕訳データ
   let corD = [
     {a:current.d1, m:current.dm1},
     {a:current.d2, m:current.dm2}
@@ -543,17 +572,9 @@ function check(){
     {a:current.c2, m:current.cm2}
   ];
 
-  // 借方・貸方合計チェック
-  let debitSum  = ansD.reduce((s,x) => s + x.m, 0);
-  let creditSum = ansC.reduce((s,x) => s + x.m, 0);
-  if(debitSum !== creditSum){
-    document.getElementById("result").innerHTML =
-      "借方と貸方の金額が一致していません";
-    return;
-  }
+  fieldStats[current.field].total++;
 
   let ok = compare(ansD, corD) && compare(ansC, corC);
-  const result = document.getElementById("result");
 
   if(ok){
     result.innerHTML = "〇 正解！";
@@ -625,17 +646,6 @@ function showFieldStats(){
   }
   document.getElementById("result").innerHTML += html;
 }
-
-/* 問題シャッフル用 */
-function shuffle(a){
-  for(let i=a.length-1; i>0; i--){
-    let j = Math.floor(Math.random()*(i+1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
-
 </script>
 </body>
 </html>

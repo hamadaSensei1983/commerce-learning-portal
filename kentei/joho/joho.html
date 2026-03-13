@@ -75,7 +75,7 @@
 
   <!-- 連続正解数表示 -->
   <p id="streakInfo" style="text-align:center;font-weight:bold;margin-bottom:8px;">
-    連続正解数：0問
+    連続正解数：0問（最高：0問）
   </p>
 
   <div id="choices"></div>
@@ -109,7 +109,7 @@
       </div>
       <button class="nav-square" onclick="nextCard()">▶</button>
     </div>
-    <!-- 説明表示エリア（元のJSが参照していたがHTMLに無かったので追加） -->
+    <!-- 用語の説明表示 -->
     <div class="study-meaning-box" style="margin-top:10px;">
       <span id="studyMeaning"></span>
     </div>
@@ -136,7 +136,9 @@ let wrong     = [];
 let current   = 0;
 let score     = 0;
 let mode      = "";
-let streak    = 0;   // ★連続正解数
+let streak    = 0;   // 連続正解数
+let bestStreak = 0;  // 最高連続正解数
+
 const quizState = {
   pool:  [],
   queue: [],
@@ -146,7 +148,7 @@ const quizState = {
   mode:  ""
 };
 
-// ★ ローディング開始時刻（1秒ルール用）
+// ローディング開始時刻（1秒ルール用）
 const loadStartTime = Date.now();
 
 /* =====================
@@ -165,13 +167,43 @@ const modeDesc = {
 const params = new URLSearchParams(location.search);
 const level  = params.get("level");
 
+/* 連続正解の最高記録を読み込み */
+function loadBestStreak(){
+  const key = "bestStreak_" + (level || "all");
+  const v = localStorage.getItem(key);
+  bestStreak = v ? parseInt(v, 10) : 0;
+}
+function saveBestStreak(){
+  const key = "bestStreak_" + (level || "all");
+  localStorage.setItem(key, String(bestStreak));
+}
+
+/* レベルに応じたCSV読み込み */
 if (level === "3") {
   document.getElementById("examLevel").innerText = "情報処理検定 3級";
   loadCSV("data/data3.csv");
-}
-if (level === "2") {
+} else if (level === "2") {
   document.getElementById("examLevel").innerText = "情報処理検定 2級";
   loadCSV("data/data2.csv");
+} else {
+  // levelパラメータが無い／不正な場合でもローディングは必ず消す
+  const elapsed     = Date.now() - loadStartTime;
+  const minDuration = 1000;
+
+  const showSetupDirect = () => {
+    document.getElementById("loadingScreen").style.display = "none";
+    document.getElementById("setupArea").classList.remove("hidden");
+    const desc = document.getElementById("modeDescription");
+    if (desc) {
+      desc.innerText = "※ URLに ?level=2 または ?level=3 が付いていないため、問題は自動読み込みされていません。";
+    }
+  };
+
+  if (elapsed >= minDuration) {
+    showSetupDirect();
+  } else {
+    setTimeout(showSetupDirect, minDuration - elapsed);
+  }
 }
 
 /* =====================
@@ -205,6 +237,10 @@ async function loadCSV(path){
     createFieldList();
     showWeakRanking();
 
+    // 最高連続正解数読み込み
+    loadBestStreak();
+    updateStreakDisplay();
+
     // ▼ 最低1秒ローディング表示
     const elapsed     = Date.now() - loadStartTime;
     const minDuration = 1000;
@@ -214,9 +250,9 @@ async function loadCSV(path){
       document.getElementById("setupArea").classList.remove("hidden");
     };
 
-    if(elapsed >= minDuration){
+    if (elapsed >= minDuration) {
       showSetup();
-    }else{
+    } else {
       setTimeout(showSetup, minDuration - elapsed);
     }
     // ▲ ここまで 1秒ルール
@@ -309,7 +345,7 @@ updateModeDesc();
 function updateStreakDisplay(){
   const elm = document.getElementById("streakInfo");
   if(!elm) return;
-  elm.innerText = "連続正解数：" + streak + "問";
+  elm.innerText = "連続正解数：" + streak + "問（最高：" + bestStreak + "問）";
 }
 
 /* =====================
@@ -330,7 +366,7 @@ function startQuiz(){
   quizState.score = 0;
   quizState.wrong = [];
 
-  // 連続正解数リセット
+  // 連続正解数リセット（最高値は維持）
   streak = 0;
   updateStreakDisplay();
 
@@ -427,7 +463,7 @@ function checkAnswer(selected, correct, btn){
   const q = quizState.queue[quizState.index];
 
   if(selected === correct){
-    // ★ 正解時
+    // 正解時
     btn.classList.add("correct-answer");
     quizState.score++;
     document.getElementById("result").innerText = "正解！";
@@ -435,7 +471,230 @@ function checkAnswer(selected, correct, btn){
 
     // 連続正解数＋1
     streak++;
+    if(streak > bestStreak){
+      bestStreak = streak;
+      saveBestStreak();
+    }
     updateStreakDisplay();
 
     quizState.index++;
     // 正解時はテンポ良く：1秒後に自動で次の問題へ
+    setTimeout(nextQuestion, 1000);
+
+  }else{
+    // 不正解時
+    btn.classList.add("wrong-answer");
+    buttons.forEach(b=>{
+      if(b.innerText === correct){
+        b.classList.add("correct-answer");
+      }
+    });
+    document.getElementById("result").innerText =
+      "不正解　正解：" + correct;
+
+    quizState.wrong.push(q);
+    updateFieldStats(q.field, false);
+
+    // 連続正解数リセット
+    streak = 0;
+    updateStreakDisplay();
+
+    if(quizState.mode === "challenge"){
+      // チャレンジモードは1問でも間違えたら終了
+      setTimeout(showResult, 1000);
+      return;
+    }
+
+    // 通常／復習モードでは、不正解なら「次へ」ボタンを押すまで進まない
+    quizState.index++;
+    document.getElementById("nextBtn").classList.remove("hidden");
+  }
+}
+
+/* =====================
+   弱点ランキング更新
+====================== */
+function updateFieldStats(field, correct){
+  let key   = "fieldStats_" + (level || "all");
+  let stats = JSON.parse(localStorage.getItem(key) || "{}");
+  if(!stats[field]){
+    stats[field] = {correct:0, attempts:0};
+  }
+  stats[field].attempts++;
+  if(correct){
+    stats[field].correct++;
+  }
+  localStorage.setItem(key, JSON.stringify(stats));
+}
+
+/* =====================
+   結果画面
+===================== */
+function showResult(){
+  document.getElementById("quizArea").classList.add("hidden");
+  document.getElementById("resultArea").classList.remove("hidden");
+  const total = quizState.queue.length;
+  const rate  = Math.round(quizState.score/total*100);
+  document.getElementById("scoreText").innerText = "正解数 " + quizState.score;
+  document.getElementById("rateText").innerText  = "正答率 " + rate + "%";
+  saveStudentStats(rate);
+}
+
+/* =====================
+   成績保存
+===================== */
+function saveStudent(){
+  let name = document.getElementById("studentNameInput").value;
+  localStorage.setItem("studentName", name);
+  showStudentStats();
+}
+function saveStudentStats(rate){
+  let stats = JSON.parse(localStorage.getItem("studentStats") || "[]");
+  stats.push(rate);
+  localStorage.setItem("studentStats", JSON.stringify(stats));
+  showStudentStats();
+}
+function showStudentStats(){
+  let stats = JSON.parse(localStorage.getItem("studentStats") || "[]");
+  if(stats.length === 0) return;
+  let avg = Math.round(stats.reduce((a,b)=>a+b)/stats.length);
+  let max = Math.max(...stats);
+  document.getElementById("studentStats").innerHTML =
+    "試験回数 "   + stats.length + "回<br>" +
+    "平均正答率 " + avg          + "%<br>" +
+    "最高正答率 " + max          + "%";
+}
+
+/* =====================
+   弱点ランキング表示
+===================== */
+function showWeakRanking(){
+  let key   = "fieldStats_" + (level || "all");
+  let stats = JSON.parse(localStorage.getItem(key) || "{}");
+  let arr = Object.keys(stats).map(f=>{
+    let s    = stats[f];
+    let rate = Math.round(s.correct/s.attempts*100);
+    return {field:f, rate:rate};
+  });
+  arr.sort((a,b)=>a.rate-b.rate);
+  let html = "";
+  arr.slice(0,3).forEach((r,i)=>{
+    html += (i+1) + "位 " + r.field + " " + r.rate + "%<br>";
+  });
+  document.getElementById("weakRanking").innerHTML = html;
+  showFieldRates();
+}
+function showFieldRates(){
+  let key   = "fieldStats_" + (level || "all");
+  let stats = JSON.parse(localStorage.getItem(key) || "{}");
+  let html = "";
+  Object.keys(stats).forEach(field=>{
+    let s    = stats[field];
+    let rate = Math.round(s.correct/s.attempts*100);
+    html += field + "　" + rate + "% (" + s.correct + "/" + s.attempts + ")<br>";
+  });
+  document.getElementById("fieldRates").innerHTML = html;
+}
+
+/* =====================
+   配列シャッフル
+===================== */
+function shuffle(a){
+  for(let i=a.length-1;i>0;i--){
+    let j = Math.floor(Math.random()*(i+1));
+    let t = a[i];
+    a[i]  = a[j];
+    a[j]  = t;
+  }
+}
+
+/* =====================
+   学習モード用
+===================== */
+let studyIndex = 0;
+function startStudy(){
+  studyIndex = 0;
+  showStudy();
+}
+function showStudy(){
+  let q = filtered[studyIndex];
+  document.getElementById("studyTerm").innerText    = q.term;
+  document.getElementById("studyMeaning").innerText = q.meaning;
+  document.getElementById("cardPosition").innerText =
+    (studyIndex+1) + " / " + filtered.length;
+}
+function slideCard(direction){
+  const card = document.getElementById("studyCard");
+  card.style.transform = "translateX(" + direction*40 + "px)";
+  setTimeout(()=>{
+    if(direction < 0){
+      if(studyIndex < filtered.length-1) studyIndex++;
+    }else{
+      if(studyIndex > 0) studyIndex--;
+    }
+    showStudy();
+    card.style.transition = "none";
+    card.style.transform  = "translateX(" + -direction*40 + "px)";
+    setTimeout(()=>{
+      card.style.transition = "transform 0.35s ease";
+      card.style.transform  = "translateX(0)";
+    },20);
+  },120);
+}
+function nextCard(){ slideCard(-1); }
+function prevCard(){ slideCard(1); }
+
+/* =====================
+   分野選択へ戻る
+===================== */
+function backToSetup(){
+  document.getElementById("quizArea").classList.add("hidden");
+  document.getElementById("resultArea").classList.add("hidden");
+  document.getElementById("studyArea").classList.add("hidden");
+  document.getElementById("setupArea").classList.remove("hidden");
+  document.getElementById("nextBtn").classList.add("hidden");
+  showWeakRanking();
+}
+
+/* =====================
+   学習モード：スワイプ対応
+===================== */
+let touchStartX = 0;
+let touchEndX   = 0;
+const studyArea = document.getElementById("studyArea");
+
+studyArea.addEventListener("touchstart", e=>{
+  touchStartX = e.changedTouches[0].screenX;
+});
+studyArea.addEventListener("touchend", e=>{
+  touchEndX = e.changedTouches[0].screenX;
+  handleSwipe();
+});
+function handleSwipe(){
+  let diff = touchEndX - touchStartX;
+  if(diff > 60){
+    prevCard();
+  }
+  if(diff < -60){
+    nextCard();
+  }
+}
+
+/* =====================
+   復習用
+===================== */
+function retryWrong(){
+  if(quizState.wrong.length === 0){
+    alert("復習する問題がありません");
+    return;
+  }
+  quizState.queue = [...quizState.wrong];
+  quizState.index = 0;
+  quizState.score = 0;
+  document.getElementById("resultArea").classList.add("hidden");
+  document.getElementById("quizArea").classList.remove("hidden");
+  nextQuestion();
+}
+</script>
+</body>
+</html>

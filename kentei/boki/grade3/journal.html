@@ -93,6 +93,30 @@
       border-radius:6px;
       text-align:left;
     }
+    /* ヒント用 枠線色（分類ごと） */
+    .entry.hint-asset{
+      border:3px solid #a9c9ff; /* 資産（boki_classifyと同じ色） */
+    }
+    .entry.hint-liability{
+      border:3px solid #ffb3b3; /* 負債 */
+    }
+    .entry.hint-capital{
+      border:3px solid #e3c6ff; /* 資本 */
+    }
+    .entry.hint-expense{
+      border:3px solid #ffd8a8; /* 費用 */
+    }
+    .entry.hint-revenue{
+      border:3px solid #b9f6ca; /* 収益 */
+    }
+    .entry.hint-asset,
+    .entry.hint-liability,
+    .entry.hint-capital,
+    .entry.hint-expense,
+    .entry.hint-revenue{
+      border-radius:8px;
+      padding:4px;
+    }
   </style>
 </head>
 <body>
@@ -180,6 +204,7 @@
 
       <div style="text-align:center">
         <button class="main-btn" id="checkBtn" onclick="check()">答え合わせ</button>
+        <button class="control-btn" type="button" onclick="showHint()">ヒント</button>
         <button class="main-btn hidden" id="nextBtn" onclick="next()">次の問題</button>
       </div>
     </div>
@@ -209,7 +234,6 @@ const typeOrder = ["資産","負債","資本","費用","収益"];
 
 /* =====================
    CSVパーサー（クォート対応）
-   "1,200" や "商品1,200円を..." に対応
 ===================== */
 function parseCSV(text){
   text = text.replace(/^\uFEFF/, ""); // BOM除去
@@ -473,6 +497,7 @@ function next(){
   document.getElementById("question").innerText = current.q;
   document.getElementById("result").innerHTML  = "";
   clearInputs();
+  clearHintClasses(); // ヒントのハイライトもリセット
 
   // 「次の問題」ボタンを隠し、答え合わせボタンを有効化
   const nextBtn  = document.getElementById("nextBtn");
@@ -512,6 +537,72 @@ function lockInputs(){
     let el = document.getElementById(id);
     if(el){
       el.disabled = true;
+    }
+  });
+}
+
+/* 勘定科目 → 分類 */
+function getTypeByAccountName(name){
+  if(!name) return null;
+  for(const type of typeOrder){
+    const list = accountMaster[type] || [];
+    if(list.includes(name)) return type;
+  }
+  return null;
+}
+
+/* 分類 → ヒント用クラス名 */
+function getHintClassByType(type){
+  switch(type){
+    case "資産": return "hint-asset";
+    case "負債": return "hint-liability";
+    case "資本": return "hint-capital";
+    case "費用": return "hint-expense";
+    case "収益": return "hint-revenue";
+    default:     return null;
+  }
+}
+
+/* すべてのヒント枠を消す */
+function clearHintClasses(){
+  document.querySelectorAll(".entry").forEach(e => {
+    e.classList.remove(
+      "hint-asset",
+      "hint-liability",
+      "hint-capital",
+      "hint-expense",
+      "hint-revenue"
+    );
+  });
+}
+
+/* ヒント表示：未入力行だけ分類色で光らせる */
+function showHint(){
+  if(!current) return;
+  clearHintClasses();
+
+  const rows = [
+    { id: "d1", account: current.d1 },
+    { id: "d2", account: current.d2 },
+    { id: "c1", account: current.c1 },
+    { id: "c2", account: current.c2 }
+  ];
+
+  rows.forEach(row => {
+    if(!row.account) return;          // 正解が空行ならスキップ
+
+    const userValue = v(row.id);
+    if(userValue) return;             // 生徒がすでに科目を入れている行はヒント不要
+
+    const type  = getTypeByAccountName(row.account);
+    const klass = getHintClassByType(type);
+    if(!klass) return;
+
+    const selectEl = document.getElementById(row.id);
+    if(!selectEl) return;
+    const entryDiv = selectEl.closest(".entry");
+    if(entryDiv){
+      entryDiv.classList.add(klass);
     }
   });
 }

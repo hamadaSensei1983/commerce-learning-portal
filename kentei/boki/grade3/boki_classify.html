@@ -1,312 +1,407 @@
 <!DOCTYPE html>
 <html lang="ja">
-
 <head>
-    <meta charset="UTF-8">
-    <title>簿記3級 勘定科目分類</title>
-
-    <link rel="stylesheet" href="../../../css/common.css">
-
-<style>
-
-    /* 問題文 */
+  <meta charset="UTF-8">
+  <title>簿記3級 勘定科目分類</title>
+  <link rel="stylesheet" href="../../../css/common.css">
+  <style>
+    /* 問題文（テストモード） */
     #question{
-    text-align:center;
-    font-size:28px;
-    margin-bottom:20px;
+      text-align:center;
+      font-size:28px;
+      margin-bottom:20px;
     }
-
     /* 結果表示 */
     .answer-box{
-    margin-top:20px;
-    font-weight:bold;
-    font-size:18px;
-    min-height:60px;
+      margin-top:20px;
+      font-weight:bold;
+      font-size:18px;
+      min-height:60px;
     }
-
-    /* Tフォーム */
+    /* Tフォーム（5分類ボタン配置） */
     .tform{
-
-    display:grid;
-
-    grid-template-columns:1fr 1fr 1fr 1fr;
-    grid-template-rows:90px 90px;
-
-    gap:12px;
-
-    margin-top:25px;
-
+      display:grid;
+      grid-template-columns:1fr 1fr 1fr 1fr;
+      grid-template-rows:90px 90px;
+      gap:12px;
+      margin-top:25px;
     }
-
     /* 資産 */
     .btn-asset{
-    grid-row:1 / 3;
-    grid-column:1;
-    background:#a9c9ff;
-    color:black;
+      grid-row:1 / 3;
+      grid-column:1;
+      background:#a9c9ff;
+      color:black;
     }
-
     /* 負債 */
     .btn-liability{
-    grid-row:1;
-    grid-column:2;
-    background:#ffb3b3;
-    color:black;
+      grid-row:1;
+      grid-column:2;
+      background:#ffb3b3;
+      color:black;
     }
-
     /* 資本 */
     .btn-capital{
-    grid-row:2;
-    grid-column:2;
-    background:#e3c6ff;
-    color:black;
+      grid-row:2;
+      grid-column:2;
+      background:#e3c6ff;
+      color:black;
     }
-
     /* 費用 */
     .btn-expense{
-    grid-row:1 / 3;
-    grid-column:3;
-    background:#ffd8a8;
-    color:black;
+      grid-row:1 / 3;
+      grid-column:3;
+      background:#ffd8a8;
+      color:black;
     }
-
     /* 収益 */
     .btn-revenue{
-    grid-row:1 / 3;
-    grid-column:4;
-    background:#b9f6ca;
-    color:black;
+      grid-row:1 / 3;
+      grid-column:4;
+      background:#b9f6ca;
+      color:black;
     }
-
     /* ボタンホバー */
     .tform button:hover{
-    opacity:0.85;
+      opacity:0.85;
     }
-
+    /* 正解ボタンを光らせる */
     .correct{
-        outline:4px solid gold;
-        transform:scale(1.05);
+      outline:4px solid gold;
+      transform:scale(1.05);
     }
 
-</style>
+    /* モード切り替えボタンエリア */
+    .mode-switch{
+      display:flex;
+      justify-content:center;
+      gap:10px;
+      margin-bottom:15px;
+      flex-wrap:wrap;
+    }
+    .mode-switch button{
+      flex:1 1 120px;
+    }
+    .active-mode{
+      background:var(--main-green);
+      color:white;
+      border:2px solid var(--main-green);
+    }
 
+    /* 学習モード用の位置表示（common.cssの .study-position を補完） */
+    .study-position{
+      margin-top:6px;
+      font-size:14px;
+      color:#666;
+      text-align:center;
+    }
+  </style>
 </head>
-
 <body>
-
 <header class="app-header">
-
-    <div class="header-left">
-        <img src="../../../images/logo.png" class="header-icon">
-        <div>
-            <h1 class="site-title">検定対策システム</h1>
-            <div class="exam-title">全商簿記3級 勘定科目分類</div>
-        </div>
+  <div class="header-left">
+    <img src="../../../images/logo.png" class="header-icon">
+    <div>
+      <h1 class="site-title">検定対策システム</h1>
+      <div class="exam-title">全商簿記3級 勘定科目分類</div>
     </div>
-
+  </div>
 </header>
 
 <div class="card">
 
+  <!-- モード切り替え -->
+  <div class="mode-switch">
+    <button id="modeStudyBtn" class="control-btn active-mode"
+            onclick="switchMode('study')">
+      学習モード
+    </button>
+    <button id="modeQuizBtn" class="control-btn"
+            onclick="switchMode('quiz')">
+      テストモード
+    </button>
+  </div>
+
+  <!-- 学習モードエリア -->
+  <div id="studyArea">
+    <h2 style="text-align:center;">勘定科目を眺めて学習しよう</h2>
+
+    <div class="study-row" id="studyCard">
+      <button class="nav-square" onclick="prevStudy()">◀</button>
+      <div class="study-center">
+        <h2 id="studyTerm"></h2>
+        <div class="study-position" id="studyPosition"></div>
+      </div>
+      <button class="nav-square" onclick="nextStudy()">▶</button>
+    </div>
+
+    <p id="studyType" style="text-align:center;font-weight:bold;margin-bottom:10px;"></p>
+
+    <div class="study-meaning-box">
+      <span id="studyDesc"></span>
+    </div>
+  </div>
+
+  <!-- テストモードエリア -->
+  <div id="quizArea" class="hidden">
     <h2>次の勘定科目は以下のどの分類に該当するか答えなさい。</h2>
     <h2 id="question"></h2>
 
     <div class="tform">
-
-        <button class="quiz-btn btn-asset"
-        onclick="check('資産')">資産</button>
-
-        <button class="quiz-btn btn-liability"
-        onclick="check('負債')">負債</button>
-
-        <button class="quiz-btn btn-expense"
-        onclick="check('費用')">費用</button>
-
-        <button class="quiz-btn btn-revenue"
-        onclick="check('収益')">収益</button>
-
-        <button class="quiz-btn btn-capital"
-        onclick="check('資本')">資本</button>
-
+      <button class="quiz-btn btn-asset"    onclick="check('資産')">資産</button>
+      <button class="quiz-btn btn-liability" onclick="check('負債')">負債</button>
+      <button class="quiz-btn btn-expense"  onclick="check('費用')">費用</button>
+      <button class="quiz-btn btn-revenue"  onclick="check('収益')">収益</button>
+      <button class="quiz-btn btn-capital"  onclick="check('資本')">資本</button>
     </div>
 
     <p id="result" class="answer-box"></p>
 
-    <button class="main-btn hidden" id="nextBtn" onclick="next()">次の問題</button>
-
+    <button class="main-btn hidden" id="nextBtn" onclick="next()">
+      次の問題
+    </button>
+  </div>
 </div>
-
 
 <a href="../index.html" class="portal-btn exam-btn">簿記トップ</a>
 <a href="../../../index.html" class="portal-btn portal-main">ポータルへ戻る</a>
 
-
 <script>
+  // =========================
+  //  データ関連
+  // =========================
+  let data = [];      // CSVから読み込んだ全勘定科目
+  let current;        // 今出している問題（オブジェクト）
+  let questions = []; // 出題用配列
+  let wrong = [];     // 間違えた問題を保存
+  let index = 0;      // 何問目か
+  let correctCount = 0;
 
-let data=[]
-let current
-let questions=[]
-let wrong=[]
-let index=0
-let correctCount=0
+  // 学習モード用
+  let studyList = [];
+  let studyIndex = 0;
 
-
-fetch("../data/boki3.csv")
-.then(res=>{
-    if(!res.ok){
-        throw new Error("CSVファイルが見つかりません")
-    }
-    return res.text()
-})
-.then(text=>{
-
-    let rows=text.trim().split(/\r?\n/).slice(1)
-
-    data=rows.map(r=>{
-
-        let c=r.split(",")
-
-        return{
-            term:(c[0]||"").trim(),
-            type:(c[1]||"").trim(),
-            desc:(c.slice(2).join(",")||"").trim()
-        }
-
+  // =========================
+  //  CSV読み込み
+  // =========================
+  fetch("../data/boki3.csv")
+    .then(res => {
+      if (!res.ok) {
+        throw new Error("CSVファイルが見つかりません");
+      }
+      return res.text();
     })
+    .then(text => {
+      let rows = text.trim().split(/\r?\n/).slice(1); // ヘッダー除去
+      data = rows.map(r => {
+        let c = r.split(",");
+        return {
+          term: (c[0] || "").trim(),
+          type: (c[1] || "").trim(),
+          desc: (c.slice(2).join(",") || "").trim()
+        };
+      });
 
-    startQuiz()
+      // 読み込み後：まずは学習モードから開始
+      initStudyMode();
+      switchMode('study');
+    })
+    .catch(err => {
+      document.getElementById("question").innerText = "CSV読み込みエラー";
+      document.getElementById("result").innerText = err;
+    });
 
-})
-.catch(err=>{
+  // =========================
+  //  モード切り替え
+  // =========================
+  function switchMode(mode){
+    const study = document.getElementById("studyArea");
+    const quiz  = document.getElementById("quizArea");
+    const nextBtn = document.getElementById("nextBtn");
 
-    document.getElementById("question").innerText="CSV読み込みエラー"
-    document.getElementById("result").innerText=err
+    // モードボタンの見た目切り替え
+    setActiveModeButton(mode);
 
-})
+    // テスト用のハイライトなどをリセット
+    removeHighlight();
+    document.getElementById("result").innerText = "";
 
-function startQuiz(){
-    questions=[...data]
-
-    shuffle(questions)
-
-    index=0
-    wrong=[]
-    correctCount=0
-
-    next()
-}
-
-function next(){
-    removeHighlight()
-
-    if(index>=questions.length){
-        finishQuiz()
-        return
-    }
-
-    current=questions[index]
-    index++
-
-    document.getElementById("question").innerText=current.term
-    document.getElementById("result").innerText=""
-    document.getElementById("nextBtn").classList.add("hidden")
-    enableButtons()
-}
-
-function check(ans){
-
-    let result=document.getElementById("result")
-
-    disableButtons()
-
-    if(ans===current.type){
-        result.innerHTML="〇 正解！"
-        correctCount++
+    if(mode === 'study'){
+      // 学習モード表示
+      study.classList.remove("hidden");
+      quiz.classList.add("hidden");
+      nextBtn.classList.add("hidden");
+      initStudyMode();
     }else{
-        result.innerHTML=
-        "× 不正解<br><br>"+
-        "正解： "+current.type+"<br>"+
-        "解説： "+current.desc
-        wrong.push(current)
+      // テストモード表示
+      study.classList.add("hidden");
+      quiz.classList.remove("hidden");
+      startQuiz();
+    }
+  }
+
+  function setActiveModeButton(mode){
+    const btnStudy = document.getElementById("modeStudyBtn");
+    const btnQuiz  = document.getElementById("modeQuizBtn");
+    btnStudy.classList.remove("active-mode");
+    btnQuiz.classList.remove("active-mode");
+    if(mode === 'study'){
+      btnStudy.classList.add("active-mode");
+    }else{
+      btnQuiz.classList.add("active-mode");
+    }
+  }
+
+  // =========================
+  //  学習モード
+  // =========================
+  function initStudyMode(){
+    studyList = [...data];
+    studyIndex = 0;
+    showStudyCard();
+  }
+
+  function showStudyCard(){
+    if(studyList.length === 0){
+      document.getElementById("studyTerm").innerText = "データが読み込まれていません";
+      document.getElementById("studyType").innerText = "";
+      document.getElementById("studyDesc").innerText = "";
+      document.getElementById("studyPosition").innerText = "";
+      return;
+    }
+    const q = studyList[studyIndex];
+    document.getElementById("studyTerm").innerText = q.term;
+    document.getElementById("studyType").innerText = "分類：" + q.type;
+    document.getElementById("studyDesc").innerText = q.desc || "（説明は登録されていません）";
+    document.getElementById("studyPosition").innerText =
+      (studyIndex + 1) + " / " + studyList.length;
+  }
+
+  function nextStudy(){
+    if(studyIndex < studyList.length - 1){
+      studyIndex++;
+      showStudyCard();
+    }
+  }
+
+  function prevStudy(){
+    if(studyIndex > 0){
+      studyIndex--;
+      showStudyCard();
+    }
+  }
+
+  // =========================
+  //  テストモード（これまでの処理＋α）
+  // =========================
+  function startQuiz(){
+    questions = [...data];
+    shuffle(questions);
+    index = 0;
+    wrong = [];
+    correctCount = 0;
+    next();
+  }
+
+  function next(){
+    removeHighlight();
+
+    if(index >= questions.length){
+      finishQuiz();
+      return;
+    }
+    current = questions[index];
+    index++;
+
+    document.getElementById("question").innerText = current.term;
+    document.getElementById("result").innerText = "";
+    document.getElementById("nextBtn").classList.add("hidden");
+    enableButtons();
+  }
+
+  function check(ans){
+    let result = document.getElementById("result");
+    disableButtons();
+
+    if(ans === current.type){
+      result.innerHTML = "〇 正解！";
+      correctCount++;
+    }else{
+      result.innerHTML =
+        "× 不正解<br><br>" +
+        "正解：" + current.type + "<br>" +
+        "解説：" + current.desc;
+      wrong.push(current);
     }
 
-    /* 正解ボタンを光らせる */
-    document.querySelectorAll(".tform button").forEach(b=>{
-        if(b.innerText===current.type){
-            b.classList.add("correct")
-        }
-    })
-    document.getElementById("nextBtn").classList.remove("hidden")
-}
+    // 正解ボタンを光らせる
+    document.querySelectorAll(".tform button").forEach(b => {
+      if(b.innerText === current.type){
+        b.classList.add("correct");
+      }
+    });
 
+    document.getElementById("nextBtn").classList.remove("hidden");
+  }
 
-/* 全問終了 */
-function finishQuiz(){
-    let rate=Math.round((correctCount/questions.length)*100)
-    document.getElementById("question").innerText="全問終了！"
-    document.getElementById("result").innerHTML=
+  // 全問終了
+  function finishQuiz(){
+    let rate = Math.round((correctCount / questions.length) * 100);
+    document.getElementById("question").innerText = "全問終了！";
+    document.getElementById("result").innerHTML =
+      "正解数：" + correctCount + " / " + questions.length + "<br>" +
+      "正解率：" + rate + "％<br><br>" +
+      "間違い：" + wrong.length + "問<br><br>" +
+      "<button class=\"control-btn\" onclick='reviewMode()'>復習モード</button><br><br>" +
+      "<button class=\"control-btn\" onclick='startQuiz()'>もう一度チャレンジ</button>";
+    document.getElementById("nextBtn").classList.add("hidden");
+    disableButtons();
+  }
 
-    "正解数："+correctCount+" / "+questions.length+"<br>"+
-    "正解率："+rate+"％<br><br>"+
-    "間違い："+wrong.length+"問<br><br>"+
-    "<button onclick='reviewMode()'>復習モード</button><br><br>"+
-    "<button onclick='startQuiz()'>もう一度チャレンジ</button>"
-
-    document.getElementById("nextBtn").classList.add("hidden")
-    disableButtons()
-}
-
-
-/* 復習モード */
-function reviewMode(){
-    if(wrong.length===0){
-        document.getElementById("result").innerHTML=
-        "間違えた問題はありません！<br><br>"+
-        "<button onclick='startQuiz()'>もう一度チャレンジ</button>"
-        return
+  // 復習モード（間違えた問題だけ再出題）
+  function reviewMode(){
+    if(wrong.length === 0){
+      document.getElementById("result").innerHTML =
+        "間違えた問題はありません！<br><br>" +
+        "<button class=\"control-btn\" onclick='startQuiz()'>もう一度チャレンジ</button>";
+      return;
     }
-    questions=[...wrong]
-    shuffle(questions)
-    index=0
-    correctCount=0
-    wrong=[]
+    questions = [...wrong];
+    shuffle(questions);
+    index = 0;
+    correctCount = 0;
+    wrong = [];
+    next();
+  }
 
-    next()
-}
+  // ボタン制御
+  function disableButtons(){
+    document.querySelectorAll(".tform button").forEach(b => {
+      b.disabled = true;
+    });
+  }
+  function enableButtons(){
+    document.querySelectorAll(".tform button").forEach(b => {
+      b.disabled = false;
+    });
+  }
 
-/* ボタン制御 */
-function disableButtons(){
-    document.querySelectorAll(".tform button").forEach(b=>{
-        b.disabled=true
-    })
-}
+  // ハイライト解除
+  function removeHighlight(){
+    document.querySelectorAll(".tform button").forEach(b => {
+      b.classList.remove("correct");
+    });
+  }
 
-function enableButtons(){
-    document.querySelectorAll(".tform button").forEach(b=>{
-        b.disabled=false
-    })
-}
-
-
-/* ハイライト解除 */
-function removeHighlight(){
-    document.querySelectorAll(".tform button").forEach(b=>{
-        b.classList.remove("correct")
-    })
-}
-
-
-/* シャッフル */
-function shuffle(array){
-    for(var i=array.length-1;i>0;i--){
-        var j=Math.floor(Math.random()*(i+1))
-        var temp=array[i]
-        array[i]=array[j]
-        array[j]=temp
+  // シャッフル
+  function shuffle(array){
+    for(let i = array.length - 1; i > 0; i--){
+      let j = Math.floor(Math.random() * (i + 1));
+      let temp = array[i];
+      array[i] = array[j];
+      array[j] = temp;
     }
-}
-
+  }
 </script>
-
 </body>
 </html>

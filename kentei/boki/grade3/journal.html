@@ -5,13 +5,13 @@
   <title>簿記3級 仕訳トレーニング</title>
   <link rel="stylesheet" href="../../../css/common.css">
   <style>
-    /* 問題 */
+    /* 問題文 */
     #question{
       text-align:center;
       font-size:26px;
       margin-bottom:25px;
     }
-    /* 分野選択 */
+    /* 分野選択チェックボックス */
     .field-grid{
       display:grid;
       grid-template-columns:1fr 1fr;
@@ -28,7 +28,7 @@
       max-width:400px;
       margin:10px auto;
     }
-    /* 仕訳カード */
+    /* 仕訳カード全体 */
     .journal{
       display:grid;
       grid-template-columns:1fr 1fr;
@@ -39,7 +39,7 @@
       border-radius:10px;
       border:2px solid #d8ead8;
     }
-    /* 左右エリア */
+    /* 左右エリア（借方・貸方） */
     .side{
       background:white;
       padding:15px;
@@ -47,7 +47,6 @@
       box-shadow:0 3px 8px rgba(0,0,0,0.08);
       text-align:center;
     }
-    /* 見出し */
     .side-title{
       font-weight:bold;
       margin-bottom:10px;
@@ -67,20 +66,21 @@
       padding:5px;
       font-size:16px;
     }
-    /* 金額 */
+    /* 金額入力欄 */
     .money{
       width:90px;
       padding:5px;
       font-size:16px;
       text-align:right;
     }
+    /* 結果表示 */
     .answer-box{
       margin-top:20px;
       font-size:18px;
       font-weight:bold;
       min-height:60px;
     }
-    /* 正解表示用の仕訳 */
+    /* 正解仕訳表示 */
     .answer-journal{
       display:grid;
       grid-template-columns:1fr 1fr;
@@ -123,23 +123,20 @@
   メインカード（最初は非表示）
 ===================== -->
 <div class="card hidden" id="mainCard">
-  <!-- 分野選択＆ステータス -->
   <div id="fieldArea">
+    <!-- 分野選択 -->
     <div style="text-align:center">
       <div id="fieldList" class="field-grid"></div>
       <div class="field-controls">
-        <button class="control-btn" onclick="selectAll()">
-          全選択
-        </button>
-        <button class="control-btn" onclick="clearAll()">
-          全解除
-        </button>
+        <button class="control-btn" onclick="selectAll()">全選択</button>
+        <button class="control-btn" onclick="clearAll()">全解除</button>
       </div>
       <div style="text-align:center;margin-top:10px">
         <button class="main-btn" onclick="start()">開始</button>
       </div>
     </div>
 
+    <!-- ストリーク表示 -->
     <div id="stats" style="text-align:center;margin:10px 0;font-weight:bold;">
       連続正解：0（最高：0）
     </div>
@@ -150,6 +147,7 @@
 
     <h2 id="question"></h2>
 
+    <!-- 仕訳入力エリア -->
     <div id="journalArea" style="display:none">
       <div class="journal">
         <!-- 借方 -->
@@ -181,7 +179,7 @@
       <p id="result" class="answer-box"></p>
 
       <div style="text-align:center">
-        <button class="main-btn" onclick="check()">答え合わせ</button>
+        <button class="main-btn" id="checkBtn" onclick="check()">答え合わせ</button>
         <button class="main-btn hidden" id="nextBtn" onclick="next()">次の問題</button>
       </div>
     </div>
@@ -192,6 +190,9 @@
 <a href="../../../index.html" class="portal-btn portal-main">ポータルへ戻る</a>
 
 <script>
+/* =====================
+   グローバル変数
+===================== */
 let allData   = [];
 let data      = [];
 let current;
@@ -205,6 +206,36 @@ let fieldStats = {};
 const loadStartTime = Date.now();
 
 /* =====================
+   CSVパーサー（クォート対応）
+   "1,200" のような値でも正しく1項目として扱う
+===================== */
+function parseCSV(text){
+  let rows = text.trim().split(/\r?\n/);
+  let result = [];
+  for(let line of rows){
+    let cols = [];
+    let current = "";
+    let inQuotes = false;
+    for(let i=0;i<line.length;i++){
+      let c = line[i];
+      if(c === '"'){
+        inQuotes = !inQuotes;
+        continue;
+      }
+      if(c === "," && !inQuotes){
+        cols.push(current);
+        current = "";
+      }else{
+        current += c;
+      }
+    }
+    cols.push(current);
+    result.push(cols);
+  }
+  return result;
+}
+
+/* =====================
    CSV読み込み
 ===================== */
 fetch("../data/journal3.csv")
@@ -215,21 +246,22 @@ fetch("../data/journal3.csv")
     return res.text();
   })
   .then(text => {
-    let rows = text.trim().split(/\r?\n/).slice(1);
-    allData = rows.map(r => {
-      let c = r.split(",");
+    const rows = parseCSV(text);          // rows[0] がヘッダーを含む
+    const body = rows.slice(1).filter(r => r.length && r.join("").trim() !== "");
+
+    allData = body.map(c => {
       return {
-        field : c[0],
-        q     : c[1],
-        d1    : c[2],
-        dm1   : Number(c[3] || 0),
-        d2    : c[4],
-        dm2   : Number(c[5] || 0),
-        c1    : c[6],
-        cm1   : Number(c[7] || 0),
-        c2    : c[8],
-        cm2   : Number(c[9] || 0),
-        desc  : c[10]
+        field : (c[0] || "").trim(),
+        q     : (c[1] || "").trim(),     // 取引文："～1,200円～" もOK
+        d1    : (c[2] || "").trim(),
+        dm1   : toNumber(c[3]),
+        d2    : (c[4] || "").trim(),
+        dm2   : toNumber(c[5]),
+        c1    : (c[6] || "").trim(),
+        cm1   : toNumber(c[7]),
+        c2    : (c[8] || "").trim(),
+        cm2   : toNumber(c[9]),
+        desc  : (c[10] || "").trim()
       };
     });
 
@@ -242,7 +274,7 @@ fetch("../data/journal3.csv")
       const card    = document.getElementById("mainCard");
       if(loading) loading.style.display = "none";
       if(card) card.classList.remove("hidden");
-      // ロード後にストリーク表示を初期化
+      // 最高連続正解数の読み込みと表示
       loadBestStreak();
       updateStreakDisplay();
     };
@@ -261,6 +293,13 @@ fetch("../data/journal3.csv")
     document.getElementById("question").innerText = "CSV読み込みエラー";
     document.getElementById("result").innerText   = err.message || err;
   });
+
+/* 文字列 → 数値（カンマ削除＆空欄は0） */
+function toNumber(v){
+  if(!v) return 0;
+  const s = String(v).replace(/,/g,"").trim();
+  return s === "" ? 0 : Number(s);
+}
 
 /* =====================
    初期化
@@ -291,7 +330,6 @@ function init(){
     });
   });
 
-  // 最高連続正解数を読み込む
   loadBestStreak();
   updateStreakDisplay();
 }
@@ -383,9 +421,11 @@ function next(){
   document.getElementById("result").innerHTML  = "";
   clearInputs();
 
-  // 「次の問題」ボタンを隠す（不正解のときだけ表示）
-  const nextBtn = document.getElementById("nextBtn");
-  if(nextBtn) nextBtn.classList.add("hidden");
+  // 「次の問題」ボタンを隠し、答え合わせボタンを有効化
+  const nextBtn  = document.getElementById("nextBtn");
+  const checkBtn = document.getElementById("checkBtn");
+  if(nextBtn)  nextBtn.classList.add("hidden");
+  if(checkBtn) checkBtn.disabled = false;
 }
 
 /* 入力欄クリア＆有効化 */
@@ -421,8 +461,12 @@ function lockInputs(){
   });
 }
 
-/* チェック */
+/* チェック（一問一回だけ有効） */
 function check(){
+  const checkBtn = document.getElementById("checkBtn");
+  if(checkBtn.disabled) return;    // 既に採点済みなら何もしない
+  checkBtn.disabled = true;        // 連打防止
+
   if(!current) return;
 
   fieldStats[current.field].total++;
@@ -469,7 +513,7 @@ function check(){
     lockInputs();
     showFieldStats();
 
-    // 正解時はテンポ良く：1秒後に自動で次の問題へ
+    // 正解時は1秒後に自動で次の問題へ
     autoNextTimer = setTimeout(() => {
       autoNextTimer = null;
       next();
@@ -529,4 +573,3 @@ function showFieldStats(){
 </script>
 </body>
 </html>
-``

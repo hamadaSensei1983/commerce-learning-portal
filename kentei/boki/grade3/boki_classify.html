@@ -99,7 +99,7 @@
       cursor:pointer;
     }
 
-    /* 学習モード：分類表示（少し大きめに） */
+    /* 学習モード：分類表示（大きめに） */
     #studyType{
       text-align:center;
       font-weight:bold;
@@ -123,6 +123,19 @@
       pointer-events:none;     /* クリック無効化（見本用） */
       cursor:default;
     }
+
+    /* 学習モード：説明ボックスの高さをコンパクトに */
+    .study-meaning-box{
+      min-height:70px;
+      padding:8px 10px;
+      border-radius:10px;
+      background:#f9f9f9;
+      margin-bottom:8px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+    }
   </style>
 </head>
 <body>
@@ -136,7 +149,20 @@
   </div>
 </header>
 
-<div class="card">
+<!-- ▼ ローディング画面 ▼ -->
+<div id="loadingScreen">
+  <div style="text-align:center">
+    <img src="../../../images/logo.png" style="width:90px;margin-bottom:20px">
+    <div class="spinner"></div>
+    <p style="margin-top:15px;font-weight:bold">
+      問題を読み込み中...
+    </p>
+  </div>
+</div>
+<!-- ▲ ローディング画面 ▲ -->
+
+<!-- ▼ メインカード（最初は非表示） ▼ -->
+<div class="card hidden" id="mainCard">
 
   <!-- モード切り替え -->
   <div class="mode-switch">
@@ -195,9 +221,9 @@
     <h2>次の勘定科目は以下のどの分類に該当するか答えなさい。</h2>
     <h2 id="question"></h2>
 
-    <!-- 連続正解数の表示 -->
+    <!-- 連続正解数表示 -->
     <p id="streakInfo" style="text-align:center; font-weight:bold; margin-bottom:8px;">
-    連続正解数：0問
+      連続正解数：0問
     </p>
 
     <div class="tform">
@@ -215,9 +241,14 @@
     </button>
   </div>
 </div>
+<!-- ▲ メインカード ▲ -->
 
-<a href="../index.html" class="portal-btn exam-btn">簿記トップ</a>
-<a href="../../../index.html" class="portal-btn portal-main">ポータルへ戻る</a>
+<a href="../index.html" class="portal-btn exam-btn">
+  簿記トップ
+</a>
+<a href="../../../index.html" class="portal-btn portal-main">
+  ポータルへ戻る
+</a>
 
 <script>
   // =========================
@@ -233,11 +264,10 @@
   // 学習モード用
   let studyList = [];
   let studyIndex = 0;
-  
-  // 連続正解数と自動遷移タイマー
+
+  // 連続正解数 & 自動遷移タイマー
   let streak = 0;
   let autoNextTimer = null;
-
 
   // =========================
   //  CSV読み込み
@@ -260,11 +290,23 @@
         };
       });
 
-      // 読み込み後：まずは学習モードから開始
+      // ローディング画面を消してメインカードを表示
+      const loading = document.getElementById("loadingScreen");
+      const card = document.getElementById("mainCard");
+      if(loading) loading.style.display = "none";
+      if(card) card.classList.remove("hidden");
+
+      // 学習モードを初期表示
       initStudyMode();
       switchMode('study');
     })
     .catch(err => {
+      // エラー時もローディング画面を消してカードを表示
+      const loading = document.getElementById("loadingScreen");
+      const card = document.getElementById("mainCard");
+      if(loading) loading.style.display = "none";
+      if(card) card.classList.remove("hidden");
+
       document.getElementById("question").innerText = "CSV読み込みエラー";
       document.getElementById("result").innerText = err;
     });
@@ -282,6 +324,7 @@
 
     // テスト用のハイライトなどをリセット
     removeHighlight();
+    clearButtonFocus();
     document.getElementById("result").innerText = "";
 
     if(mode === 'study'){
@@ -372,38 +415,6 @@
     }
   }
 
-    // =========================
-    //  学習モード用：スワイプ操作
-    // =========================
-    let touchStartX = 0;
-    let touchEndX = 0;
-
-    const studyTouchArea = document.getElementById("studyArea");
-
-    // タッチ開始位置を記録
-    studyTouchArea.addEventListener("touchstart", e => {
-    touchStartX = e.changedTouches[0].screenX;
-    });
-
-    // タッチ終了位置を記録して、差分から左右スワイプを判定
-    studyTouchArea.addEventListener("touchend", e => {
-    touchEndX = e.changedTouches[0].screenX;
-    handleSwipe();
-    });
-
-    function handleSwipe(){
-    const diff = touchEndX - touchStartX;
-    const threshold = 60;  // 60px 以上動いたらスワイプとみなす（joho.html と同程度）[1](https://chinzeigakuinedjp01-my.sharepoint.com/personal/hirotoshi_hamada_chinzeigakuinedjp01_onmicrosoft_com/Documents/Microsoft%20Copilot%20Chat%20%E3%83%95%E3%82%A1%E3%82%A4%E3%83%AB/joho.html)
-
-    if(diff > threshold){
-        // 右向きスワイプ → 前のカードへ
-        prevStudy();
-    }else if(diff < -threshold){
-        // 左向きスワイプ → 次のカードへ
-        nextStudy();
-    }
-    }
-
   function highlightStudyType(type){
     document.querySelectorAll(".tform-study button").forEach(b => {
       b.classList.remove("correct");
@@ -411,6 +422,36 @@
         b.classList.add("correct");
       }
     });
+  }
+
+  // =========================
+  //  学習モード用：スワイプ操作
+  // =========================
+  let touchStartX = 0;
+  let touchEndX = 0;
+
+  const studyTouchArea = document.getElementById("studyArea");
+
+  studyTouchArea.addEventListener("touchstart", e => {
+    touchStartX = e.changedTouches[0].screenX;
+  });
+
+  studyTouchArea.addEventListener("touchend", e => {
+    touchEndX = e.changedTouches[0].screenX;
+    handleSwipe();
+  });
+
+  function handleSwipe(){
+    const diff = touchEndX - touchStartX;
+    const threshold = 60;  // 60px以上動いたらスワイプとみなす
+
+    if(diff > threshold){
+      // 右スワイプ → 前のカード
+      prevStudy();
+    }else if(diff < -threshold){
+      // 左スワイプ → 次のカード
+      nextStudy();
+    }
   }
 
   // =========================
@@ -422,7 +463,7 @@
     index = 0;
     wrong = [];
     correctCount = 0;
-    
+
     // 連続正解数リセット
     streak = 0;
     updateStreakDisplay();
@@ -430,21 +471,15 @@
     next();
   }
 
-  function updateStreakDisplay(){
-    const elm = document.getElementById("streakInfo");
-    if(!elm) return;
-    elm.innerText = "連続正解数：" + streak + "問";
-  }
-
   function next(){
-
-   // ★追加：自動遷移タイマーが残っていればクリア
+    // 自動遷移タイマーが残っていればクリア
     if(autoNextTimer !== null){
       clearTimeout(autoNextTimer);
       autoNextTimer = null;
     }
 
     removeHighlight();
+    clearButtonFocus();
 
     if(index >= questions.length){
       finishQuiz();
@@ -459,62 +494,64 @@
     enableButtons();
   }
 
-function check(ans){
-  let result = document.getElementById("result");
-  disableButtons();
+  function check(ans){
+    let result = document.getElementById("result");
+    disableButtons();
 
-  if(ans === current.type){
-    // ★正解時
-    result.innerHTML = "〇 正解！";
+    if(ans === current.type){
+      // 正解時
+      result.innerHTML = "〇 正解！";
 
-    correctCount++;
+      correctCount++;
 
-    // 連続正解数を増やす
-    streak++;
-    updateStreakDisplay();
+      // 連続正解数を増やす
+      streak++;
+      updateStreakDisplay();
 
-    // 「次の問題」ボタンは出さない（押させない）
-    document.getElementById("nextBtn").classList.add("hidden");
+      // 「次の問題」ボタンは出さない
+      document.getElementById("nextBtn").classList.add("hidden");
 
-    // 1秒後に自動で次の問題へ（最終問題なら finishQuiz が呼ばれる）
-    autoNextTimer = setTimeout(() => {
-      autoNextTimer = null;
-      next();
-    }, 1000);
+      // 1秒後に自動で次の問題へ
+      autoNextTimer = setTimeout(() => {
+        autoNextTimer = null;
+        next();
+      }, 1000);
 
-  }else{
-    // ★不正解時
-    result.innerHTML =
-      "× 不正解<br><br>" +
-      "正解：" + current.type + "<br>" +
-      "解説：" + current.desc;
-    wrong.push(current);
+    }else{
+      // 不正解時
+      result.innerHTML =
+        "× 不正解<br><br>" +
+        "正解：" + current.type + "<br>" +
+        "解説：" + current.desc;
+      wrong.push(current);
 
-    // 連続正解数リセット
-    streak = 0;
-    updateStreakDisplay();
+      // 連続正解数リセット
+      streak = 0;
+      updateStreakDisplay();
 
-    // この問題はゆっくり読ませたいので、
-    // 「次の問題」ボタンを表示し、生徒に押させる
-    document.getElementById("nextBtn").classList.remove("hidden");
+      // 解説を読ませるため、「次の問題」ボタンを表示
+      document.getElementById("nextBtn").classList.remove("hidden");
+    }
+
+    // 正解ボタンを光らせる
+    document.querySelectorAll(".tform button").forEach(b => {
+      if(b.innerText === current.type){
+        b.classList.add("correct");
+      }
+    });
+
+    // 念のため、今アクティブな要素のフォーカスも外しておく
+    if(document.activeElement){
+      document.activeElement.blur();
+    }
   }
 
-  // 正解ボタンを光らせる（この処理は従来どおり）
-  document.querySelectorAll(".tform button").forEach(b => {
-    if(b.innerText === current.type){
-      b.classList.add("correct");
-    }
-  });
-}
-
-  // 全問終了
   function finishQuiz(){
-
-    // ★念のため自動遷移タイマーを停止
-      if(autoNextTimer !== null){
-        clearTimeout(autoNextTimer);
-        autoNextTimer = null;
-      }
+    // 念のため自動遷移タイマーを停止
+    if(autoNextTimer !== null){
+      clearTimeout(autoNextTimer);
+      autoNextTimer = null;
+    }
 
     let rate = Math.round((correctCount / questions.length) * 100);
     document.getElementById("question").innerText = "全問終了！";
@@ -544,22 +581,36 @@ function check(ans){
     next();
   }
 
+  // 連続正解数表示更新
+  function updateStreakDisplay(){
+    const elm = document.getElementById("streakInfo");
+    if(!elm) return;
+    elm.innerText = "連続正解数：" + streak + "問";
+  }
+
   // ボタン制御
   function disableButtons(){
-    document.querySelectorAll(".tform button").forEach(b => {
+    document.querySelectorAll("#quizArea .tform button").forEach(b => {
       b.disabled = true;
     });
   }
   function enableButtons(){
-    document.querySelectorAll(".tform button").forEach(b => {
+    document.querySelectorAll("#quizArea .tform button").forEach(b => {
       b.disabled = false;
     });
   }
 
   // ハイライト解除（テストモード用）
   function removeHighlight(){
-    document.querySelectorAll(".tform button").forEach(b => {
+    document.querySelectorAll("#quizArea .tform button").forEach(b => {
       b.classList.remove("correct");
+    });
+  }
+
+  // ボタンのフォーカス解除
+  function clearButtonFocus(){
+    document.querySelectorAll("#quizArea .tform button").forEach(b => {
+      b.blur();
     });
   }
 

@@ -99,12 +99,29 @@
       cursor:pointer;
     }
 
+    /* 学習モード：分類表示（少し大きめに） */
+    #studyType{
+      text-align:center;
+      font-weight:bold;
+      margin-bottom:10px;
+      font-size:22px;
+    }
+
     /* 学習モード用の位置表示 */
     .study-position{
       margin-top:6px;
       font-size:14px;
       color:#666;
       text-align:center;
+    }
+
+    /* 学習モードの分類ボタン（見本用） */
+    .tform-study{
+      margin-top:15px;
+    }
+    .tform-study button{
+      pointer-events:none;     /* クリック無効化（見本用） */
+      cursor:default;
     }
   </style>
 </head>
@@ -157,10 +174,19 @@
       <button class="nav-square" onclick="nextStudy()">▶</button>
     </div>
 
-    <p id="studyType" style="text-align:center;font-weight:bold;margin-bottom:10px;"></p>
+    <p id="studyType"></p>
 
     <div class="study-meaning-box">
       <span id="studyDesc"></span>
+    </div>
+
+    <!-- 学習モード用：分類見本（テストと同じ配置・色） -->
+    <div class="tform tform-study">
+      <button class="quiz-btn btn-asset"    data-type="資産">資産</button>
+      <button class="quiz-btn btn-liability" data-type="負債">負債</button>
+      <button class="quiz-btn btn-expense"  data-type="費用">費用</button>
+      <button class="quiz-btn btn-revenue"  data-type="収益">収益</button>
+      <button class="quiz-btn btn-capital"  data-type="資本">資本</button>
     </div>
   </div>
 
@@ -307,6 +333,8 @@
       document.getElementById("studyDesc").innerText =
         "表示する分類にチェックを入れてください。";
       document.getElementById("studyPosition").innerText = "";
+      // 学習モード側のボタンハイライトも消す
+      highlightStudyType(null);
       return;
     }
     const q = studyList[studyIndex];
@@ -315,6 +343,9 @@
     document.getElementById("studyDesc").innerText = q.desc || "（説明は登録されていません）";
     document.getElementById("studyPosition").innerText =
       (studyIndex + 1) + " / " + studyList.length;
+
+    // 学習モード側の分類ボタンをハイライト
+    highlightStudyType(q.type);
   }
 
   function nextStudy(){
@@ -329,6 +360,15 @@
       studyIndex--;
       showStudyCard();
     }
+  }
+
+  function highlightStudyType(type){
+    document.querySelectorAll(".tform-study button").forEach(b => {
+      b.classList.remove("correct");
+      if(type && b.dataset.type === type){
+        b.classList.add("correct");
+      }
+    });
   }
 
   // =========================
@@ -426,7 +466,7 @@
     });
   }
 
-  // ハイライト解除
+  // ハイライト解除（テストモード用）
   function removeHighlight(){
     document.querySelectorAll(".tform button").forEach(b => {
       b.classList.remove("correct");

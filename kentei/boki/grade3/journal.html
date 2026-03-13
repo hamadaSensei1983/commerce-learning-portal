@@ -193,23 +193,24 @@
 /* =====================
    グローバル変数
 ===================== */
-let allData   = [];
-let data      = [];
-let current;
-let accounts  = [];
-let streak    = 0;
-let bestStreak = 0;
-let autoNextTimer = null;
-let fieldStats = {};
+let allData   = [];        // journal3.csv から読み込んだ仕訳問題
+let data      = [];        // 出題対象の問題
+let current;               // 現在の問題
+let accountMaster = {};    // { 資産:[現金,当座預金,...], 負債:[...], ... } (boki3.csvから)
+let streak    = 0;         // 連続正解数
+let bestStreak = 0;        // 最高連続正解数
+let autoNextTimer = null;  // 正解時の自動次問題タイマー
+let fieldStats = {};       // 分野別成績
 
-// ローディング1秒ルール用
-const loadStartTime = Date.now();
+const loadStartTime = Date.now(); // ローディング開始時刻
+const typeOrder = ["資産","負債","資本","費用","収益"];
 
 /* =====================
    CSVパーサー（クォート対応）
-   "1,200" のような値でも正しく1項目として扱う
+   "1,200" や "商品1,200円を..." に対応
 ===================== */
 function parseCSV(text){
+  text = text.replace(/^\uFEFF/, ""); // BOM除去
   let rows = text.trim().split(/\r?\n/);
   let result = [];
   for(let line of rows){
@@ -235,71 +236,89 @@ function parseCSV(text){
   return result;
 }
 
-/* =====================
-   CSV読み込み
-===================== */
-fetch("../data/journal3.csv")
-  .then(res => {
-    if(!res.ok){
-      throw new Error("CSVファイルが見つかりません");
-    }
-    return res.text();
-  })
-  .then(text => {
-    const rows = parseCSV(text);          // rows[0] がヘッダーを含む
-    const body = rows.slice(1).filter(r => r.length && r.join("").trim() !== "");
-
-    allData = body.map(c => {
-      return {
-        field : (c[0] || "").trim(),
-        q     : (c[1] || "").trim(),     // 取引文："～1,200円～" もOK
-        d1    : (c[2] || "").trim(),
-        dm1   : toNumber(c[3]),
-        d2    : (c[4] || "").trim(),
-        dm2   : toNumber(c[5]),
-        c1    : (c[6] || "").trim(),
-        cm1   : toNumber(c[7]),
-        c2    : (c[8] || "").trim(),
-        cm2   : toNumber(c[9]),
-        desc  : (c[10] || "").trim()
-      };
-    });
-
-    init();
-
-    const elapsed     = Date.now() - loadStartTime;
-    const minDuration = 1000;
-    const showMain = () => {
-      const loading = document.getElementById("loadingScreen");
-      const card    = document.getElementById("mainCard");
-      if(loading) loading.style.display = "none";
-      if(card) card.classList.remove("hidden");
-      // 最高連続正解数の読み込みと表示
-      loadBestStreak();
-      updateStreakDisplay();
-    };
-    if(elapsed >= minDuration){
-      showMain();
-    }else{
-      setTimeout(showMain, minDuration - elapsed);
-    }
-  })
-  .catch(err => {
-    console.error("CSV読み込み失敗", err);
-    const loading = document.getElementById("loadingScreen");
-    const card    = document.getElementById("mainCard");
-    if(loading) loading.style.display = "none";
-    if(card) card.classList.remove("hidden");
-    document.getElementById("question").innerText = "CSV読み込みエラー";
-    document.getElementById("result").innerText   = err.message || err;
-  });
-
 /* 文字列 → 数値（カンマ削除＆空欄は0） */
 function toNumber(v){
   if(!v) return 0;
   const s = String(v).replace(/,/g,"").trim();
   return s === "" ? 0 : Number(s);
 }
+
+/* =====================
+   CSV読み込み（journal3 + boki3）
+===================== */
+Promise.all([
+  fetch("../data/journal3.csv").then(res => {
+    if(!res.ok) throw new Error("journal3.csv が見つかりません");
+    return res.text();
+  }),
+  fetch("../data/boki3.csv").then(res => {
+    if(!res.ok) throw new Error("boki3.csv が見つかりません");
+    return res.text();
+  })
+])
+.then(([journalText, bokiText]) => {
+  // --- 仕訳問題（journal3） ---
+  const jRows = parseCSV(journalText);
+  const jBody = jRows.slice(1).filter(r => r.length && r.join("").trim() !== "");
+  allData = jBody.map(c => {
+    return {
+      field : (c[0] || "").trim(),
+      q     : (c[1] || "").trim(),     // 取引文（カンマ入りOK）
+      d1    : (c[2] || "").trim(),
+      dm1   : toNumber(c[3]),
+      d2    : (c[4] || "").trim(),
+      dm2   : toNumber(c[5]),
+      c1    : (c[6] || "").trim(),
+      cm1   : toNumber(c[7]),
+      c2    : (c[8] || "").trim(),
+      cm2   : toNumber(c[9]),
+      desc  : (c[10] || "").trim()
+    };
+  });
+
+  // --- 勘定科目マスタ（boki3） ---
+  const bRows = parseCSV(bokiText);
+  const bBody = bRows.slice(1).filter(r => r.length && r.join("").trim() !== "");
+  accountMaster = {}; // {資産:[], 負債:[], ...}
+  bBody.forEach(cols => {
+    const name = (cols[0] || "").trim(); // 勘定科目
+    const type = (cols[1] || "").trim(); // 分類（資産・負債・資本・費用・収益）
+    if(!name || !type) return;
+    if(!accountMaster[type]) accountMaster[type] = [];
+    // 重複チェック
+    if(!accountMaster[type].includes(name)){
+      accountMaster[type].push(name);
+    }
+  });
+
+  init();
+
+  // ローディング1秒ルール
+  const elapsed     = Date.now() - loadStartTime;
+  const minDuration = 1000;
+  const showMain = () => {
+    const loading = document.getElementById("loadingScreen");
+    const card    = document.getElementById("mainCard");
+    if(loading) loading.style.display = "none";
+    if(card) card.classList.remove("hidden");
+    loadBestStreak();
+    updateStreakDisplay();
+  };
+  if(elapsed >= minDuration){
+    showMain();
+  }else{
+    setTimeout(showMain, minDuration - elapsed);
+  }
+})
+.catch(err => {
+  console.error("CSV読み込み失敗", err);
+  const loading = document.getElementById("loadingScreen");
+  const card    = document.getElementById("mainCard");
+  if(loading) loading.style.display = "none";
+  if(card) card.classList.remove("hidden");
+  document.getElementById("question").innerText = "CSV読み込みエラー";
+  document.getElementById("result").innerText   = err.message || err;
+});
 
 /* =====================
    初期化
@@ -314,11 +333,8 @@ function init(){
     area.appendChild(label);
   });
 
-  // 勘定科目リスト
-  accounts = [...new Set(allData.flatMap(x => [
-    x.d1, x.d2, x.c1, x.c2
-  ]).filter(Boolean))];
-  fillAccounts();
+  // 勘定科目プルダウン（分類ごとに optgroup でグルーピング）
+  fillAccountsGrouped();
 
   // 金額入力カンマフォーマット
   document.querySelectorAll(".money").forEach(el => {
@@ -334,20 +350,33 @@ function init(){
   updateStreakDisplay();
 }
 
-/* 勘定科目プルダウンに反映 */
-function fillAccounts(){
+/* 勘定科目プルダウン（分類グループ付き） */
+function fillAccountsGrouped(){
   ["d1","d2","c1","c2"].forEach(id => {
-    let s = document.getElementById(id);
+    const s = document.getElementById(id);
     s.innerHTML = "";
-    let blank = document.createElement("option");
+
+    // 空白（未選択）用
+    const blank = document.createElement("option");
     blank.value = "";
     blank.text  = "";
     s.appendChild(blank);
-    accounts.forEach(a => {
-      let o = document.createElement("option");
-      o.value = a;
-      o.text  = a;
-      s.appendChild(o);
+
+    typeOrder.forEach(type => {
+      const list = accountMaster[type] || [];
+      if(list.length === 0) return;
+
+      const og = document.createElement("optgroup");
+      og.label = type;
+
+      list.forEach(name => {
+        const opt = document.createElement("option");
+        opt.value = name;
+        opt.text  = name;
+        og.appendChild(opt);
+      });
+
+      s.appendChild(og);
     });
   });
 }

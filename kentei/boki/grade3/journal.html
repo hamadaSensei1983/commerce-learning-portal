@@ -95,7 +95,7 @@
     }
     /* ヒント用 枠線色（分類ごと） */
     .entry.hint-asset{
-      border:3px solid #a9c9ff; /* 資産（boki_classifyと同じ色） */
+      border:3px solid #a9c9ff; /* 資産 */
     }
     .entry.hint-liability{
       border:3px solid #ffb3b3; /* 負債 */
@@ -116,6 +116,28 @@
     .entry.hint-revenue{
       border-radius:8px;
       padding:4px;
+    }
+
+    /* ▼ 分類名（optgroupラベル）の色分けだけする */
+    select optgroup[label="資産"]{
+      color:#1e4fa8;      /* 落ち着いた青 */
+      font-weight:bold;
+    }
+    select optgroup[label="負債"]{
+      color:#c0392b;      /* 落ち着いた赤 */
+      font-weight:bold;
+    }
+    select optgroup[label="資本"]{
+      color:#8e44ad;      /* 紫 */
+      font-weight:bold;
+    }
+    select optgroup[label="費用"]{
+      color:#e67e22;      /* オレンジ */
+      font-weight:bold;
+    }
+    select optgroup[label="収益"]{
+      color:#2e7d32;      /* 緑 */
+      font-weight:bold;
     }
   </style>
 </head>

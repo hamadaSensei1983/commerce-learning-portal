@@ -4,8 +4,63 @@
   <meta charset="UTF-8">
   <title>情報処理検定 用語問題</title>
   <link rel="stylesheet" href="../../css/common.css">
+  <style>
+    /* modeボタン（journalと同一デザイン） */
+    .mode-switch{
+      display:flex;
+      justify-content:center;
+      gap:10px;
+      margin-top:10px;
+    }
+    .mode-btn{
+      border:none;
+      border-radius:999px;
+      padding:8px 16px;
+      font-size:14px;
+      background:#e2f5ea;
+      color:#2e7d32;
+      cursor:pointer;
+      box-shadow:0 1px 3px rgba(0,0,0,0.07);
+      transition:all 0.15s ease;
+      min-width:110px;
+    }
+    .mode-btn:hover{
+      background:#d0efde;
+      box-shadow:0 2px 6px rgba(0,0,0,0.12);
+    }
+    .mode-btn.active{
+      background:#72b48a;
+      color:#fff;
+      box-shadow:0 3px 8px rgba(0,0,0,0.16);
+    }
+    /* セクションタイトル */
+    h3{
+      margin-top:20px;
+      margin-bottom:8px;
+      text-align:left;
+    }
+    .field-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+      margin-bottom:10px;
+    }
+    /* カードレイアウト */
+    .card{
+      max-width:800px;
+      margin:20px auto;
+      padding:20px;
+      background:white;
+      border-radius:10px;
+      box-shadow:0 3px 8px rgba(0,0,0,0.08);
+    }
+    .hidden{
+      display:none;
+    }
+  </style>
 </head>
 <body>
+
 <header class="app-header">
   <div class="header-left">
     <img src="../../images/logo.png" class="header-icon">
@@ -16,53 +71,55 @@
   </div>
 </header>
 
-<!-- =====================
-  ローディング画面
-===================== -->
+<!-- ローディング画面 -->
 <div id="loadingScreen">
   <div style="text-align:center">
     <img src="../../images/logo.png" style="width:90px;margin-bottom:20px">
     <div class="spinner"></div>
-    <p style="margin-top:15px;font-weight:bold">
-      問題を読み込み中...
-    </p>
+    <p style="margin-top:15px;font-weight:bold">問題を読み込み中...</p>
   </div>
 </div>
 
 <!-- =====================
-  初期設定画面
-===================== -->
+     初期設定画面（名前入力削除済）
+====================== -->
 <div class="card hidden" id="setupArea">
-  <h3>生徒名</h3>
-  <input id="studentNameInput" style="width:100%;padding:8px">
-  <button class="control-btn" onclick="saveStudent()">保存</button>
-  <div id="studentStats"></div>
 
+  <!-- 新しいモードUI -->
+  <div class="mode-switch">
+    <button type="button" id="btnNormal"     class="mode-btn active" onclick="setMode('normal')">通常モード</button>
+    <button type="button" id="btnChallenge"  class="mode-btn"        onclick="setMode('challenge')">チャレンジ</button>
+    <button type="button" id="btnReview"     class="mode-btn"        onclick="setMode('review')">復習モード</button>
+    <button type="button" id="btnStudy"      class="mode-btn"        onclick="setMode('study')">学習モード</button>
+  </div>
+
+  <!-- モード説明 -->
+  <div id="modeInfo" style="text-align:center;margin:6px 0 12px;color:#555;font-size:14px;"></div>
+
+  <!-- 分野選択 -->
   <h3>分野選択</h3>
   <div id="fieldArea" class="field-grid"></div>
   <button class="control-btn" onclick="selectAll()">全選択</button>
   <button class="control-btn" onclick="clearAll()">全解除</button>
 
-  <h3>モード選択</h3>
-  <select id="modeSelect" style="width:100%;padding:10px">
-    <option value="normal">通常モード</option>
-    <option value="challenge">チャレンジモード</option>
-    <option value="review">復習モード</option>
-    <option value="study">学習モード</option>
-  </select>
-  <div id="modeDescription"></div>
-  <button class="main-btn" onclick="startQuiz()">開始</button>
+  <!-- 開始 -->
+  <div style="text-align:center;margin-top:15px;">
+    <button class="main-btn" onclick="startQuiz()">開始</button>
+  </div>
 
+  <!-- 弱点ランキング -->
   <h3>弱点ランキング</h3>
   <div id="weakRanking"></div>
 
+  <!-- 分野別正答率 -->
   <h3>分野別正答率</h3>
   <div id="fieldRates"></div>
+
 </div>
 
 <!-- =====================
-  クイズ画面
-===================== -->
+     クイズ画面
+====================== -->
 <div class="card hidden" id="quizArea">
   <div class="progress-wrapper">
     <div id="progressText"></div>
@@ -73,19 +130,21 @@
 
   <h3 id="question"></h3>
 
-  <!-- 連続正解数表示 -->
+  <!-- 連続正解数 -->
   <p id="streakInfo" style="text-align:center;font-weight:bold;margin-bottom:8px;">
     連続正解数：0問（最高：0問）
   </p>
 
   <div id="choices"></div>
+
   <p id="result"></p>
+
   <button id="nextBtn" class="main-btn hidden" onclick="nextQuestion()">次へ</button>
 </div>
 
 <!-- =====================
-  結果画面
-===================== -->
+     結果画面
+====================== -->
 <div class="card hidden" id="resultArea">
   <h2>結果</h2>
   <p id="scoreText"></p>
@@ -97,8 +156,8 @@
 </div>
 
 <!-- =====================
-  学習モード
-===================== -->
+     学習モード
+====================== -->
 <div class="card hidden" id="studyArea">
   <div class="study-container">
     <div class="study-row" id="studyCard">
@@ -109,22 +168,16 @@
       </div>
       <button class="nav-square" onclick="nextCard()">▶</button>
     </div>
-    <!-- 用語の説明表示 -->
+
     <div class="study-meaning-box" style="margin-top:10px;">
       <span id="studyMeaning"></span>
     </div>
   </div>
 </div>
 
-<h3>CSVテスト（ローカル用）</h3>
-<input type="file" accept=".csv" onchange="loadLocalCSV(this.files[0])">
-
-<a href="index.html" class="portal-btn exam-btn">
-  検定トップ
-</a>
-<a href="../../index.html" class="portal-btn portal-main">
-  ポータルへ戻る
-</a>
+<!-- 下部リンク -->
+<a href="index.html" class="portal-btn exam-btn">検定トップ</a>
+<a href="../../index.html" class="portal-btn portal-main">ポータルへ戻る</a>
 
 <script>
 /* =====================
@@ -132,21 +185,22 @@
 ===================== */
 let questions = [];
 let filtered  = [];
-let wrong     = [];
 let current   = 0;
 let score     = 0;
-let mode      = "";
-let streak    = 0;   // 連続正解数
-let bestStreak = 0;  // 最高連続正解数
+let streak    = 0;    // 連続正解数
+let bestStreak = 0;   // 最高連続正解数
 
 const quizState = {
-  pool:  [],
+  pool : [],
   queue: [],
   wrong: [],
   index: 0,
   score: 0,
-  mode:  ""
+  mode : "normal"
 };
+
+let mode = "normal";      // 'normal' | 'challenge' | 'review' | 'study'
+let inSession = false;    // 何かモードで問題を解いている状態かどうか
 
 // ローディング開始時刻（1秒ルール用）
 const loadStartTime = Date.now();
@@ -155,10 +209,18 @@ const loadStartTime = Date.now();
    モード説明
 ===================== */
 const modeDesc = {
-  normal:   "5問出題されます",
-  challenge:"全問題出題。1問でも間違えると終了",
-  review:   "間違えた問題を再出題",
-  study:    "カード形式で学習"
+  normal   : "5問出題されます",
+  challenge: "全問題出題。1問でも間違えると終了",
+  review   : "間違えた問題を再出題",
+  study    : "カード形式で学習"
+};
+
+// モード説明（画面用：少し丁寧）
+const modeInfoText = {
+  normal   : "通常モード：選択した分野から5問出題します。",
+  challenge: "チャレンジモード：全問題を出題し、1問でも間違えると終了します。",
+  review   : "復習モード：これまで間違えた問題だけを出題します。",
+  study    : "学習モード：カード形式で用語を確認します。"
 };
 
 /* =====================
@@ -170,7 +232,7 @@ const level  = params.get("level");
 /* 連続正解の最高記録を読み込み */
 function loadBestStreak(){
   const key = "bestStreak_" + (level || "all");
-  const v = localStorage.getItem(key);
+  const v   = localStorage.getItem(key);
   bestStreak = v ? parseInt(v, 10) : 0;
 }
 function saveBestStreak(){
@@ -193,10 +255,11 @@ if (level === "3") {
   const showSetupDirect = () => {
     document.getElementById("loadingScreen").style.display = "none";
     document.getElementById("setupArea").classList.remove("hidden");
-    const desc = document.getElementById("modeDescription");
-    if (desc) {
-      desc.innerText = "※ URLに ?level=2 または ?level=3 が付いていないため、問題は自動読み込みされていません。";
+    const info = document.getElementById("modeInfo");
+    if(info){
+      info.innerText = "※ URLに ?level=2 または ?level=3 が付いていないため、問題は自動読み込みされていません。";
     }
+    setMode("normal", true);  // 初期モード
   };
 
   if (elapsed >= minDuration) {
@@ -207,24 +270,8 @@ if (level === "3") {
 }
 
 /* =====================
-   CSV読み込み
+   CSV読み込み（オンライン用・1秒ルール適用）
 ===================== */
-
-/* ローカルCSVテスト用 */
-function loadLocalCSV(file){
-  let reader = new FileReader();
-  reader.onload = function(e){
-    let text = e.target.result;
-    questions = parseCSV(text);
-    createFieldList();
-    showWeakRanking();
-    document.getElementById("loadingScreen").style.display = "none";
-    document.getElementById("setupArea").classList.remove("hidden");
-  };
-  reader.readAsText(file);
-}
-
-// オンライン用CSV読み込み（1秒ルール適用）
 async function loadCSV(path){
   try{
     let res = await fetch(path);
@@ -248,6 +295,7 @@ async function loadCSV(path){
     const showSetup = () => {
       document.getElementById("loadingScreen").style.display = "none";
       document.getElementById("setupArea").classList.remove("hidden");
+      setMode("normal", true);  // 初期モード
     };
 
     if (elapsed >= minDuration) {
@@ -260,6 +308,7 @@ async function loadCSV(path){
     console.warn("CSV読み込み失敗", e);
     document.getElementById("loadingScreen").style.display = "none";
     document.getElementById("setupArea").classList.remove("hidden");
+    setMode("normal", true);
   }
 }
 
@@ -290,10 +339,10 @@ function parseCSV(text){
     cols.push(current);
     if(cols.length < 3) continue;
     result.push({
-      field:   cols[0].trim(),
-      term:    cols[1].trim(),
+      field  : cols[0].trim(),
+      term   : cols[1].trim(),
       meaning: cols.slice(2).join(",").trim(),
-      index:   i-1
+      index  : i-1
     });
   }
   return result;
@@ -330,14 +379,66 @@ function clearAll(){
 }
 
 /* =====================
-   モード説明
+   モード切替（ボタン）
 ===================== */
-document.getElementById("modeSelect").addEventListener("change", updateModeDesc);
-function updateModeDesc(){
-  let m = document.getElementById("modeSelect").value;
-  document.getElementById("modeDescription").innerText = modeDesc[m];
+function resetSession(){
+  // クイズ状態リセット
+  quizState.queue = [];
+  quizState.index = 0;
+  quizState.score = 0;
+  quizState.wrong = [];
+
+  // 画面リセット
+  document.getElementById("quizArea").classList.add("hidden");
+  document.getElementById("resultArea").classList.add("hidden");
+  document.getElementById("studyArea").classList.add("hidden");
+  document.getElementById("setupArea").classList.remove("hidden");
+
+  document.getElementById("question").innerText = "";
+  document.getElementById("choices").innerHTML  = "";
+  document.getElementById("result").innerText   = "";
+  document.getElementById("nextBtn").classList.add("hidden");
+
+  // 連続正解表示だけ最高記録を残して0に戻す
+  streak = 0;
+  updateStreakDisplay();
+
+  inSession = false;
 }
-updateModeDesc();
+
+function setMode(m, force){
+  // force=true のときは確認せずに切り替え（初期表示用）
+  if(!force && m === mode) return;
+
+  if(!force && inSession){
+    const ok = confirm(
+      "モードを切り替えると、いまの問題は中断されます。\n" +
+      "よろしいですか？\n（※解答内容は保存されません）"
+    );
+    if(!ok) return;
+    resetSession();
+  }
+
+  mode = m;
+  quizState.mode = m;
+
+  // ボタンの見た目
+  ["btnNormal","btnChallenge","btnReview","btnStudy"].forEach(id=>{
+    const btn = document.getElementById(id);
+    if(!btn) return;
+    btn.classList.remove("active");
+  });
+  if(m === "normal")     document.getElementById("btnNormal").classList.add("active");
+  else if(m === "challenge") document.getElementById("btnChallenge").classList.add("active");
+  else if(m === "review")    document.getElementById("btnReview").classList.add("active");
+  else if(m === "study")     document.getElementById("btnStudy").classList.add("active");
+
+  // モード説明
+  const info = document.getElementById("modeInfo");
+  if(info){
+    info.textContent = modeInfoText[m] || "";
+  }
+}
 
 /* =====================
    連続正解数の表示更新
@@ -359,7 +460,7 @@ function startQuiz(){
     return;
   }
 
-  quizState.mode  = document.getElementById("modeSelect").value;
+  quizState.mode  = mode;
   quizState.pool  = questions.filter(q=>selected.includes(q.field));
   shuffle(quizState.pool);
   quizState.index = 0;
@@ -375,6 +476,7 @@ function startQuiz(){
     document.getElementById("setupArea").classList.add("hidden");
     document.getElementById("studyArea").classList.remove("hidden");
     startStudy();
+    inSession = true;
     return;
   }
 
@@ -393,6 +495,7 @@ function startQuiz(){
   document.getElementById("setupArea").classList.add("hidden");
   document.getElementById("quizArea").classList.remove("hidden");
   nextQuestion();
+  inSession = true;
 }
 
 /* =====================
@@ -411,7 +514,7 @@ function nextQuestion(){
   document.getElementById("progressBar").style.width =
     ((quizState.index+1)/total*100) + "%";
 
-  document.getElementById("result").innerText  = "";
+  document.getElementById("result").innerText   = "";
   document.getElementById("question").innerText = q.meaning;
 
   const area = document.getElementById("choices");
@@ -434,7 +537,6 @@ function nextQuestion(){
 ===================== */
 function generateChoices(q){
   let arr = [q];
-  // 同じ分野の問題だけ取得
   let sameField = questions.filter(x =>
     x.field === q.field && x.term !== q.term
   );
@@ -442,7 +544,6 @@ function generateChoices(q){
   for(let i=0;i<sameField.length && arr.length<4;i++){
     arr.push(sameField[i]);
   }
-  // もし分野問題が足りなければ他分野から補充
   while(arr.length < 4){
     let r = questions[Math.floor(Math.random()*questions.length)];
     if(!arr.includes(r)){
@@ -463,7 +564,7 @@ function checkAnswer(selected, correct, btn){
   const q = quizState.queue[quizState.index];
 
   if(selected === correct){
-    // 正解時
+    // 正解
     btn.classList.add("correct-answer");
     quizState.score++;
     document.getElementById("result").innerText = "正解！";
@@ -478,11 +579,10 @@ function checkAnswer(selected, correct, btn){
     updateStreakDisplay();
 
     quizState.index++;
-    // 正解時はテンポ良く：1秒後に自動で次の問題へ
     setTimeout(nextQuestion, 1000);
 
   }else{
-    // 不正解時
+    // 不正解
     btn.classList.add("wrong-answer");
     buttons.forEach(b=>{
       if(b.innerText === correct){
@@ -500,12 +600,10 @@ function checkAnswer(selected, correct, btn){
     updateStreakDisplay();
 
     if(quizState.mode === "challenge"){
-      // チャレンジモードは1問でも間違えたら終了
       setTimeout(showResult, 1000);
       return;
     }
 
-    // 通常／復習モードでは、不正解なら「次へ」ボタンを押すまで進まない
     quizState.index++;
     document.getElementById("nextBtn").classList.remove("hidden");
   }
@@ -533,36 +631,16 @@ function updateFieldStats(field, correct){
 function showResult(){
   document.getElementById("quizArea").classList.add("hidden");
   document.getElementById("resultArea").classList.remove("hidden");
+
   const total = quizState.queue.length;
   const rate  = Math.round(quizState.score/total*100);
+
   document.getElementById("scoreText").innerText = "正解数 " + quizState.score;
   document.getElementById("rateText").innerText  = "正答率 " + rate + "%";
-  saveStudentStats(rate);
-}
 
-/* =====================
-   成績保存
-===================== */
-function saveStudent(){
-  let name = document.getElementById("studentNameInput").value;
-  localStorage.setItem("studentName", name);
-  showStudentStats();
-}
-function saveStudentStats(rate){
-  let stats = JSON.parse(localStorage.getItem("studentStats") || "[]");
-  stats.push(rate);
-  localStorage.setItem("studentStats", JSON.stringify(stats));
-  showStudentStats();
-}
-function showStudentStats(){
-  let stats = JSON.parse(localStorage.getItem("studentStats") || "[]");
-  if(stats.length === 0) return;
-  let avg = Math.round(stats.reduce((a,b)=>a+b)/stats.length);
-  let max = Math.max(...stats);
-  document.getElementById("studentStats").innerHTML =
-    "試験回数 "   + stats.length + "回<br>" +
-    "平均正答率 " + avg          + "%<br>" +
-    "最高正答率 " + max          + "%";
+  // rankText は今後拡張用（級の評価など）
+  document.getElementById("rankText").innerText  = "";
+  inSession = false;
 }
 
 /* =====================
@@ -584,6 +662,7 @@ function showWeakRanking(){
   document.getElementById("weakRanking").innerHTML = html;
   showFieldRates();
 }
+
 function showFieldRates(){
   let key   = "fieldStats_" + (level || "all");
   let stats = JSON.parse(localStorage.getItem(key) || "{}");
@@ -654,6 +733,7 @@ function backToSetup(){
   document.getElementById("setupArea").classList.remove("hidden");
   document.getElementById("nextBtn").classList.add("hidden");
   showWeakRanking();
+  inSession = false;
 }
 
 /* =====================
@@ -694,7 +774,9 @@ function retryWrong(){
   document.getElementById("resultArea").classList.add("hidden");
   document.getElementById("quizArea").classList.remove("hidden");
   nextQuestion();
+  inSession = true;
 }
 </script>
+
 </body>
 </html>

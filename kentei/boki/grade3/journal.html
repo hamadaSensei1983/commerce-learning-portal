@@ -138,6 +138,36 @@
       color:#2e7d32;
       font-weight:bold;
     }
+
+    /* モード選択ボタン（カード風） */
+    .mode-switch{
+      display:flex;
+      justify-content:center;
+      gap:10px;
+      margin-top:10px;
+    }
+    .mode-btn{
+      border:none;
+      border-radius:999px;
+      padding:8px 16px;
+      font-size:14px;
+      background:#e2f5ea;
+      color:#2e7d32;
+      cursor:pointer;
+      box-shadow:0 1px 3px rgba(0,0,0,0.07);
+      transition:all 0.15s ease;
+      min-width:100px;
+    }
+    .mode-btn:hover{
+      background:#d0efde;
+      box-shadow:0 2px 6px rgba(0,0,0,0.12);
+    }
+    .mode-btn.active{
+      background:#72b48a;
+      color:#fff;
+      box-shadow:0 3px 8px rgba(0,0,0,0.16);
+    }
+
   </style>
 </head>
 <body>
@@ -165,11 +195,11 @@
 <!-- メインカード（最初は非表示） -->
 <div class="card hidden" id="mainCard">
 
-  <!-- モード選択 -->
-  <div style="text-align:center;margin-top:10px;">
-    <label><input type="radio" name="modeRadio" value="practice" checked onclick="setMode('practice')"> 練習モード</label>
-    <label style="margin-left:10px;"><input type="radio" name="modeRadio" value="review" onclick="setMode('review')"> 復習モード</label>
-    <label style="margin-left:10px;"><input type="radio" name="modeRadio" value="exam" onclick="setMode('exam')"> 検定モード</label>
+  <!-- モード選択ボタン -->
+  <div class="mode-switch">
+    <button type="button" id="btnPractice" class="mode-btn active" onclick="setMode('practice')">練習モード</button>
+    <button type="button" id="btnReview"   class="mode-btn"        onclick="setMode('review')">復習モード</button>
+    <button type="button" id="btnExam"     class="mode-btn"        onclick="setMode('exam')">検定モード</button>
   </div>
   <!-- モード説明 -->
   <div id="modeInfo" style="text-align:center;margin:4px 0 10px;font-size:14px;color:#555;"></div>
@@ -233,6 +263,7 @@
         <button class="main-btn" id="checkBtn" onclick="check()">答え合わせ</button>
         <button class="control-btn" type="button" id="hintBtn" onclick="showHint()">ヒント</button>
         <button class="main-btn hidden" id="nextBtn" onclick="next()">次の問題</button>
+        <button class="main-btn hidden" id="retryExamBtn" onclick="retryExam()">もう一度挑戦する</button>
       </div>
     </div>
   </div>
@@ -258,14 +289,13 @@ let quizIndex = 0;
 const loadStartTime = Date.now();
 const typeOrder = ["資産","負債","資本","費用","収益"];
 
-/* 新規：モード・復習・検定用 */
+/* モード関連 */
 let mode = "practice";      // 'practice' | 'review' | 'exam'
-let wrongPool = [];         // 間違えた問題のプール（復習用）
-let examQuestions = [];     // 検定モード用4問
-let examIndex = 0;          // 検定モードのインデックス
-let examResults = [];       // 検定モードの結果 {question, correct}
+let wrongPool = [];         // 復習用
+let examQuestions = [];     // 検定用4問
+let examIndex = 0;
+let examResults = [];
 
-/* モード説明文 */
 const modeInfoText = {
   practice: "練習モード：1問ずつ解いて、すぐに答え合わせとヒントで理解を深めます。",
   review  : "復習モード：間違えた問題だけをもう一度出題します。",
@@ -312,7 +342,7 @@ function toNumber(v){
 }
 
 /* =====================
-   CSV読み込み（journal3 + boki3）
+   CSV読み込み
 ===================== */
 Promise.all([
   fetch("../data/journal3.csv").then(res =>{
@@ -325,7 +355,6 @@ Promise.all([
   })
 ])
 .then(([journalText, bokiText])=>{
-  // 仕訳問題
   const jRows = parseCSV(journalText);
   const jBody = jRows.slice(1).filter(r => r.length && r.join("").trim() !== "");
   allData = jBody.map(c =>{
@@ -344,7 +373,6 @@ Promise.all([
     };
   });
 
-  // 勘定科目マスタ
   const bRows = parseCSV(bokiText);
   const bBody = bRows.slice(1).filter(r => r.length && r.join("").trim() !== "");
   accountMaster = {};
@@ -360,17 +388,14 @@ Promise.all([
 
   init();
 
-  // ローディング1秒ルール
   const elapsed     = Date.now() - loadStartTime;
   const minDuration = 1000;
   const showMain = () =>{
-    const loading = document.getElementById("loadingScreen");
-    const card    = document.getElementById("mainCard");
-    if(loading) loading.style.display = "none";
-    if(card) card.classList.remove("hidden");
+    document.getElementById("loadingScreen").style.display = "none";
+    document.getElementById("mainCard").classList.remove("hidden");
     loadBestStreak();
     updateStreakDisplay();
-    setMode("practice");  // 初期モード説明表示
+    setMode("practice");
   };
   if(elapsed >= minDuration){
     showMain();
@@ -380,10 +405,8 @@ Promise.all([
 })
 .catch(err =>{
   console.error("CSV読み込み失敗", err);
-  const loading = document.getElementById("loadingScreen");
-  const card    = document.getElementById("mainCard");
-  if(loading) loading.style.display = "none";
-  if(card) card.classList.remove("hidden");
+  document.getElementById("loadingScreen").style.display = "none";
+  document.getElementById("mainCard").classList.remove("hidden");
   document.getElementById("question").innerText = "CSV読み込みエラー";
   document.getElementById("result").innerText   = err.message || err;
 });
@@ -395,21 +418,37 @@ function setMode(m){
   mode = m;
   clearHintClasses();
 
-  const hintBtn = document.getElementById("hintBtn");
-  if(hintBtn){
-    if(mode === "exam"){
-      hintBtn.style.display = "none";   // 検定モードではヒント非表示
-    }else{
-      hintBtn.style.display = "";
-    }
+  // ボタンの見た目切替
+  ["btnPractice","btnReview","btnExam"].forEach(id =>{
+    const btn = document.getElementById(id);
+    if(!btn) return;
+    btn.classList.remove("active");
+  });
+  if(m === "practice"){
+    document.getElementById("btnPractice").classList.add("active");
+  }else if(m === "review"){
+    document.getElementById("btnReview").classList.add("active");
+  }else if(m === "exam"){
+    document.getElementById("btnExam").classList.add("active");
   }
 
+  // モード説明
   const info = document.getElementById("modeInfo");
   if(info){
     info.textContent = modeInfoText[mode] || "";
   }
 
-  // 検定モードでは分野選択UIを非表示
+  // ヒントボタン表示/非表示
+  const hintBtn = document.getElementById("hintBtn");
+  if(hintBtn){
+    if(mode === "exam"){
+      hintBtn.style.display = "none";
+    }else{
+      hintBtn.style.display = "";
+    }
+  }
+
+  // 検定モードでは分野選択UI非表示
   const fieldListDiv     = document.getElementById("fieldList");
   const fieldControlsDiv = document.getElementById("fieldControls");
   if(mode === "exam"){
@@ -419,13 +458,16 @@ function setMode(m){
     if(fieldListDiv)     fieldListDiv.style.display = "";
     if(fieldControlsDiv) fieldControlsDiv.style.display = "";
   }
+
+  // 検定モード以外ではリトライボタンを隠す
+  const retryBtn = document.getElementById("retryExamBtn");
+  if(retryBtn) retryBtn.classList.add("hidden");
 }
 
 /* =====================
    初期化
 ===================== */
 function init(){
-  // 分野リスト作成
   let fields = [...new Set(allData.map(x => x.field))];
   let area   = document.getElementById("fieldList");
   fields.forEach(f =>{
@@ -434,10 +476,8 @@ function init(){
     area.appendChild(label);
   });
 
-  // 勘定科目プルダウン
   fillAccountsGrouped();
 
-  // 金額入力カンマフォーマット
   document.querySelectorAll(".money").forEach(el =>{
     el.addEventListener("input", () =>{
       let v = el.value.replace(/,/g,"");
@@ -465,6 +505,7 @@ function fillAccountsGrouped(){
     typeOrder.forEach(type =>{
       const list = accountMaster[type] || [];
       if(list.length === 0) return;
+
       const og = document.createElement("optgroup");
       og.label = type;
 
@@ -517,9 +558,7 @@ function shuffle(a){
   return a;
 }
 
-/* =====================
-   検定モード用：4問ピックアップ
-===================== */
+/* 検定モード：4問ピックアップ */
 function pickExamQuestions(){
   const byField = {};
   allData.forEach(q =>{
@@ -538,7 +577,6 @@ function pickExamQuestions(){
     if(examQuestions.length >= 4) break;
   }
 
-  // 4問未満なら補充
   if(examQuestions.length < 4){
     const others = [...allData];
     shuffle(others);
@@ -554,7 +592,7 @@ function pickExamQuestions(){
   examResults = [];
 }
 
-/* 検定モード用：1問読み込み */
+/* 検定モード：1問ロード */
 function loadExamQuestion(){
   clearInputs();
   clearHintClasses();
@@ -566,7 +604,6 @@ function loadExamQuestion(){
 
   const checkBtn = document.getElementById("checkBtn");
   if(checkBtn){
-    // 最後の問題かどうかでラベルを変える
     if(examIndex === examQuestions.length - 1){
       checkBtn.textContent = "答え合わせ";
     }else{
@@ -575,6 +612,7 @@ function loadExamQuestion(){
     checkBtn.disabled = false;
   }
   document.getElementById("nextBtn").classList.add("hidden");
+  document.getElementById("retryExamBtn").classList.add("hidden");
 }
 
 /* 検定モード：結果表示 */
@@ -608,19 +646,32 @@ function showExamResult(){
 
   const checkBtn = document.getElementById("checkBtn");
   if(checkBtn){
-    checkBtn.disabled   = true;
+    checkBtn.disabled = true;
     checkBtn.textContent = "答え合わせ";
+  }
+
+  const retryBtn = document.getElementById("retryExamBtn");
+  if(retryBtn){
+    retryBtn.classList.remove("hidden");
   }
 }
 
-/* =====================
-   開始（練習・復習・検定）
-===================== */
+/* 検定モード：もう一度挑戦ボタン */
+function retryExam(){
+  if(mode !== "exam") return;
+  pickExamQuestions();
+  document.getElementById("result").innerHTML = "";
+  loadExamQuestion();
+}
+
+/* 開始（練習・復習・検定） */
 function start(){
   const checkBtn = document.getElementById("checkBtn");
-  if(checkBtn) checkBtn.textContent = "答え合わせ"; // 練習・復習用の初期ラベル
+  if(checkBtn) checkBtn.textContent = "答え合わせ";
 
-  // 検定モード
+  const retryBtn = document.getElementById("retryExamBtn");
+  if(retryBtn) retryBtn.classList.add("hidden");
+
   if(mode === "exam"){
     pickExamQuestions();
     document.getElementById("journalArea").style.display = "block";
@@ -629,7 +680,6 @@ function start(){
     return;
   }
 
-  // 練習・復習モード共通：分野チェック
   let selected = [...document.querySelectorAll("#fieldList input:checked")]
                   .map(x => x.value);
   if(selected.length === 0){
@@ -642,12 +692,11 @@ function start(){
       alert("復習する問題がありません（まだ間違いが記録されていません）。");
       return;
     }
-    data = [...wrongPool];   // 間違えた問題だけ
+    data = [...wrongPool];
   }else{
     data = allData.filter(x => selected.includes(x.field));
   }
 
-  // 分野別成績リセット
   fieldStats = {};
   data.forEach(q =>{
     if(!fieldStats[q.field]){
@@ -655,7 +704,6 @@ function start(){
     }
   });
 
-  // 連続正解リセット（最高値は保持）
   streak = 0;
   updateStreakDisplay();
 
@@ -666,14 +714,13 @@ function start(){
   next();
 }
 
-/* 次の問題（練習・復習モード用） */
+/* 次の問題（練習・復習） */
 function next(){
   if(autoNextTimer !== null){
     clearTimeout(autoNextTimer);
     autoNextTimer = null;
   }
 
-  // 検定モードではnextは使わない
   if(mode === "exam"){
     return;
   }
@@ -700,6 +747,9 @@ function next(){
     checkBtn.disabled   = false;
     checkBtn.textContent = "答え合わせ";
   }
+
+  const retryBtn = document.getElementById("retryExamBtn");
+  if(retryBtn) retryBtn.classList.add("hidden");
 }
 
 /* 入力欄クリア＆有効化 */
@@ -774,7 +824,7 @@ function clearHintClasses(){
 
 /* ヒント表示：未入力行だけ分類色で光らせる */
 function showHint(){
-  if(mode === "exam") return; // 検定モードではヒント無効
+  if(mode === "exam") return;
   if(!current) return;
   clearHintClasses();
 
@@ -801,17 +851,14 @@ function showHint(){
   });
 }
 
-/* チェック（一問一回だけ有効） */
+/* チェック */
 function check(){
   const checkBtn = document.getElementById("checkBtn");
   const result   = document.getElementById("result");
 
   if(!current) return;
-
-  // すでに採点済みなら無視
   if(checkBtn.disabled) return;
 
-  // 現在の入力
   let ansD = [
     {a:v("d1"), m:n("dm1")},
     {a:v("d2"), m:n("dm2")}
@@ -824,7 +871,6 @@ function check(){
   let debitSum  = ansD.reduce((s,x) => s + x.m, 0);
   let creditSum = ansC.reduce((s,x) => s + x.m, 0);
 
-  // どの科目も金額も入っていない
   const allAccountEmpty =
     !v("d1") && !v("d2") && !v("c1") && !v("c2");
   if(allAccountEmpty && debitSum === 0 && creditSum === 0){
@@ -832,13 +878,11 @@ function check(){
     return;
   }
 
-  // 金額がすべて0
   if(debitSum === 0 && creditSum === 0){
     result.innerHTML = "金額を入力してください";
     return;
   }
 
-  // 合計不一致
   if(debitSum !== creditSum){
     result.innerHTML = "借方と貸方の金額が一致していません";
     return;
@@ -873,7 +917,7 @@ function check(){
     return;
   }
 
-  // 練習・復習モード共通
+  // 練習・復習モード
   checkBtn.disabled = true;
 
   let corD = [
@@ -927,7 +971,6 @@ function check(){
 
     result.innerHTML = html;
 
-    // 復習用に追加
     wrongPool.push(current);
 
     streak = 0;

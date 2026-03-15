@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>簿記3級 仕訳トレーニング</title>
-  <link rel="stylesheet" href="../../../css/common.css">
+  ../../../css/common.css
   <style>
     /* 問題文 */
     #question{
@@ -173,7 +173,7 @@
 <body>
 <header class="app-header">
   <div class="header-left">
-    <img src="../../../images/logo.png" class="header-icon">
+    ../../../images/logo.png
     <div>
       <h1 class="site-title">検定対策システム</h1>
       <div class="exam-title">全商簿記3級 仕訳トレーニング</div>
@@ -184,7 +184,7 @@
 <!-- ローディング画面 -->
 <div id="loadingScreen">
   <div style="text-align:center">
-    <img src="../../../images/logo.png" style="width:90px;margin-bottom:20px">
+    ../../../images/logo.png
     <div class="spinner"></div>
     <p style="margin-top:15px;font-weight:bold">
       問題を読み込み中...
@@ -269,8 +269,8 @@
   </div>
 </div>
 
-<a href="../index.html" class="portal-btn exam-btn">簿記トップ</a>
-<a href="../../../index.html" class="portal-btn portal-main">ポータルへ戻る</a>
+../index.html簿記トップ</a>
+../../../index.htmlポータルへ戻る</a>
 
 <script>
 /* =====================
@@ -291,6 +291,7 @@ const typeOrder = ["資産","負債","資本","費用","収益"];
 
 /* モード関連 */
 let mode = "practice";      // 'practice' | 'review' | 'exam'
+let inSession = false;      // 何かモードで問題を解いているか
 let wrongPool = [];         // 復習用
 let examQuestions = [];     // 検定用4問
 let examIndex = 0;
@@ -395,7 +396,7 @@ Promise.all([
     document.getElementById("mainCard").classList.remove("hidden");
     loadBestStreak();
     updateStreakDisplay();
-    setMode("practice");
+    setMode("practice", true);  // 初期化時は強制的にpracticeへ
   };
   if(elapsed >= minDuration){
     showMain();
@@ -412,13 +413,65 @@ Promise.all([
 });
 
 /* =====================
-   モード切り替え
+   共通：セッションリセット
 ===================== */
-function setMode(m){
-  mode = m;
+function resetSession(){
+  // タイマー停止
+  if(autoNextTimer !== null){
+    clearTimeout(autoNextTimer);
+    autoNextTimer = null;
+  }
+  current = null;
+  quizOrder = [];
+  quizIndex = 0;
+  examQuestions = [];
+  examResults = [];
+  examIndex = 0;
+
+  clearInputs();
   clearHintClasses();
 
-  // ボタンの見た目切替
+  const q = document.getElementById("question");
+  if(q) q.innerText = "";
+
+  const res = document.getElementById("result");
+  if(res) res.innerHTML = "";
+
+  const journal = document.getElementById("journalArea");
+  if(journal) journal.style.display = "none";
+
+  const checkBtn = document.getElementById("checkBtn");
+  if(checkBtn){
+    checkBtn.disabled = false;
+    checkBtn.textContent = "答え合わせ";
+  }
+
+  const nextBtn = document.getElementById("nextBtn");
+  if(nextBtn) nextBtn.classList.add("hidden");
+
+  const retryBtn = document.getElementById("retryExamBtn");
+  if(retryBtn) retryBtn.classList.add("hidden");
+
+  inSession = false;
+}
+
+/* =====================
+   モード切り替え
+===================== */
+function setMode(m, force){
+  // force=true は初期設定用（確認なし）
+  if(!force && m === mode) return;
+
+  // すでに何かモードで解いている場合は確認
+  if(!force && inSession){
+    const ok = confirm("モードを切り替えると、いまの問題は中断されます。\nよろしいですか？\n（※解答内容は保存されません）");
+    if(!ok) return;
+    resetSession();
+  }
+
+  mode = m;
+
+  // ボタン見た目
   ["btnPractice","btnReview","btnExam"].forEach(id =>{
     const btn = document.getElementById(id);
     if(!btn) return;
@@ -438,7 +491,7 @@ function setMode(m){
     info.textContent = modeInfoText[mode] || "";
   }
 
-  // ヒントボタン表示/非表示
+  // ヒントボタンON/OFF
   const hintBtn = document.getElementById("hintBtn");
   if(hintBtn){
     if(mode === "exam"){
@@ -448,7 +501,7 @@ function setMode(m){
     }
   }
 
-  // 検定モードでは分野選択UI非表示
+  // 分野選択UI
   const fieldListDiv     = document.getElementById("fieldList");
   const fieldControlsDiv = document.getElementById("fieldControls");
   if(mode === "exam"){
@@ -459,13 +512,13 @@ function setMode(m){
     if(fieldControlsDiv) fieldControlsDiv.style.display = "";
   }
 
-  // 検定モード以外ではリトライボタンを隠す
+  // 検定モード以外では「もう一度挑戦」隠す
   const retryBtn = document.getElementById("retryExamBtn");
   if(retryBtn) retryBtn.classList.add("hidden");
 }
 
 /* =====================
-   初期化
+   初期化（分野・プルダウン）
 ===================== */
 function init(){
   let fields = [...new Set(allData.map(x => x.field))];
@@ -662,6 +715,7 @@ function retryExam(){
   pickExamQuestions();
   document.getElementById("result").innerHTML = "";
   loadExamQuestion();
+  inSession = true;
 }
 
 /* 開始（練習・復習・検定） */
@@ -677,6 +731,7 @@ function start(){
     document.getElementById("journalArea").style.display = "block";
     document.getElementById("result").innerHTML = "";
     loadExamQuestion();
+    inSession = true;
     return;
   }
 
@@ -712,6 +767,7 @@ function start(){
 
   document.getElementById("journalArea").style.display = "block";
   next();
+  inSession = true;
 }
 
 /* 次の問題（練習・復習） */

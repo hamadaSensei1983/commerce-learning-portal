@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>全商簿記3級 語句・英単語トレーニング</title>
+  ../../css/common.css
+
+  <style>
+    /* モード切替ボタン（journal/johoと統一） */
+    .mode-switch{
+      display:flex;
+      justify-content:center;
+      gap:10px;
+      margin-top:10px;
+    }
+    .mode-btn{
+      border:none;
+      border-radius:999px;
+      padding:8px 16px;
+      font-size:14px;
+      background:#e2f5ea;
+      color:#2e7d32;
+      cursor:pointer;
+      box-shadow:0 1px 3px rgba(0,0,0,0.08);
+      transition:all 0.15s ease;
+      min-width:100px;
+    }
+    .mode-btn:hover{
+      background:#d0efde;
+      box-shadow:0 2px 6px rgba(0,0,0,0.12);
+    }
+    .mode-btn.active{
+      background:#72b48a;
+      color:#fff;
+      box-shadow:0 3px 8px rgba(0,0,0,0.18);
+    }
+
+    /* 各種カードレイアウト */
+    .card{
+      max-width:800px;
+      margin:20px auto;
+      padding:20px;
+      background:white;
+      border-radius:10px;
+      box-shadow:0 3px 8px rgba(0,0,0,0.08);
+    }
+    .hidden{
+      display:none;
+    }
+
+    .field-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+      margin-bottom:10px;
+    }
+
+    /* 問題文 */
+    #sentence{
+      font-size:20px;
+      line-height:1.7;
+      margin-bottom:15px;
+    }
+
+    /* 選択肢ボタン（johoと同じ） */
+    .choice-btn{
+      display:block;
+      width:100%;
+      padding:10px;
+      margin:6px 0;
+      border-radius:8px;
+      background:#f5f5f5;
+      border:1px solid #ccc;
+      cursor:pointer;
+      font-size:16px;
+      text-align:left;
+      transition:all 0.15s ease;
+    }
+    .choice-btn:hover{
+      background:#e8f5e9;
+    }
+    .correct-answer{
+      background:#c8e6c9 !important;
+      border-color:#66bb6a !important;
+    }
+    .wrong-answer{
+      background:#ffcdd2 !important;
+      border-color:#e57373 !important;
+    }
+
+    #result{
+      font-weight:bold;
+      margin-top:15px;
+      min-height:24px;
+    }
+    #explain{
+      margin-top:6px;
+      color:#555;
+    }
+  </style>
+</head>
+
+<body>
+
+<!-- ===== ヘッダー（統一） ===== -->
+<header class="app-header">
+  <div class="header-left">
+    <img src="../../images/logo.png" class="header-icon">
+    <div>
+      <h1 class="site-title">検定対策システム</h1>
+      <div class="exam-title">全商簿記3級 語句・英単語トレーニング</div>
+    </div>
+  </div>
+</header>
+
+<!-- ====== ローディング ====== -->
+<div id="loadingScreen">
+  <div style="text-align:center">
+    <img src="../../images/logo.png" style="width:90px;margin-bottom:20px">
+    <div class="spinner"></div>
+    <p style="margin-top:15px;font-weight:bold">問題を読み込み中...</p>
+  </div>
+</div>
+
+<!-- ====== 設定エリア ====== -->
+<div class="card hidden" id="setupArea">
+
+  <!-- モード切替（緑カードUI） -->
+  <div class="mode-switch">
+    <button type="button" id="btnPractice" class="mode-btn active" onclick="setMode('practice')">練習モード</button>
+    <button type="button" id="btnReview"   class="mode-btn"        onclick="setMode('review')">復習モード</button>
+    <button type="button" id="btnExam"     class="mode-btn"        onclick="setMode('exam')">検定モード</button>
+  </div>
+
+  <!-- モード説明 -->
+  <div id="modeInfo" style="text-align:center;margin:6px 0 12px;color:#555;font-size:14px;"></div>
+
+  <!-- 区分選択（語句/英単語） -->
+  <h3>区分選択</h3>
+  <div id="kindArea" class="field-grid"></div>
+
+  <button class="control-btn" onclick="selectAllKinds()">全選択</button>
+  <button class="control-btn" onclick="clearAllKinds()">全解除</button>
+
+  <!-- 開始 -->
+  <div style="text-align:center;margin-top:18px;">
+    <button class="main-btn" onclick="startQuiz()">開始</button>
+  </div>
+
+  <!-- 弱点ランキング -->
+  <h3>弱点ランキング</h3>
+  <div id="weakRanking"></div>
+
+  <h3>区分別正答率</h3>
+  <div id="kindRates"></div>
+
+</div>
+
+<!-- ===== 問題エリア ===== -->
+<div class="card hidden" id="quizArea">
+
+  <div style="text-align:right;margin-bottom:5px;">
+    <span id="qIndex"></span>
+  </div>
+
+  <div id="sentence"></div>
+  <div id="choices"></div>
+
+  <p id="result"></p>
+  <p id="explain"></p>
+
+  <div style="text-align:center;margin-top:15px;">
+    <button id="nextBtn" class="main-btn hidden" onclick="nextQuestion()">次へ</button>
+  </div>
+</div>
+
+<!-- ===== 結果エリア ===== -->
+<div class="card hidden" id="resultArea">
+  <h2>検定結果</h2>
+  <p id="scoreText"></p>
+  <p id="scoreRate"></p>
+  <p id="extraMessage"></p>
+
+  <button class="main-btn" onclick="retryExam()">もう一度挑戦</button>
+  <button class="control-btn" onclick="backToSetup()">区分選択に戻る</button>
+</div>
+
+<!-- ===== リンク ===== -->
+<div style="text-align:center;margin-top:20px;">
+  <a href="../index.html" class="portal-btn exam-btn">簿記トップ</a>
+  <a href="../../index.html" class="portal-btn portal-main">ポータルへ戻る</a>
+</div>
+<script>
+/* =====================
+   グローバル変数
+===================== */
+let allQuestions = [];    // CSVから読み込んだ全問題
+let pool         = [];    // 練習・復習に使う出題プール
+let wrongPool    = [];    // 復習用：間違えた問題
+let currentIndex = 0;
+let currentQ     = null;
+
+let mode      = "practice"; // 'practice' | 'review' | 'exam'
+let inSession = false;      // 何かモードで問題に取り組んでいるかどうか
+
+// 検定モード用
+let examQuestions = [];    // 4問分
+let examIndex     = 0;
+let examResults   = [];    // {question, correct}
+
+// ローディング1秒ルール用
+const loadStartTime = Date.now();
+
+/* モード説明文 */
+const modeInfoText = {
+  practice: "練習モード：1問ずつ出題されます。区分（語句／英単語）を選んでランダムに練習しましょう。",
+  review  : "復習モード：これまで間違えた問題だけを出題します。",
+  exam    : "検定モード：選択した区分から4問を出題します。4問解いた後にまとめて採点します。"
+};
+
+/* 成績保存用キー */
+const STATS_KEY = "words3_kindStats";
+
+/* =====================
+   CSV読み込み
+===================== */
+window.addEventListener("DOMContentLoaded", ()=>{
+  loadCSV("../data/words3.csv");
+});
+
+async function loadCSV(path){
+  try{
+    const res = await fetch(path);
+    if(!res.ok){
+      throw new Error("CSVが見つかりません: " + path);
+    }
+    let text = await res.text();
+    text = text.replace(/^\uFEFF/, "");
+    allQuestions = parseCSV(text);   // { kind, text, answer, options }
+
+    createKindList();
+    showWeakRanking();
+
+    // ローディング1秒ルール
+    const elapsed     = Date.now() - loadStartTime;
+    const minDuration = 1000;
+    const showSetup = () =>{
+      document.getElementById("loadingScreen").style.display = "none";
+      document.getElementById("setupArea").classList.remove("hidden");
+      setMode("practice", true);
+    };
+    if(elapsed >= minDuration){
+      showSetup();
+    }else{
+      setTimeout(showSetup, minDuration - elapsed);
+    }
+  }catch(e){
+    console.error(e);
+    document.getElementById("loadingScreen").style.display = "none";
+    document.getElementById("setupArea").classList.remove("hidden");
+    const sentence = document.getElementById("sentence");
+    if(sentence) sentence.innerText = "CSV読み込みエラー：" + (e.message || e);
+  }
+}
+
+/* =====================
+   CSVパース
+===================== */
+function parseCSV(text){
+  const rows = text.trim().split(/\r?\n/);
+  const result = [];
+  // 1行目はヘッダ：区分,問題文,答え,選択肢
+  for(let i=1;i<rows.length;i++){
+    let line = rows[i].trim();
+    if(!line) continue;
+
+    let cols = [];
+    let cur = "";
+    let inQ = false;
+    for(let c of line){
+      if(c === '"'){
+        inQ = !inQ;
+        continue;
+      }
+      if(c === "," && !inQ){
+        cols.push(cur);
+        cur = "";
+      }else{
+        cur += c;
+      }
+    }
+    cols.push(cur);
+
+    if(cols.length < 4) continue;
+    const kind    = cols[0].trim();   // 区分：語句 / 英単語
+    const textQ   = cols[1].trim();   // 問題文
+    const answer  = cols[2].trim();   // 正解
+    const optStr  = cols[3].trim();   // "A|B|C"
+
+    // 選択肢は | または ｜（全角パイプ）で分割しておく
+    let options = optStr.split(/[|｜]/).map(s=>s.trim()).filter(s=>s);
+
+    result.push({
+      kind,
+      text : textQ,
+      answer,
+      options
+    });
+  }
+  return result;
+}
+
+/* =====================
+   区分リスト作成
+===================== */
+function createKindList(){
+  const kinds = [...new Set(allQuestions.map(q => q.kind))].sort(); // 語句 / 英単語
+  const area  = document.getElementById("kindArea");
+  area.innerHTML = "";
+
+  kinds.forEach(k =>{
+    const label = document.createElement("label");
+    label.innerHTML = `<input type="checkbox" value="${k}"> ${k}`;
+    area.appendChild(label);
+  });
+}
+
+function selectAllKinds(){
+  document.querySelectorAll("#kindArea input").forEach(c=>c.checked = true);
+}
+function clearAllKinds(){
+  document.querySelectorAll("#kindArea input").forEach(c=>c.checked = false);
+}
+
+/* =====================
+   モード切替 + セッションリセット
+===================== */
+function resetSession(){
+  pool         = [];
+  wrongPool    = [];
+  currentIndex = 0;
+  currentQ     = null;
+
+  examQuestions = [];
+  examIndex     = 0;
+  examResults   = [];
+
+  const quizArea   = document.getElementById("quizArea");
+  const resultArea = document.getElementById("resultArea");
+  const setupArea  = document.getElementById("setupArea");
+
+  if(quizArea)   quizArea.classList.add("hidden");
+  if(resultArea) resultArea.classList.add("hidden");
+  if(setupArea)  setupArea.classList.remove("hidden");
+
+  document.getElementById("sentence").innerText = "";
+  document.getElementById("choices").innerHTML  = "";
+  document.getElementById("result").innerText   = "";
+  document.getElementById("explain").innerText  = "";
+  document.getElementById("qIndex").innerText   = "";
+  document.getElementById("nextBtn").classList.add("hidden");
+
+  inSession = false;
+}
+
+function setMode(m, force){
+  if(!force && m === mode) return;
+
+  if(!force && inSession){
+    const ok = confirm(
+      "モードを切り替えると、いまの問題は中断されます。\n" +
+      "よろしいですか？\n（※解答内容は保存されません）"
+    );
+    if(!ok) return;
+    resetSession();
+  }
+
+  mode = m;
+
+  // ボタンの見た目更新
+  ["btnPractice","btnReview","btnExam"].forEach(id=>{
+    const btn = document.getElementById(id);
+    if(!btn) return;
+    btn.classList.remove("active");
+  });
+  if(m === "practice") document.getElementById("btnPractice").classList.add("active");
+  else if(m === "review") document.getElementById("btnReview").classList.add("active");
+  else if(m === "exam") document.getElementById("btnExam").classList.add("active");
+
+  // 説明文
+  const info = document.getElementById("modeInfo");
+  if(info){
+    info.textContent = modeInfoText[mode] || "";
+  }
+}
+
+/* =====================
+   クイズ開始
+===================== */
+function startQuiz(){
+  const selectedKinds = [...document.querySelectorAll("#kindArea input:checked")]
+                          .map(c => c.value);
+  if(selectedKinds.length === 0){
+    alert("区分を1つ以上選択してください（語句や英単語）。");
+    return;
+  }
+
+  // 練習・復習・検定で出題プールを作る
+  if(mode === "review"){
+    if(wrongPool.length === 0){
+      alert("復習する問題がありません。まずは練習モードで解きましょう。");
+      return;
+    }
+    pool = [...wrongPool].filter(q => selectedKinds.includes(q.kind));
+    if(pool.length === 0){
+      alert("選択された区分に復習問題がありません。");
+      return;
+    }
+  }else{
+    pool = allQuestions.filter(q => selectedKinds.includes(q.kind));
+  }
+
+  shuffle(pool);
+  currentIndex = 0;
+  inSession = true;
+
+  document.getElementById("setupArea").classList.add("hidden");
+  document.getElementById("resultArea").classList.add("hidden");
+  document.getElementById("quizArea").classList.remove("hidden");
+
+  if(mode === "exam"){
+    // 検定モード：4問選ぶ
+    pickExamQuestions();
+    showExamQuestion();
+  }else{
+    // 練習・復習
+    showPracticeQuestion();
+  }
+}
+
+/* =====================
+   練習 / 復習モード：問題表示
+===================== */
+function showPracticeQuestion(){
+  if(currentIndex >= pool.length){
+    alert("これ以上問題がありません。");
+    backToSetup();
+    return;
+  }
+  currentQ = pool[currentIndex];
+
+  document.getElementById("qIndex").innerText =
+    "第 " + (currentIndex+1) + " 問 / " + pool.length + " 問";
+
+  document.getElementById("sentence").innerText = currentQ.text;
+  renderChoices(currentQ);
+
+  document.getElementById("result").innerText  = "";
+  document.getElementById("explain").innerText = "";
+
+  document.getElementById("nextBtn").classList.add("hidden");
+}
+
+/* =====================
+   検定モード：問題選択 + 表示
+===================== */
+function pickExamQuestions(){
+  examQuestions = [];
+  const copy = [...pool];
+  shuffle(copy);
+  // 最大4問
+  for(let i=0; i<copy.length && examQuestions.length<4; i++){
+    examQuestions.push(copy[i]);
+  }
+  examIndex   = 0;
+  examResults = [];
+}
+
+function showExamQuestion(){
+  if(examIndex >= examQuestions.length){
+    showExamResult();
+    return;
+  }
+  currentQ = examQuestions[examIndex];
+
+  document.getElementById("qIndex").innerText =
+    "第 " + (examIndex+1) + " 問 / " + examQuestions.length + " 問";
+
+  document.getElementById("sentence").innerText = currentQ.text;
+  renderChoices(currentQ);
+
+  document.getElementById("result").innerText  = "";
+  document.getElementById("explain").innerText = "";
+  document.getElementById("nextBtn").classList.add("hidden");
+}
+
+/* =====================
+   選択肢の描画（共通）
+===================== */
+function renderChoices(q){
+  const area = document.getElementById("choices");
+  area.innerHTML = "";
+
+  const opts = [...q.options];
+  shuffle(opts);
+
+  opts.forEach(opt=>{
+    const btn = document.createElement("button");
+    btn.className = "choice-btn";
+    btn.innerText = opt;
+    btn.onclick   = () => handleChoice(opt, q);
+    area.appendChild(btn);
+  });
+}
+
+/* =====================
+   選択時の処理（モード別）
+===================== */
+function handleChoice(selected, q){
+  const buttons = document.querySelectorAll(".choice-btn");
+  buttons.forEach(b => b.disabled = true);
+
+  const resultP  = document.getElementById("result");
+  const explainP = document.getElementById("explain");
+
+  const isCorrect = (selected === q.answer);
+
+  // 正誤の見た目
+  buttons.forEach(b=>{
+    if(b.innerText === q.answer){
+      b.classList.add("correct-answer");
+    }
+    if(b.innerText === selected && !isCorrect){
+      b.classList.add("wrong-answer");
+    }
+  });
+
+  if(isCorrect){
+    resultP.innerText = "〇 正解です！";
+  }else{
+    resultP.innerText = "× 不正解です。";
+  }
+  explainP.innerText = (q.kind === "英単語" ? `【答え】${q.answer}` : "") ;
+
+  // 成績更新
+  updateKindStats(q.kind, isCorrect);
+
+  if(mode === "exam"){
+    examResults.push({question:q, correct:isCorrect});
+    examIndex++;
+    // 次の問題へ（ボタン操作にするならここでnextBtn表示でもOK）
+    if(examIndex < examQuestions.length){
+      document.getElementById("nextBtn").classList.remove("hidden");
+      document.getElementById("nextBtn").onclick = () =>{
+        showExamQuestion();
+      };
+    }else{
+      // 最後の問題 → 結果へ
+      document.getElementById("nextBtn").classList.remove("hidden");
+      document.getElementById("nextBtn").onclick = () =>{
+        showExamResult();
+      };
+    }
+  }else{
+    // 練習・復習
+    if(!isCorrect){
+      wrongPool.push(q);
+    }
+    currentIndex++;
+    if(currentIndex < pool.length){
+      document.getElementById("nextBtn").classList.remove("hidden");
+      document.getElementById("nextBtn").onclick = () =>{
+        showPracticeQuestion();
+      };
+    }else{
+      document.getElementById("nextBtn").classList.remove("hidden");
+      document.getElementById("nextBtn").innerText = "終了";
+      document.getElementById("nextBtn").onclick = () =>{
+        backToSetup();
+      };
+    }
+  }
+
+  showWeakRanking();
+}
+
+/* =====================
+   検定モード結果
+===================== */
+function showExamResult(){
+  inSession = false;
+
+  document.getElementById("quizArea").classList.add("hidden");
+  document.getElementById("resultArea").classList.remove("hidden");
+
+  const total   = examResults.length;
+  const correct = examResults.filter(r => r.correct).length;
+  const rate    = total ? Math.round(correct/total*100) : 0;
+
+  document.getElementById("scoreText").innerText = `正解数：${correct} / ${total} 問`;
+  document.getElementById("scoreRate").innerText = `正答率：${rate}%`;
+
+  let msg = "";
+  if(correct <= 1){
+    msg = "練習モードでしっかりと復習しましょう！";
+  }else if(correct >= total){
+    msg = "検定でもこの調子で頑張りましょう！";
+  }else{
+    msg = "よくできています。苦手な問題は復習モードで確認しましょう。";
+  }
+  document.getElementById("extraMessage").innerText = msg;
+}
+
+/* =====================
+   検定モード：再挑戦
+===================== */
+function retryExam(){
+  if(mode !== "exam"){
+    // モードが変わっていても、もう一度 exam で開始
+    setMode("exam", false);
+  }
+  // 元の選択された区分で再度startQuizを呼ぶ
+  document.getElementById("resultArea").classList.add("hidden");
+  startQuiz();
+}
+
+/* =====================
+   区分別成績
+===================== */
+function updateKindStats(kind, correct){
+  let stats = JSON.parse(localStorage.getItem(STATS_KEY) || "{}");
+  if(!stats[kind]){
+    stats[kind] = {correct:0, attempts:0};
+  }
+  stats[kind].attempts++;
+  if(correct) stats[kind].correct++;
+  localStorage.setItem(STATS_KEY, JSON.stringify(stats));
+}
+
+function showWeakRanking(){
+  let stats = JSON.parse(localStorage.getItem(STATS_KEY) || "{}");
+  let arr = Object.keys(stats).map(k=>{
+    let s    = stats[k];
+    let rate = s.attempts ? Math.round(s.correct/s.attempts*100) : 0;
+    return {kind:k, rate:rate, correct:s.correct, attempts:s.attempts};
+  });
+  arr.sort((a,b)=>a.rate-b.rate);
+
+  let html = "";
+  arr.slice(0,3).forEach((r,i)=>{
+    html += (i+1) + "位 " + r.kind + " " + r.rate + "%<br>";
+  });
+  document.getElementById("weakRanking").innerHTML = html;
+
+  // 区分別正答率一覧
+  let html2 = "";
+  arr.forEach(r=>{
+    html2 += `${r.kind}：${r.rate}%（${r.correct}/${r.attempts}）<br>`;
+  });
+  document.getElementById("kindRates").innerHTML = html2;
+}
+
+/* =====================
+   区分選択に戻る
+===================== */
+function backToSetup(){
+  resetSession();
+}
+
+/* =====================
+   汎用シャッフル
+===================== */
+function shuffle(a){
+  for(let i=a.length-1;i>0;i--){
+    let j = Math.floor(Math.random()*(i+1));
+    let t = a[i];
+    a[i]  = a[j];
+    a[j]  = t;
+  }
+}
+</script>
+</body>
+</html>

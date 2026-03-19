@@ -129,7 +129,7 @@
   <div class="mode-switch">
     <button type="button" id="btnPractice" class="mode-btn active" onclick="setMode('practice')">練習モード</button>
     <button type="button" id="btnReview"   class="mode-btn"        onclick="setMode('review')">復習モード</button>
-    <button type="button" id="btnExam"     class="mode-btn"        onclick="setMode('exam')">検定モード</button>
+    <button type="button" id="btnChallenge" class="mode-btn"        onclick="setMode('challenge')">チャレンジモード</button>
   </div>
 
   <!-- モード説明 -->
@@ -175,50 +175,48 @@
 </div>
 
 <!-- ===== 結果エリア ===== -->
-<div class="card hidden" id="resultArea">
-  <h2>検定結果</h2>
-  <p id="scoreText"></p>
-  <p id="scoreRate"></p>
-  <p id="extraMessage"></p>
-
-  <button class="main-btn" onclick="retryExam()">もう一度挑戦</button>
-  <button class="control-btn" onclick="backToSetup()">区分選択に戻る</button>
-</div>
+  <div class="card hidden" id="resultArea">
+    <h2>チャレンジ結果</h2>
+    <p id="scoreText"></p>
+    <p id="scoreRate"></p>
+    <p id="extraMessage"></p>
+    <button class="main-btn" onclick="retryChallenge()">もう一度挑戦</button>
+    <button class="control-btn" onclick="backToSetup()">区分選択に戻る</button>
+  </div>
 
 <!-- ===== リンク ===== -->
 <div style="text-align:center;margin-top:20px;">
   <a href="../index.html" class="portal-btn exam-btn">簿記トップ</a>
   <a href="../../index.html" class="portal-btn portal-main">ポータルへ戻る</a>
 </div>
+
 <script>
 /* =====================
    グローバル変数
 ===================== */
-let allQuestions = [];    // CSVから読み込んだ全問題
-let pool         = [];    // 練習・復習に使う出題プール
-let wrongPool    = [];    // 復習用：間違えた問題
+let allQuestions = [];   // CSVから読み込んだ全問題 {kind, text, answer, options}
+let pool         = [];   // 練習・復習・チャレンジで使う出題プール
+let wrongPool    = [];   // 復習用：間違えた問題
 let currentIndex = 0;
 let currentQ     = null;
 
-let mode      = "practice"; // 'practice' | 'review' | 'exam'
+let mode      = "practice"; // 'practice' | 'review' | 'challenge'
 let inSession = false;      // 何かモードで問題に取り組んでいるかどうか
 
-// 検定モード用
-let examQuestions = [];    // 4問分
-let examIndex     = 0;
-let examResults   = [];    // {question, correct}
+// チャレンジモード用
+let challengeCorrect = 0;   // チャレンジで何問正解できたか
 
 // ローディング1秒ルール用
 const loadStartTime = Date.now();
 
 /* モード説明文 */
 const modeInfoText = {
-  practice: "練習モード：1問ずつ出題されます。区分（語句／英単語）を選んでランダムに練習しましょう。",
-  review  : "復習モード：これまで間違えた問題だけを出題します。",
-  exam    : "検定モード：選択した区分から4問を出題します。4問解いた後にまとめて採点します。"
+  practice : "練習モード：1問ずつ出題されます。区分（語句／英単語）を選んでランダムに練習しましょう。",
+  review   : "復習モード：これまで間違えた問題だけを出題します。",
+  challenge: "チャレンジモード：間違えた時点で終了し、それまでに正解した問題数が表示されます。"
 };
 
-/* 成績保存用キー */
+/* 区分別成績保存用キー */
 const STATS_KEY = "words3_kindStats";
 
 /* =====================
@@ -236,7 +234,7 @@ async function loadCSV(path){
     }
     let text = await res.text();
     text = text.replace(/^\uFEFF/, "");
-    allQuestions = parseCSV(text);   // { kind, text, answer, options }
+    allQuestions = parseCSV(text); // { kind, text, answer, options }
 
     createKindList();
     showWeakRanking();
@@ -247,7 +245,7 @@ async function loadCSV(path){
     const showSetup = () =>{
       document.getElementById("loadingScreen").style.display = "none";
       document.getElementById("setupArea").classList.remove("hidden");
-      setMode("practice", true);
+      setMode("practice", true); // 初期モード（確認なし）
     };
     if(elapsed >= minDuration){
       showSetup();
@@ -275,8 +273,8 @@ function parseCSV(text){
     if(!line) continue;
 
     let cols = [];
-    let cur = "";
-    let inQ = false;
+    let cur  = "";
+    let inQ  = false;
     for(let c of line){
       if(c === '"'){
         inQ = !inQ;
@@ -292,13 +290,13 @@ function parseCSV(text){
     cols.push(cur);
 
     if(cols.length < 4) continue;
-    const kind    = cols[0].trim();   // 区分：語句 / 英単語
-    const textQ   = cols[1].trim();   // 問題文
-    const answer  = cols[2].trim();   // 正解
-    const optStr  = cols[3].trim();   // "A|B|C"
+    const kind   = cols[0].trim(); // 区分：語句 / 英単語
+    const textQ  = cols[1].trim(); // 問題文
+    const answer = cols[2].trim(); // 正解
+    const optStr = cols[3].trim(); // "A|B|C"
 
-    // 選択肢は | または ｜（全角パイプ）で分割しておく
-    let options = optStr.split(/[|｜]/).map(s=>s.trim()).filter(s=>s);
+    // 選択肢は | または ｜（全角パイプ）で分割
+    let options = optStr.split(/[|｜]/).map(s => s.trim()).filter(s => s);
 
     result.push({
       kind,
@@ -314,7 +312,7 @@ function parseCSV(text){
    区分リスト作成
 ===================== */
 function createKindList(){
-  const kinds = [...new Set(allQuestions.map(q => q.kind))].sort(); // 語句 / 英単語
+  const kinds = [...new Set(allQuestions.map(q => q.kind))].sort();
   const area  = document.getElementById("kindArea");
   area.innerHTML = "";
 
@@ -326,10 +324,10 @@ function createKindList(){
 }
 
 function selectAllKinds(){
-  document.querySelectorAll("#kindArea input").forEach(c=>c.checked = true);
+  document.querySelectorAll("#kindArea input").forEach(c => c.checked = true);
 }
 function clearAllKinds(){
-  document.querySelectorAll("#kindArea input").forEach(c=>c.checked = false);
+  document.querySelectorAll("#kindArea input").forEach(c => c.checked = false);
 }
 
 /* =====================
@@ -337,13 +335,9 @@ function clearAllKinds(){
 ===================== */
 function resetSession(){
   pool         = [];
-  wrongPool    = [];
   currentIndex = 0;
   currentQ     = null;
-
-  examQuestions = [];
-  examIndex     = 0;
-  examResults   = [];
+  challengeCorrect = 0;
 
   const quizArea   = document.getElementById("quizArea");
   const resultArea = document.getElementById("resultArea");
@@ -377,15 +371,15 @@ function setMode(m, force){
 
   mode = m;
 
-  // ボタンの見た目更新
-  ["btnPractice","btnReview","btnExam"].forEach(id=>{
+  // ボタン見た目
+  ["btnPractice","btnReview","btnChallenge"].forEach(id=>{
     const btn = document.getElementById(id);
     if(!btn) return;
     btn.classList.remove("active");
   });
-  if(m === "practice") document.getElementById("btnPractice").classList.add("active");
-  else if(m === "review") document.getElementById("btnReview").classList.add("active");
-  else if(m === "exam") document.getElementById("btnExam").classList.add("active");
+  if(m === "practice")   document.getElementById("btnPractice").classList.add("active");
+  else if(m === "review")   document.getElementById("btnReview").classList.add("active");
+  else if(m === "challenge")document.getElementById("btnChallenge").classList.add("active");
 
   // 説明文
   const info = document.getElementById("modeInfo");
@@ -405,7 +399,6 @@ function startQuiz(){
     return;
   }
 
-  // 練習・復習・検定で出題プールを作る
   if(mode === "review"){
     if(wrongPool.length === 0){
       alert("復習する問題がありません。まずは練習モードで解きましょう。");
@@ -421,32 +414,32 @@ function startQuiz(){
   }
 
   shuffle(pool);
-  currentIndex = 0;
-  inSession = true;
+  currentIndex      = 0;
+  challengeCorrect  = 0;
+  inSession         = true;
 
   document.getElementById("setupArea").classList.add("hidden");
   document.getElementById("resultArea").classList.add("hidden");
   document.getElementById("quizArea").classList.remove("hidden");
 
-  if(mode === "exam"){
-    // 検定モード：4問選ぶ
-    pickExamQuestions();
-    showExamQuestion();
-  }else{
-    // 練習・復習
-    showPracticeQuestion();
-  }
+  showNextQuestion();
 }
 
 /* =====================
-   練習 / 復習モード：問題表示
+   問題表示（モード共通）
 ===================== */
-function showPracticeQuestion(){
+function showNextQuestion(){
   if(currentIndex >= pool.length){
-    alert("これ以上問題がありません。");
-    backToSetup();
+    if(mode === "challenge"){
+      // 全問解き終わるまで間違えなかった
+      showChallengeResult();
+    }else{
+      alert("これ以上問題がありません。");
+      backToSetup();
+    }
     return;
   }
+
   currentQ = pool[currentIndex];
 
   document.getElementById("qIndex").innerText =
@@ -457,45 +450,11 @@ function showPracticeQuestion(){
 
   document.getElementById("result").innerText  = "";
   document.getElementById("explain").innerText = "";
-
   document.getElementById("nextBtn").classList.add("hidden");
 }
 
 /* =====================
-   検定モード：問題選択 + 表示
-===================== */
-function pickExamQuestions(){
-  examQuestions = [];
-  const copy = [...pool];
-  shuffle(copy);
-  // 最大4問
-  for(let i=0; i<copy.length && examQuestions.length<4; i++){
-    examQuestions.push(copy[i]);
-  }
-  examIndex   = 0;
-  examResults = [];
-}
-
-function showExamQuestion(){
-  if(examIndex >= examQuestions.length){
-    showExamResult();
-    return;
-  }
-  currentQ = examQuestions[examIndex];
-
-  document.getElementById("qIndex").innerText =
-    "第 " + (examIndex+1) + " 問 / " + examQuestions.length + " 問";
-
-  document.getElementById("sentence").innerText = currentQ.text;
-  renderChoices(currentQ);
-
-  document.getElementById("result").innerText  = "";
-  document.getElementById("explain").innerText = "";
-  document.getElementById("nextBtn").classList.add("hidden");
-}
-
-/* =====================
-   選択肢の描画（共通）
+   選択肢の描画
 ===================== */
 function renderChoices(q){
   const area = document.getElementById("choices");
@@ -514,7 +473,7 @@ function renderChoices(q){
 }
 
 /* =====================
-   選択時の処理（モード別）
+   選択時の処理
 ===================== */
 function handleChoice(selected, q){
   const buttons = document.querySelectorAll(".choice-btn");
@@ -525,7 +484,7 @@ function handleChoice(selected, q){
 
   const isCorrect = (selected === q.answer);
 
-  // 正誤の見た目
+  // 見た目
   buttons.forEach(b=>{
     if(b.innerText === q.answer){
       b.classList.add("correct-answer");
@@ -540,44 +499,41 @@ function handleChoice(selected, q){
   }else{
     resultP.innerText = "× 不正解です。";
   }
-  explainP.innerText = (q.kind === "英単語" ? `【答え】${q.answer}` : "") ;
+
+  // 英単語のときは答えも表示
+  if(q.kind === "英単語"){
+    explainP.innerText = `【答え】${q.answer}`;
+  }else{
+    explainP.innerText = "";
+  }
 
   // 成績更新
   updateKindStats(q.kind, isCorrect);
 
-  if(mode === "exam"){
-    examResults.push({question:q, correct:isCorrect});
-    examIndex++;
-    // 次の問題へ（ボタン操作にするならここでnextBtn表示でもOK）
-    if(examIndex < examQuestions.length){
-      document.getElementById("nextBtn").classList.remove("hidden");
-      document.getElementById("nextBtn").onclick = () =>{
-        showExamQuestion();
-      };
+  if(mode === "challenge"){
+    // チャレンジモード：間違えたら終了。正解なら1秒後に次へ
+    if(isCorrect){
+      challengeCorrect++;
+      currentIndex++;
+      setTimeout(showNextQuestion, 1000);
     }else{
-      // 最後の問題 → 結果へ
-      document.getElementById("nextBtn").classList.remove("hidden");
-      document.getElementById("nextBtn").onclick = () =>{
-        showExamResult();
-      };
+      showChallengeResult();
     }
   }else{
-    // 練習・復習
+    // 練習・復習モード
     if(!isCorrect){
       wrongPool.push(q);
     }
     currentIndex++;
-    if(currentIndex < pool.length){
-      document.getElementById("nextBtn").classList.remove("hidden");
-      document.getElementById("nextBtn").onclick = () =>{
-        showPracticeQuestion();
-      };
+    if(isCorrect){
+      // 正解なら1秒後に自動で次へ
+      setTimeout(showNextQuestion, 1000);
     }else{
-      document.getElementById("nextBtn").classList.remove("hidden");
-      document.getElementById("nextBtn").innerText = "終了";
-      document.getElementById("nextBtn").onclick = () =>{
-        backToSetup();
-      };
+      // 不正解なら「次へ」を表示して自分で進ませる
+      const nextBtn = document.getElementById("nextBtn");
+      nextBtn.classList.remove("hidden");
+      nextBtn.innerText = "次へ";
+      nextBtn.onclick = () => showNextQuestion();
     }
   }
 
@@ -585,41 +541,40 @@ function handleChoice(selected, q){
 }
 
 /* =====================
-   検定モード結果
+   チャレンジ結果表示
 ===================== */
-function showExamResult(){
+function showChallengeResult(){
   inSession = false;
 
   document.getElementById("quizArea").classList.add("hidden");
   document.getElementById("resultArea").classList.remove("hidden");
 
-  const total   = examResults.length;
-  const correct = examResults.filter(r => r.correct).length;
-  const rate    = total ? Math.round(correct/total*100) : 0;
+  const totalTried = currentIndex + (challengeCorrect === 0 ? 0 : 0); // currentIndex自体が試行数
+  const totalPool  = pool.length;
 
-  document.getElementById("scoreText").innerText = `正解数：${correct} / ${total} 問`;
-  document.getElementById("scoreRate").innerText = `正答率：${rate}%`;
+  // 実際に正解した数 = challengeCorrect
+  document.getElementById("scoreText").innerText =
+    `正解数：${challengeCorrect}問（途中で終了）`;
+  document.getElementById("scoreRate").innerText =
+    totalPool ? `全問題数：${totalPool}問` : "";
 
   let msg = "";
-  if(correct <= 1){
-    msg = "練習モードでしっかりと復習しましょう！";
-  }else if(correct >= total){
-    msg = "検定でもこの調子で頑張りましょう！";
+  if(challengeCorrect === 0){
+    msg = "まずは練習モードでしっかり用語を確認しましょう！";
+  }else if(challengeCorrect < 3){
+    msg = "よく頑張りました。この結果をもとに、苦手な用語を復習してください。";
   }else{
-    msg = "よくできています。苦手な問題は復習モードで確認しましょう。";
+    msg = "すばらしいです！この調子で検定本番に向けて仕上げていきましょう。";
   }
   document.getElementById("extraMessage").innerText = msg;
 }
 
 /* =====================
-   検定モード：再挑戦
+   チャレンジ再挑戦
 ===================== */
-function retryExam(){
-  if(mode !== "exam"){
-    // モードが変わっていても、もう一度 exam で開始
-    setMode("exam", false);
-  }
-  // 元の選択された区分で再度startQuizを呼ぶ
+function retryChallenge(){
+  // モードはチャレンジのまま、区分は選択画面のチェックに従う
+  setMode("challenge", false);
   document.getElementById("resultArea").classList.add("hidden");
   startQuiz();
 }
@@ -652,7 +607,6 @@ function showWeakRanking(){
   });
   document.getElementById("weakRanking").innerHTML = html;
 
-  // 区分別正答率一覧
   let html2 = "";
   arr.forEach(r=>{
     html2 += `${r.kind}：${r.rate}%（${r.correct}/${r.attempts}）<br>`;

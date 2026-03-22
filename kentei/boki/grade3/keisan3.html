@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <title>全商簿記3級 計算トレーニング</title>
   <link rel="stylesheet" href="../../../css/common.css">
+
   <style>
     .card{
       max-width:800px;
@@ -13,15 +14,44 @@
       border-radius:10px;
       box-shadow:0 3px 8px rgba(0,0,0,0.08);
     }
-    .hidden{
-      display:none;
+    .hidden{ display:none; }
+
+    /* 注意メッセージ */
+    .notice-box{
+      background:#e8f5e9;
+      border-left:6px solid #66bb6a;
+      padding:12px 16px;
+      margin-bottom:18px;
+      border-radius:6px;
+      color:#2e7d32;
+      font-weight:bold;
     }
+
+    /* 区分選択（中央寄せ） */
+    .field-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+      max-width:300px;
+      margin:0 auto;
+    }
+
+    /* 全選択・全解除（2列配置） */
+    .two-btn-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+      max-width:300px;
+      margin:10px auto 15px auto;
+    }
+
     #sentence{
       font-size:18px;
       line-height:1.7;
       margin-bottom:15px;
     }
-    /* 資料型テーブル（幅60％・中央寄せ） */
+
+    /* 資料型テーブル（幅60%中央寄せ） */
     table.data-table{
       width:60%;
       margin:0 auto 15px auto;
@@ -33,11 +63,11 @@
       padding:6px 8px;
       text-align:right;
     }
-    /* 見出しセンタリング */
     table.data-table th{
       background:#f4f4f4;
       text-align:center;
     }
+
     .entry-row{
       display:flex;
       justify-content:flex-start;
@@ -49,50 +79,33 @@
       min-width:140px;
       font-weight:bold;
     }
+
     .money{
       width:160px;
       padding:6px;
       text-align:right;
       font-size:16px;
     }
+
     #result{
-      margin-top:10px;
-      font-weight:bold;
       white-space:pre-line;
-      min-height:24px;
+      font-weight:bold;
+      margin-top:10px;
     }
     #explain{
-      margin-top:6px;
-      font-size:14px;
+      white-space:pre-line;
       color:#555;
-      white-space:pre-line; /* | → 改行したものも綺麗に表示 */
-    }
-    /* 区分選択のグリッド */
-    .field-grid{
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      gap:6px;
-      max-width:300px;
-      margin:0 auto 8px auto;
-      text-align:left;
-    }
-    /* 注意メッセージ */
-    .notice-box{
-      background:#e8f5e9;
-      border-left:6px solid #66bb6a;
-      padding:12px 16px;
-      margin-bottom:18px;
-      border-radius:6px;
-      color:#2e7d32;
-      font-weight:bold;
+      font-size:14px;
+      margin-top:6px;
     }
   </style>
 </head>
+
 <body>
 
 <header class="app-header">
   <div class="header-left">
-    <img src="../../../images/logo.png" class="header-icon">
+    ../../../images/logo.png
     <div>
       <h1 class="site-title">検定対策システム</h1>
       <div class="exam-title">全商簿記3級 計算トレーニング</div>
@@ -108,39 +121,40 @@
     かならず <u>計算用紙・筆記用具を準備</u> してから解きましょう！
   </div>
 
-  <!-- 区分選択（文章型／資料型） -->
-  <h3 style="text-align:center;margin-bottom:6px;">出題区分を選択</h3>
+  <!-- 出題区分 -->
+  <h3 style="text-align:center;margin-bottom:8px;">出題区分を選択</h3>
+
   <div id="typeArea" class="field-grid">
     <label><input type="checkbox" value="文章型"> 文章型</label>
     <label><input type="checkbox" value="資料型"> 資料型</label>
   </div>
-  <div style="text-align:center;margin-bottom:12px;">
+
+  <div class="two-btn-grid">
     <button class="control-btn" onclick="selectAllTypes()">全選択</button>
     <button class="control-btn" onclick="clearAllTypes()">全解除</button>
   </div>
 
-  <div style="text-align:center;margin-top:10px;margin-bottom:10px;">
-    <button class="main-btn" onclick="startQuiz()">開始</button>
+  <div style="text-align:center;margin:15px 0;">
+    <button class="main-btn" id="startBtn" onclick="startQuiz()">開始</button>
   </div>
 
   <hr style="margin:15px 0;">
 
-  <!-- 実際の問題表示エリア -->
+  <!-- 問題エリア -->
   <div id="quizArea" class="hidden">
+
     <div style="text-align:right;margin-bottom:5px;">
       <span id="qIndex"></span>
     </div>
 
     <div id="sentence"></div>
-
-    <!-- 資料表示（文章型の場合は空のまま） -->
     <div id="dataArea"></div>
 
-    <!-- 答え入力 -->
     <div class="entry-row">
       <label id="label1"></label>
       <input id="ans1" class="money" inputmode="numeric">
     </div>
+
     <div class="entry-row">
       <label id="label2"></label>
       <input id="ans2" class="money" inputmode="numeric">
@@ -153,27 +167,26 @@
       <button class="main-btn" id="checkBtn" onclick="checkAnswer()">答え合わせ</button>
       <button class="main-btn hidden" id="nextBtn" onclick="nextQuestion()">次の問題</button>
     </div>
+
   </div>
 </div>
 
 <div style="text-align:center;margin-top:20px;">
-  <a href="../index.html" class="portal-btn exam-btn">簿記トップ</a>
-  <a href="../../../index.html" class="portal-btn portal-main">ポータルへ戻る</a>
+    <a href="../index.html" class="portal-btn exam-btn">簿記トップ</a>
+    <a href="../../../index.html" class="portal-btn portal-main">ポータルへ戻る</a>
 </div>
 
 <script>
-/* =====================
+/* -------------------------
    グローバル変数
-===================== */
-let questions    = [];   // CSVから読み込んだ全問題
-let quizQuestions = [];  // 区分で絞った後・シャッフルした出題用
+-------------------------- */
+let questions = [];
+let quizQuestions = [];
 let currentIndex = 0;
-let currentQ     = null;
+let currentQ = null;
 let autoNextTimer = null;
 
-/* =====================
-   CSV読み込み
-===================== */
+/* CSV読み込み */
 window.addEventListener("DOMContentLoaded", ()=>{
   loadCSV("../data/keisan3.csv");
 });
@@ -181,280 +194,242 @@ window.addEventListener("DOMContentLoaded", ()=>{
 async function loadCSV(path){
   try{
     const res = await fetch(path);
-    if(!res.ok){
-      throw new Error("CSVが見つかりません: " + path);
-    }
+    if(!res.ok) throw new Error("CSVが見つかりません: " + path);
     let text = await res.text();
     text = text.replace(/^\uFEFF/, "");
     questions = parseCSV(text);
-    // この時点ではまだ問題は表示しない（startQuizで絞り込み＋表示）
   }catch(e){
-    document.getElementById("sentence").innerText = "CSV読み込みエラー：" + (e.message || e);
+    document.getElementById("sentence").innerText =
+      "CSV読み込みエラー：" + (e.message || e);
   }
 }
 
-/* =====================
-   CSVパーサー
-   区分,問題文,問1ラベル,答え1,問2ラベル,答え2,資料項目,資料金額,解説
-===================== */
+/* CSVパーサー */
 function parseCSV(text){
   const rows = text.trim().split(/\r?\n/);
   const result = [];
 
-  for(let i=1; i<rows.length; i++){
+  for(let i=1;i<rows.length;i++){
     const line = rows[i].trim();
     if(!line) continue;
 
     let cols = [];
-    let cur  = "";
-    let inQ  = false;
+    let cur="", inQ=false;
     for(let c of line){
-      if(c === '"'){
-        inQ = !inQ;
-        continue;
-      }
+      if(c === '"'){ inQ = !inQ; continue; }
       if(c === "," && !inQ){
         cols.push(cur);
-        cur = "";
-      }else{
-        cur += c;
-      }
+        cur="";
+      } else cur += c;
     }
     cols.push(cur);
 
-    if(cols.length < 6) continue;
+    const kind  = cols[0]?.trim() ?? "";
+    const textQ = cols[1]?.trim() ?? "";
+    const label1= cols[2]?.trim() ?? "";
+    const ans1  = cols[3]?.trim() ?? "";
+    const label2= cols[4]?.trim() ?? "";
+    const ans2  = cols[5]?.trim() ?? "";
+    const itemsStr   = cols[6]?.trim() ?? "";
+    const amountsStr = cols[7]?.trim() ?? "";
+    const explainStr = cols[8]?.trim() ?? "";
 
-    const kind       = cols[0].trim();
-    const textQ      = cols[1].trim();
-    const label1     = cols[2].trim();
-    const ans1       = cols[3].trim();
-    const label2     = cols[4].trim();
-    const ans2       = cols[5].trim();
-    const itemsStr   = (cols[6] || "").trim();
-    const amountsStr = (cols[7] || "").trim();
-    const explainStr = (cols[8] || "").trim();
+    const itemNames = itemsStr.replace(/\r?\n/g,"|")
+                              .split(/[|｜]/)
+                              .map(s=>s.trim()).filter(s=>s);
 
-    // 資料項目・金額：改行や | 区切りを想定
-    const itemNames = itemsStr
-      .replace(/\r?\n/g, "|")
-      .split(/[|｜]/)
-      .map(s => s.trim())
-      .filter(s => s);
+    const itemValues = amountsStr.replace(/\r?\n/g,"|")
+                                 .split(/[|｜]/)
+                                 .map(s=>s.trim()).filter(s=>s);
 
-    const itemValues = amountsStr
-      .replace(/\r?\n/g, "|")
-      .split(/[|｜]/)
-      .map(s => s.trim())
-      .filter(s => s);
-
-    // 解説："|" で区切ったものを改行として表示
-    const explain = explainStr
-      .replace(/\r?\n/g, "|")
-      .split(/[|｜]/)
-      .map(s => s.trim())
-      .filter(s => s)
-      .join("\n");
+    const explain = explainStr.replace(/\r?\n/g,"|")
+                              .split(/[|｜]/)
+                              .map(s=>s.trim())
+                              .filter(s=>s)
+                              .join("\n");
 
     result.push({
-      kind,          // 文章型 or 資料型
-      text   : textQ,
-      label1,
-      answer1: ans1,
-      label2,
-      answer2: ans2,
-      items  : itemNames,
-      amounts: itemValues,
+      kind,text:textQ,
+      label1,answer1:ans1,
+      label2,answer2:ans2,
+      items:itemNames,
+      amounts:itemValues,
       explain
     });
   }
   return result;
 }
 
-/* =====================
-   区分選択（文章型／資料型）
-===================== */
+/* 区分選択 */
 function selectAllTypes(){
-  document.querySelectorAll("#typeArea input").forEach(c => c.checked = true);
+  document.querySelectorAll("#typeArea input").forEach(c=>c.checked=true);
 }
 function clearAllTypes(){
-  document.querySelectorAll("#typeArea input").forEach(c => c.checked = false);
+  document.querySelectorAll("#typeArea input").forEach(c=>c.checked=false);
 }
 function getSelectedTypes(){
-  return [...document.querySelectorAll("#typeArea input:checked")].map(c => c.value);
+  return [...document.querySelectorAll("#typeArea input:checked")]
+         .map(c=>c.value);
 }
 
-/* =====================
-   シャッフル
-===================== */
+/* シャッフル */
 function shuffle(a){
   for(let i=a.length-1;i>0;i--){
     let j = Math.floor(Math.random()*(i+1));
-    [a[i], a[j]] = [a[j], a[i]];
+    [a[i],a[j]] = [a[j],a[i]];
   }
   return a;
 }
 
-/* =====================
-   開始ボタン
-===================== */
+/* 開始ボタン */
 function startQuiz(){
   const types = getSelectedTypes();
-  if(types.length === 0){
+  if(types.length===0){
     alert("文章型または資料型を選択してください。");
     return;
   }
-  // 区分で絞り込み
-  const filtered = questions.filter(q => types.includes(q.kind));
-  if(filtered.length === 0){
+
+  quizQuestions = shuffle(
+    questions.filter(q=>types.includes(q.kind))
+  );
+
+  if(quizQuestions.length===0){
     alert("選択された区分の問題がありません。");
     return;
   }
-  quizQuestions = shuffle([...filtered]);
-  currentIndex  = 0;
 
+  // 開始ボタンと区分選択を無効化（押せないように）
+  document.getElementById("startBtn").disabled = true;
+  document.querySelectorAll("#typeArea input").forEach(c=>c.disabled=true);
+
+  currentIndex=0;
   document.getElementById("quizArea").classList.remove("hidden");
   showQuestion();
 }
 
-/* =====================
-   問題表示
-===================== */
+/* 問題表示 */
 function showQuestion(){
-  if(autoNextTimer !== null){
+  if(autoNextTimer){
     clearTimeout(autoNextTimer);
-    autoNextTimer = null;
+    autoNextTimer=null;
   }
 
   currentQ = quizQuestions[currentIndex];
-
   document.getElementById("qIndex").innerText =
-    "第 " + (currentIndex+1) + " 問 / " + quizQuestions.length + " 問";
+    "第 "+(currentIndex+1)+" 問 / "+quizQuestions.length+" 問";
 
   document.getElementById("sentence").innerText = currentQ.text;
 
-  // 資料エリア
+  /* --- 資料型テーブル --- */
   const dataArea = document.getElementById("dataArea");
-  dataArea.innerHTML = "";
-  if(currentQ.kind === "資料型" && currentQ.items.length > 0){
-    const table = document.createElement("table");
-    table.className = "data-table";
+  dataArea.innerHTML="";
+  if(currentQ.kind==="資料型" && currentQ.items.length>0){
+    const table=document.createElement("table");
+    table.className="data-table";
 
-    const thead = document.createElement("thead");
-    const trh   = document.createElement("tr");
-    const th1   = document.createElement("th");
-    th1.innerText = "項目";
-    const th2   = document.createElement("th");
-    th2.innerText = "金額";
-
-    trh.appendChild(th1);
-    trh.appendChild(th2);
+    const thead=document.createElement("thead");
+    const trh=document.createElement("tr");
+    trh.innerHTML=`<th>項目</th><th>金額</th>`;
     thead.appendChild(trh);
     table.appendChild(thead);
 
-    const tbody = document.createElement("tbody");
+    const tbody=document.createElement("tbody");
     for(let i=0;i<currentQ.items.length;i++){
-      const tr  = document.createElement("tr");
-      const td1 = document.createElement("td");
-      td1.innerText = currentQ.items[i];
-      const td2 = document.createElement("td");
-      td2.innerText = currentQ.amounts[i] || "";
-      tr.appendChild(td1);
-      tr.appendChild(td2);
+      const tr=document.createElement("tr");
+      const item=currentQ.items[i];
+      const val=currentQ.amounts[i] ?? "";
+      tr.innerHTML=`<td>${item}</td><td>${val}</td>`;
       tbody.appendChild(tr);
     }
     table.appendChild(tbody);
     dataArea.appendChild(table);
   }
 
-  // ラベル
-  document.getElementById("label1").innerText = currentQ.label1 + "：";
-  document.getElementById("label2").innerText = currentQ.label2 + "：";
+  document.getElementById("label1").innerText = currentQ.label1+"：";
+  document.getElementById("label2").innerText = currentQ.label2+"：";
 
-  // 入力と結果リセット
-  document.getElementById("ans1").value = "";
-  document.getElementById("ans2").value = "";
-  document.getElementById("result").innerText  = "";
-  document.getElementById("explain").innerText = "";
-
+  document.getElementById("ans1").value="";
+  document.getElementById("ans2").value="";
+  document.getElementById("result").innerText="";
+  document.getElementById("explain").innerText="";
   document.getElementById("nextBtn").classList.add("hidden");
-  document.getElementById("checkBtn").disabled = false;
+  document.getElementById("checkBtn").disabled=false;
 
   // カンマ補助
-  document.querySelectorAll(".money").forEach(el =>{
-    el.oninput = ()=>{
-      let v = el.value.replace(/,/g,"");
-      if(!isNaN(v) && v !== ""){
-        el.value = Number(v).toLocaleString();
+  document.querySelectorAll(".money").forEach(el=>{
+    el.oninput=()=>{
+      let v=el.value.replace(/,/g,"");
+      if(!isNaN(v)&&v!==""){
+        el.value=Number(v).toLocaleString();
       }
     };
   });
 }
 
-/* 数値取得（カンマ除去） */
+/* カンマ除去して数値へ */
 function getNumber(id){
-  const raw = document.getElementById(id).value.replace(/,/g,"").trim();
-  if(raw === "") return null;  // 空欄は null 扱い
-  const n = Number(raw);
-  return isNaN(n) ? null : n;
+  let raw=document.getElementById(id).value.replace(/,/g,"").trim();
+  if(raw==="") return null;
+  let n=Number(raw);
+  return isNaN(n)? null:n;
 }
 
-/* =====================
-   答え合わせ
-===================== */
+/* 答え合わせ */
 function checkAnswer(){
-  const user1   = getNumber("ans1");
-  const user2   = getNumber("ans2");
-  const resultP = document.getElementById("result");
-  const explainP= document.getElementById("explain");
+  const user1=getNumber("ans1");
+  const user2=getNumber("ans2");
 
-  const correct1 = Number(currentQ.answer1);
-  const correct2 = Number(currentQ.answer2);
+  const correct1=Number(currentQ.answer1);
+  const correct2=Number(currentQ.answer2);
 
-  const ok1 = (user1 === correct1);
-  const ok2 = (user2 === correct2);
+  const ok1=(user1===correct1);
+  const ok2=(user2===correct2);
+
+  const resultP=document.getElementById("result");
+  const explainP=document.getElementById("explain");
 
   if(ok1 && ok2){
-    resultP.innerText  = "〇 両方とも正解です！";
-    explainP.innerText = currentQ.explain;
-    document.getElementById("checkBtn").disabled = true;
+    resultP.innerText="〇 両方とも正解です！";
+    explainP.innerText=currentQ.explain;
+    document.getElementById("checkBtn").disabled=true;
 
-    if(currentIndex < quizQuestions.length - 1){
-      autoNextTimer = setTimeout(()=>{
+    if(currentIndex < quizQuestions.length-1){
+      autoNextTimer=setTimeout(()=>{
         currentIndex++;
         showQuestion();
-      }, 1000);
+      },1000);
     }
   }else{
-    let msg = "× 不正解です。\n";
+    let msg="× 不正解です。\n";
     if(!ok1){
-      msg += "・" + currentQ.label1 + "：正解 " + correct1.toLocaleString() + "円\n";
+      msg+="・"+currentQ.label1+"：正解 "+correct1.toLocaleString()+"円\n";
     }
     if(!ok2){
-      msg += "・" + currentQ.label2 + "：正解 " + correct2.toLocaleString() + "円\n";
+      msg+="・"+currentQ.label2+"：正解 "+correct2.toLocaleString()+"円\n";
     }
-    resultP.innerText  = msg;
-    explainP.innerText = currentQ.explain;
-    document.getElementById("checkBtn").disabled = true;
+    resultP.innerText=msg;
+    explainP.innerText=currentQ.explain;
+    document.getElementById("checkBtn").disabled=true;
 
-    if(currentIndex < quizQuestions.length - 1){
+    if(currentIndex < quizQuestions.length-1){
       document.getElementById("nextBtn").classList.remove("hidden");
     }
   }
 }
 
-/* =====================
-   次の問題
-===================== */
+/* 次の問題へ */
 function nextQuestion(){
-  if(autoNextTimer !== null){
+  if(autoNextTimer){
     clearTimeout(autoNextTimer);
-    autoNextTimer = null;
+    autoNextTimer=null;
   }
-  if(currentIndex < quizQuestions.length - 1){
+
+  if(currentIndex < quizQuestions.length-1){
     currentIndex++;
     showQuestion();
   }
 }
 </script>
+
 </body>
 </html>

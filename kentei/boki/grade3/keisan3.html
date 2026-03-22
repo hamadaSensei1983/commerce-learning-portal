@@ -199,9 +199,13 @@ window.addEventListener("DOMContentLoaded", ()=>{
 });
 
 async function loadCSV(path){
+  const startTime = Date.now();  // ← 読み込み開始時刻
+
   try{
     const res = await fetch(path);
-    if(!res.ok) throw new Error("CSVが見つかりません: " + path);
+    if(!res.ok){
+      throw new Error("CSVが見つかりません: " + path);
+    }
 
     let text = await res.text();
     text = text.replace(/^\uFEFF/, "");
@@ -210,9 +214,19 @@ async function loadCSV(path){
   }catch(e){
     document.getElementById("sentence").innerText =
       "CSV読み込みエラー：" + (e.message || e);
+
   }finally{
-    // ローディング画面を消す
-    document.getElementById("loadingScreen").style.display = "none";
+    // ---- ここから “1秒は必ず表示する” 処理 ----
+    const elapsed = Date.now() - startTime;
+    const remain  = 1000 - elapsed;   // 最低1秒表示
+    
+    if(remain > 0){
+      setTimeout(()=>{
+        document.getElementById("loadingScreen").style.display = "none";
+      }, remain);
+    }else{
+      document.getElementById("loadingScreen").style.display = "none";
+    }
   }
 }
 

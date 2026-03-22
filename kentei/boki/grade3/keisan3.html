@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>全商簿記3級 計算トレーニング（文章型・資料型サンプル）</title>
+  <title>全商簿記3級 計算トレーニング</title>
   <link rel="stylesheet" href="../../../css/common.css">
   <style>
     .card{
@@ -21,10 +21,11 @@
       line-height:1.7;
       margin-bottom:15px;
     }
+    /* 資料型テーブル（幅60％・中央寄せ） */
     table.data-table{
-      width:100%;
+      width:60%;
+      margin:0 auto 15px auto;
       border-collapse:collapse;
-      margin-bottom:15px;
     }
     table.data-table th,
     table.data-table td{
@@ -32,9 +33,10 @@
       padding:6px 8px;
       text-align:right;
     }
+    /* 見出しセンタリング */
     table.data-table th{
       background:#f4f4f4;
-      text-align:left;
+      text-align:center;
     }
     .entry-row{
       display:flex;
@@ -44,7 +46,7 @@
       margin:8px 0;
     }
     .entry-row label{
-      min-width:120px;
+      min-width:140px;
       font-weight:bold;
     }
     .money{
@@ -56,22 +58,34 @@
     #result{
       margin-top:10px;
       font-weight:bold;
+      white-space:pre-line;
       min-height:24px;
     }
     #explain{
       margin-top:6px;
       font-size:14px;
       color:#555;
+      white-space:pre-line; /* | → 改行したものも綺麗に表示 */
     }
-    /* 資料型テーブルをやや狭くして中央寄せ */
-    table.data-table{
-    width:60%;
-    margin:0 auto 15px auto;
+    /* 区分選択のグリッド */
+    .field-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:6px;
+      max-width:300px;
+      margin:0 auto 8px auto;
+      text-align:left;
     }
-    /* 項目、金額の見出しをセンタリング */
-    table.data-table th{
-    text-align:center;
-    }    
+    /* 注意メッセージ */
+    .notice-box{
+      background:#e8f5e9;
+      border-left:6px solid #66bb6a;
+      padding:12px 16px;
+      margin-bottom:18px;
+      border-radius:6px;
+      color:#2e7d32;
+      font-weight:bold;
+    }
   </style>
 </head>
 <body>
@@ -81,82 +95,80 @@
     <img src="../../../images/logo.png" class="header-icon">
     <div>
       <h1 class="site-title">検定対策システム</h1>
-      <div class="exam-title">全商簿記3級 計算トレーニング（サンプル）</div>
+      <div class="exam-title">全商簿記3級 計算トレーニング</div>
     </div>
   </div>
 </header>
 
-<!-- 注意メッセージ -->
-<div class="notice-box" style="
-background:#e8f5e9;
-border-left:6px solid #66bb6a;
-padding:12px 16px;
-margin-bottom:18px;
-border-radius:6px;
-color:#2e7d32;
-font-weight:bold;
-">
-計算問題です。<br>
-かならず <u>計算用紙・筆記用具を準備</u> してから解きましょう！
-</div>
+<div class="card">
 
-<!-- 区分選択（文章型／資料型） -->
-<h3>出題区分を選択</h3>
-<div id="typeArea" class="field-grid">
-<label><input type="checkbox" value="文章型"> 文章型</label>
-<label><input type="checkbox" value="資料型"> 資料型</label>
-</div>
-<div style="margin-top:6px;">
-<button class="control-btn" onclick="selectAllTypes()">全選択</button>
-<button class="control-btn" onclick="clearAllTypes()">全解除</button>
-</div>
-
-<!-- 開始ボタン -->
-<div style="text-align:center;margin-top:15px;">
-<button class="main-btn" onclick="startQuiz()">開始</button>
-</div>
-
-<div class="card" id="mainCard">
-  <div style="text-align:right;margin-bottom:5px;">
-    <span id="qIndex"></span>
+  <!-- 注意メッセージ -->
+  <div class="notice-box">
+    計算問題です。<br>
+    かならず <u>計算用紙・筆記用具を準備</u> してから解きましょう！
   </div>
 
-  <div id="sentence"></div>
-
-  <!-- 資料表示（文章型の場合は空のまま） -->
-  <div id="dataArea"></div>
-
-  <!-- 答え入力 -->
-  <div class="entry-row">
-    <label id="label1"></label>
-    <input id="ans1" class="money" inputmode="numeric">
+  <!-- 区分選択（文章型／資料型） -->
+  <h3 style="text-align:center;margin-bottom:6px;">出題区分を選択</h3>
+  <div id="typeArea" class="field-grid">
+    <label><input type="checkbox" value="文章型"> 文章型</label>
+    <label><input type="checkbox" value="資料型"> 資料型</label>
   </div>
-  <div class="entry-row">
-    <label id="label2"></label>
-    <input id="ans2" class="money" inputmode="numeric">
+  <div style="text-align:center;margin-bottom:12px;">
+    <button class="control-btn" onclick="selectAllTypes()">全選択</button>
+    <button class="control-btn" onclick="clearAllTypes()">全解除</button>
   </div>
 
-  <p id="result"></p>
-  <p id="explain"></p>
+  <div style="text-align:center;margin-top:10px;margin-bottom:10px;">
+    <button class="main-btn" onclick="startQuiz()">開始</button>
+  </div>
 
-  <div style="text-align:center;margin-top:15px;">
-    <button class="main-btn" id="checkBtn" onclick="checkAnswer()">答え合わせ</button>
-    <button class="main-btn hidden" id="nextBtn" onclick="nextQuestion()">次の問題</button>
+  <hr style="margin:15px 0;">
+
+  <!-- 実際の問題表示エリア -->
+  <div id="quizArea" class="hidden">
+    <div style="text-align:right;margin-bottom:5px;">
+      <span id="qIndex"></span>
+    </div>
+
+    <div id="sentence"></div>
+
+    <!-- 資料表示（文章型の場合は空のまま） -->
+    <div id="dataArea"></div>
+
+    <!-- 答え入力 -->
+    <div class="entry-row">
+      <label id="label1"></label>
+      <input id="ans1" class="money" inputmode="numeric">
+    </div>
+    <div class="entry-row">
+      <label id="label2"></label>
+      <input id="ans2" class="money" inputmode="numeric">
+    </div>
+
+    <p id="result"></p>
+    <p id="explain"></p>
+
+    <div style="text-align:center;margin-top:15px;">
+      <button class="main-btn" id="checkBtn" onclick="checkAnswer()">答え合わせ</button>
+      <button class="main-btn hidden" id="nextBtn" onclick="nextQuestion()">次の問題</button>
+    </div>
   </div>
 </div>
 
 <div style="text-align:center;margin-top:20px;">
-    <a href="../index.html" class="portal-btn exam-btn">簿記トップ</a>
-    <a href="../../../index.html" class="portal-btn portal-main">ポータルへ戻る</a>
+  <a href="../index.html" class="portal-btn exam-btn">簿記トップ</a>
+  <a href="../../../index.html" class="portal-btn portal-main">ポータルへ戻る</a>
 </div>
 
 <script>
 /* =====================
    グローバル変数
 ===================== */
-let questions = [];   
+let questions    = [];   // CSVから読み込んだ全問題
+let quizQuestions = [];  // 区分で絞った後・シャッフルした出題用
 let currentIndex = 0;
-let currentQ = null;
+let currentQ     = null;
 let autoNextTimer = null;
 
 /* =====================
@@ -175,7 +187,7 @@ async function loadCSV(path){
     let text = await res.text();
     text = text.replace(/^\uFEFF/, "");
     questions = parseCSV(text);
-    showQuestion();
+    // この時点ではまだ問題は表示しない（startQuizで絞り込み＋表示）
   }catch(e){
     document.getElementById("sentence").innerText = "CSV読み込みエラー：" + (e.message || e);
   }
@@ -183,20 +195,24 @@ async function loadCSV(path){
 
 /* =====================
    CSVパーサー
+   区分,問題文,問1ラベル,答え1,問2ラベル,答え2,資料項目,資料金額,解説
 ===================== */
 function parseCSV(text){
   const rows = text.trim().split(/\r?\n/);
   const result = [];
 
-  for(let i=1;i<rows.length;i++){
-    let line = rows[i].trim();
+  for(let i=1; i<rows.length; i++){
+    const line = rows[i].trim();
     if(!line) continue;
 
     let cols = [];
     let cur  = "";
     let inQ  = false;
     for(let c of line){
-      if(c === '"'){ inQ = !inQ; continue; }
+      if(c === '"'){
+        inQ = !inQ;
+        continue;
+      }
       if(c === "," && !inQ){
         cols.push(cur);
         cur = "";
@@ -218,18 +234,29 @@ function parseCSV(text){
     const amountsStr = (cols[7] || "").trim();
     const explainStr = (cols[8] || "").trim();
 
-    // 資料項目
-    const itemNames  = itemsStr.replace(/\r?\n/g, "|")
-                               .split(/[|｜]/).map(s=>s.trim()).filter(s=>s);
+    // 資料項目・金額：改行や | 区切りを想定
+    const itemNames = itemsStr
+      .replace(/\r?\n/g, "|")
+      .split(/[|｜]/)
+      .map(s => s.trim())
+      .filter(s => s);
 
-    const itemValues = amountsStr.replace(/\r?\n/g, "|")
-                                 .split(/[|｜]/).map(s=>s.trim()).filter(s=>s);
+    const itemValues = amountsStr
+      .replace(/\r?\n/g, "|")
+      .split(/[|｜]/)
+      .map(s => s.trim())
+      .filter(s => s);
 
-    // 解説：先生要望「|」区切り → 改行に変換
-    const explain = explainStr.split(/[|｜]/).join("\n");
+    // 解説："|" で区切ったものを改行として表示
+    const explain = explainStr
+      .replace(/\r?\n/g, "|")
+      .split(/[|｜]/)
+      .map(s => s.trim())
+      .filter(s => s)
+      .join("\n");
 
     result.push({
-      kind,
+      kind,          // 文章型 or 資料型
       text   : textQ,
       label1,
       answer1: ans1,
@@ -244,36 +271,48 @@ function parseCSV(text){
 }
 
 /* =====================
-   出題区分選択（文章型／資料型）
+   区分選択（文章型／資料型）
 ===================== */
-
 function selectAllTypes(){
   document.querySelectorAll("#typeArea input").forEach(c => c.checked = true);
 }
 function clearAllTypes(){
   document.querySelectorAll("#typeArea input").forEach(c => c.checked = false);
 }
-
 function getSelectedTypes(){
   return [...document.querySelectorAll("#typeArea input:checked")].map(c => c.value);
 }
 
+/* =====================
+   シャッフル
+===================== */
+function shuffle(a){
+  for(let i=a.length-1;i>0;i--){
+    let j = Math.floor(Math.random()*(i+1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/* =====================
+   開始ボタン
+===================== */
 function startQuiz(){
   const types = getSelectedTypes();
   if(types.length === 0){
     alert("文章型または資料型を選択してください。");
     return;
   }
-
   // 区分で絞り込み
-  let filtered = questions.filter(q => types.includes(q.kind));
+  const filtered = questions.filter(q => types.includes(q.kind));
   if(filtered.length === 0){
     alert("選択された区分の問題がありません。");
     return;
   }
+  quizQuestions = shuffle([...filtered]);
+  currentIndex  = 0;
 
-  questions = shuffle([...filtered]);  // ランダム順に並べ直す
-  currentIndex = 0;
+  document.getElementById("quizArea").classList.remove("hidden");
   showQuestion();
 }
 
@@ -286,14 +325,14 @@ function showQuestion(){
     autoNextTimer = null;
   }
 
-  currentQ = questions[currentIndex];
+  currentQ = quizQuestions[currentIndex];
 
   document.getElementById("qIndex").innerText =
-    "第 " + (currentIndex+1) + " 問 / " + questions.length + " 問";
+    "第 " + (currentIndex+1) + " 問 / " + quizQuestions.length + " 問";
 
   document.getElementById("sentence").innerText = currentQ.text;
 
-  /* --- 資料型テーブル生成 --- */
+  // 資料エリア
   const dataArea = document.getElementById("dataArea");
   dataArea.innerHTML = "";
   if(currentQ.kind === "資料型" && currentQ.items.length > 0){
@@ -302,10 +341,11 @@ function showQuestion(){
 
     const thead = document.createElement("thead");
     const trh   = document.createElement("tr");
-    const th1 = document.createElement("th");
+    const th1   = document.createElement("th");
     th1.innerText = "項目";
-    const th2 = document.createElement("th");
+    const th2   = document.createElement("th");
     th2.innerText = "金額";
+
     trh.appendChild(th1);
     trh.appendChild(th2);
     thead.appendChild(trh);
@@ -313,7 +353,7 @@ function showQuestion(){
 
     const tbody = document.createElement("tbody");
     for(let i=0;i<currentQ.items.length;i++){
-      const tr = document.createElement("tr");
+      const tr  = document.createElement("tr");
       const td1 = document.createElement("td");
       td1.innerText = currentQ.items[i];
       const td2 = document.createElement("td");
@@ -326,21 +366,20 @@ function showQuestion(){
     dataArea.appendChild(table);
   }
 
-  /* --- ラベル表示 --- */
+  // ラベル
   document.getElementById("label1").innerText = currentQ.label1 + "：";
   document.getElementById("label2").innerText = currentQ.label2 + "：";
 
-  /* --- 入力欄クリア --- */
+  // 入力と結果リセット
   document.getElementById("ans1").value = "";
   document.getElementById("ans2").value = "";
-
   document.getElementById("result").innerText  = "";
   document.getElementById("explain").innerText = "";
 
   document.getElementById("nextBtn").classList.add("hidden");
   document.getElementById("checkBtn").disabled = false;
 
-  /* --- カンマ補助 --- */
+  // カンマ補助
   document.querySelectorAll(".money").forEach(el =>{
     el.oninput = ()=>{
       let v = el.value.replace(/,/g,"");
@@ -360,14 +399,13 @@ function getNumber(id){
 }
 
 /* =====================
-   答え合わせ（空欄OK、空欄→不正解扱い）
+   答え合わせ
 ===================== */
 function checkAnswer(){
-  const user1 = getNumber("ans1");
-  const user2 = getNumber("ans2");
-
-  const resultP  = document.getElementById("result");
-  const explainP = document.getElementById("explain");
+  const user1   = getNumber("ans1");
+  const user2   = getNumber("ans2");
+  const resultP = document.getElementById("result");
+  const explainP= document.getElementById("explain");
 
   const correct1 = Number(currentQ.answer1);
   const correct2 = Number(currentQ.answer2);
@@ -376,13 +414,11 @@ function checkAnswer(){
   const ok2 = (user2 === correct2);
 
   if(ok1 && ok2){
-    resultP.innerText = "〇 両方とも正解です！";
+    resultP.innerText  = "〇 両方とも正解です！";
     explainP.innerText = currentQ.explain;
-
     document.getElementById("checkBtn").disabled = true;
 
-    // 1秒後に次へ
-    if(currentIndex < questions.length - 1){
+    if(currentIndex < quizQuestions.length - 1){
       autoNextTimer = setTimeout(()=>{
         currentIndex++;
         showQuestion();
@@ -396,13 +432,11 @@ function checkAnswer(){
     if(!ok2){
       msg += "・" + currentQ.label2 + "：正解 " + correct2.toLocaleString() + "円\n";
     }
-
-    resultP.innerText = msg;
+    resultP.innerText  = msg;
     explainP.innerText = currentQ.explain;
-
     document.getElementById("checkBtn").disabled = true;
 
-    if(currentIndex < questions.length - 1){
+    if(currentIndex < quizQuestions.length - 1){
       document.getElementById("nextBtn").classList.remove("hidden");
     }
   }
@@ -416,8 +450,10 @@ function nextQuestion(){
     clearTimeout(autoNextTimer);
     autoNextTimer = null;
   }
-  currentIndex++;
-  showQuestion();
+  if(currentIndex < quizQuestions.length - 1){
+    currentIndex++;
+    showQuestion();
+  }
 }
 </script>
 </body>

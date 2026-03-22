@@ -4,11 +4,17 @@
 語句,（　　）は、一会計期間の経営成績を明らかにするために、収益と費用の内容を示した報告書である。,損益計算書,貸借対照表|損益計算書|試算表
 語句,貸借対照表は、一定時点の（　　）を明らかにするために、資産・負債・純資産（資本等）の各項目を示した報告書である。,財政状態,経営成績|財政状態|企業管理
 語句,（　　）は、一定時点の財政状態を明らかにするために、資産・負債・純資産（資本等）の各項目を示した報告書である。,貸借対照表,貸借対照表|損益計算書|試算表
+語句,一会計期間が終わると、総勘定元帳などの記録を整理し、当期純損益を計算してすべての帳簿を締め切り、２つの表を作成する。この一連の手続きを（　　）という。,決算,決算|貸借対照表|期末
 英単語,資産,Assets,Account|Assets|Credit
+英単語,負債,Liabilities,Liabilities|Assets|Net assets
+英単語,資本,Capital,Capital|Slip|Revenues
+英単語,収益,Revenues,Revenues|Slip|Credit
 英単語,精算表,Work sheet,Work sheet|Posting|Balance sheet
 英単語,転記,Posting,Posting|Imprest system|Account
-英単語,資本,Capital,Capital|Slip|Revenues
 英単語,決算,Closing books,Closing books|Checking account|Capital
 英単語,損益計算書,Profit and loss statement,Profit and loss statement|Balance sheet|Trial balance
 英単語,貸借対照表,Balance sheet,Balance sheet|Profit and loss statement|Book keeping
 英単語,仕訳,Journalizing,Journalizing|Transactions|Slip
+英単語,簿記,Bookkeepng,Bookkeeping|Assets|Sales account
+英単語,売上帳,Sales book,Sales book|Bank book|Bookkeeping
+英単語,当座預金,Checking account,Checking account|Payment slip|Cash

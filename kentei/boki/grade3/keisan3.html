@@ -103,6 +103,13 @@
 
 <body>
 
+<!-- ========= ローディング画面 ========= -->
+<div id="loadingScreen">
+  <img src="../../../images/logo.png" style="width:90px;margin-bottom:20px;">
+  <div class="spinner"></div>
+  <p style="margin-top:15px;font-weight:bold;">問題を読み込み中...</p>
+</div>
+
 <header class="app-header">
   <div class="header-left">
     <img src="../../../images/logo.PNG" class="header-icon">
@@ -195,12 +202,17 @@ async function loadCSV(path){
   try{
     const res = await fetch(path);
     if(!res.ok) throw new Error("CSVが見つかりません: " + path);
+
     let text = await res.text();
     text = text.replace(/^\uFEFF/, "");
     questions = parseCSV(text);
+
   }catch(e){
     document.getElementById("sentence").innerText =
       "CSV読み込みエラー：" + (e.message || e);
+  }finally{
+    // ローディング画面を消す
+    document.getElementById("loadingScreen").style.display = "none";
   }
 }
 

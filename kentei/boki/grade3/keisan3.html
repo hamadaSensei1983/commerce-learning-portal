@@ -63,6 +63,15 @@
       font-size:14px;
       color:#555;
     }
+    /* 資料型テーブルをやや狭くして中央寄せ */
+    table.data-table{
+    width:60%;
+    margin:0 auto 15px auto;
+    }
+    /* 項目、金額の見出しをセンタリング */
+    table.data-table th{
+    text-align:center;
+    }    
   </style>
 </head>
 <body>
@@ -107,15 +116,15 @@
 </div>
 
 <div style="text-align:center;margin-top:20px;">
-  ../index.html簿記トップ</a>
-  ../index.htmlポータルへ戻る</a>
+    <a href="../index.html" class="portal-btn exam-btn">簿記トップ</a>
+    <a href="../../../index.html" class="portal-btn portal-main">ポータルへ戻る</a>
 </div>
 
 <script>
 /* =====================
    グローバル変数
 ===================== */
-let questions = [];   // CSVから読み込んだ全問題
+let questions = [];   
 let currentIndex = 0;
 let currentQ = null;
 let autoNextTimer = null;
@@ -136,24 +145,19 @@ async function loadCSV(path){
     let text = await res.text();
     text = text.replace(/^\uFEFF/, "");
     questions = parseCSV(text);
-    if(questions.length === 0){
-      document.getElementById("sentence").innerText = "問題がありません。";
-      return;
-    }
     showQuestion();
   }catch(e){
-    console.error(e);
     document.getElementById("sentence").innerText = "CSV読み込みエラー：" + (e.message || e);
   }
 }
 
 /* =====================
    CSVパーサー
-   区分,問題文,問1ラベル,答え1,問2ラベル,答え2,資料項目,資料金額,解説
 ===================== */
 function parseCSV(text){
   const rows = text.trim().split(/\r?\n/);
   const result = [];
+
   for(let i=1;i<rows.length;i++){
     let line = rows[i].trim();
     if(!line) continue;
@@ -162,10 +166,7 @@ function parseCSV(text){
     let cur  = "";
     let inQ  = false;
     for(let c of line){
-      if(c === '"'){
-        inQ = !inQ;
-        continue;
-      }
+      if(c === '"'){ inQ = !inQ; continue; }
       if(c === "," && !inQ){
         cols.push(cur);
         cur = "";
@@ -185,30 +186,26 @@ function parseCSV(text){
     const ans2       = cols[5].trim();
     const itemsStr   = (cols[6] || "").trim();
     const amountsStr = (cols[7] || "").trim();
-    const explain    = (cols[8] || "").trim();
+    const explainStr = (cols[8] || "").trim();
 
-    // 資料項目・金額は改行や | などで区切られている可能性があるので整理
-    let itemNames = [];
-    let itemValues = [];
+    // 資料項目
+    const itemNames  = itemsStr.replace(/\r?\n/g, "|")
+                               .split(/[|｜]/).map(s=>s.trim()).filter(s=>s);
 
-    if(itemsStr){
-      // 改行を | に統一した上で split
-      const temp = itemsStr.replace(/\r?\n/g, "|");
-      itemNames = temp.split(/[|｜]/).map(s=>s.trim()).filter(s=>s);
-    }
-    if(amountsStr){
-      const temp = amountsStr.replace(/\r?\n/g, "|");
-      itemValues = temp.split(/[|｜]/).map(s=>s.trim()).filter(s=>s);
-    }
+    const itemValues = amountsStr.replace(/\r?\n/g, "|")
+                                 .split(/[|｜]/).map(s=>s.trim()).filter(s=>s);
+
+    // 解説：先生要望「|」区切り → 改行に変換
+    const explain = explainStr.split(/[|｜]/).join("\n");
 
     result.push({
-      kind,          // 文章型 or 資料型
-      text : textQ,
+      kind,
+      text   : textQ,
       label1,
       answer1: ans1,
       label2,
       answer2: ans2,
-      items: itemNames,
+      items  : itemNames,
       amounts: itemValues,
       explain
     });
@@ -232,7 +229,7 @@ function showQuestion(){
 
   document.getElementById("sentence").innerText = currentQ.text;
 
-  // 資料表示
+  /* --- 資料型テーブル生成 --- */
   const dataArea = document.getElementById("dataArea");
   dataArea.innerHTML = "";
   if(currentQ.kind === "資料型" && currentQ.items.length > 0){
@@ -241,9 +238,9 @@ function showQuestion(){
 
     const thead = document.createElement("thead");
     const trh   = document.createElement("tr");
-    const th1   = document.createElement("th");
+    const th1 = document.createElement("th");
     th1.innerText = "項目";
-    const th2   = document.createElement("th");
+    const th2 = document.createElement("th");
     th2.innerText = "金額";
     trh.appendChild(th1);
     trh.appendChild(th2);
@@ -262,27 +259,24 @@ function showQuestion(){
       tbody.appendChild(tr);
     }
     table.appendChild(tbody);
-
     dataArea.appendChild(table);
   }
 
-  // ラベルセット
+  /* --- ラベル表示 --- */
   document.getElementById("label1").innerText = currentQ.label1 + "：";
   document.getElementById("label2").innerText = currentQ.label2 + "：";
 
-  // 入力欄クリア
+  /* --- 入力欄クリア --- */
   document.getElementById("ans1").value = "";
   document.getElementById("ans2").value = "";
 
-  // 結果クリア
   document.getElementById("result").innerText  = "";
   document.getElementById("explain").innerText = "";
 
-  // ボタン状態
   document.getElementById("nextBtn").classList.add("hidden");
   document.getElementById("checkBtn").disabled = false;
 
-  // カンマ自動補助
+  /* --- カンマ補助 --- */
   document.querySelectorAll(".money").forEach(el =>{
     el.oninput = ()=>{
       let v = el.value.replace(/,/g,"");
@@ -293,18 +287,16 @@ function showQuestion(){
   });
 }
 
-/* =====================
-   数値取得（カンマ除去）
-===================== */
+/* 数値取得（カンマ除去） */
 function getNumber(id){
   const raw = document.getElementById(id).value.replace(/,/g,"").trim();
-  if(raw === "") return null;
+  if(raw === "") return null;  // 空欄は null 扱い
   const n = Number(raw);
   return isNaN(n) ? null : n;
 }
 
 /* =====================
-   答え合わせ
+   答え合わせ（空欄OK、空欄→不正解扱い）
 ===================== */
 function checkAnswer(){
   const user1 = getNumber("ans1");
@@ -312,11 +304,6 @@ function checkAnswer(){
 
   const resultP  = document.getElementById("result");
   const explainP = document.getElementById("explain");
-
-  if(user1 === null || user2 === null){
-    resultP.innerText = "両方の金額を入力してください。";
-    return;
-  }
 
   const correct1 = Number(currentQ.answer1);
   const correct2 = Number(currentQ.answer2);
@@ -326,32 +313,31 @@ function checkAnswer(){
 
   if(ok1 && ok2){
     resultP.innerText = "〇 両方とも正解です！";
-    explainP.innerText = currentQ.explain || "";
+    explainP.innerText = currentQ.explain;
+
     document.getElementById("checkBtn").disabled = true;
 
-    // 1秒後に自動で次の問題へ
+    // 1秒後に次へ
     if(currentIndex < questions.length - 1){
       autoNextTimer = setTimeout(()=>{
         currentIndex++;
         showQuestion();
       }, 1000);
-    }else{
-      // 最後の問題なら「次の問題」ボタンは不要
-      document.getElementById("nextBtn").classList.add("hidden");
     }
   }else{
-    let msg = "× 不正解です。";
+    let msg = "× 不正解です。\n";
     if(!ok1){
-      msg += "\n・" + currentQ.label1 + "：正解は " + correct1.toLocaleString() + " 円";
+      msg += "・" + currentQ.label1 + "：正解 " + correct1.toLocaleString() + "円\n";
     }
     if(!ok2){
-      msg += "\n・" + currentQ.label2 + "：正解は " + correct2.toLocaleString() + " 円";
+      msg += "・" + currentQ.label2 + "：正解 " + correct2.toLocaleString() + "円\n";
     }
-    resultP.innerText  = msg;
-    explainP.innerText = currentQ.explain || "";
+
+    resultP.innerText = msg;
+    explainP.innerText = currentQ.explain;
 
     document.getElementById("checkBtn").disabled = true;
-    // 間違えたときは「次の問題」ボタンで進む
+
     if(currentIndex < questions.length - 1){
       document.getElementById("nextBtn").classList.remove("hidden");
     }
@@ -366,10 +352,8 @@ function nextQuestion(){
     clearTimeout(autoNextTimer);
     autoNextTimer = null;
   }
-  if(currentIndex < questions.length - 1){
-    currentIndex++;
-    showQuestion();
-  }
+  currentIndex++;
+  showQuestion();
 }
 </script>
 </body>

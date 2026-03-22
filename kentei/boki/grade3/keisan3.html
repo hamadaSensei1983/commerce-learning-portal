@@ -86,6 +86,36 @@
   </div>
 </header>
 
+<!-- 注意メッセージ -->
+<div class="notice-box" style="
+background:#e8f5e9;
+border-left:6px solid #66bb6a;
+padding:12px 16px;
+margin-bottom:18px;
+border-radius:6px;
+color:#2e7d32;
+font-weight:bold;
+">
+計算問題です。<br>
+かならず <u>計算用紙・筆記用具を準備</u> してから解きましょう！
+</div>
+
+<!-- 区分選択（文章型／資料型） -->
+<h3>出題区分を選択</h3>
+<div id="typeArea" class="field-grid">
+<label><input type="checkbox" value="文章型"> 文章型</label>
+<label><input type="checkbox" value="資料型"> 資料型</label>
+</div>
+<div style="margin-top:6px;">
+<button class="control-btn" onclick="selectAllTypes()">全選択</button>
+<button class="control-btn" onclick="clearAllTypes()">全解除</button>
+</div>
+
+<!-- 開始ボタン -->
+<div style="text-align:center;margin-top:15px;">
+<button class="main-btn" onclick="startQuiz()">開始</button>
+</div>
+
 <div class="card" id="mainCard">
   <div style="text-align:right;margin-bottom:5px;">
     <span id="qIndex"></span>
@@ -211,6 +241,40 @@ function parseCSV(text){
     });
   }
   return result;
+}
+
+/* =====================
+   出題区分選択（文章型／資料型）
+===================== */
+
+function selectAllTypes(){
+  document.querySelectorAll("#typeArea input").forEach(c => c.checked = true);
+}
+function clearAllTypes(){
+  document.querySelectorAll("#typeArea input").forEach(c => c.checked = false);
+}
+
+function getSelectedTypes(){
+  return [...document.querySelectorAll("#typeArea input:checked")].map(c => c.value);
+}
+
+function startQuiz(){
+  const types = getSelectedTypes();
+  if(types.length === 0){
+    alert("文章型または資料型を選択してください。");
+    return;
+  }
+
+  // 区分で絞り込み
+  let filtered = questions.filter(q => types.includes(q.kind));
+  if(filtered.length === 0){
+    alert("選択された区分の問題がありません。");
+    return;
+  }
+
+  questions = shuffle([...filtered]);  // ランダム順に並べ直す
+  currentIndex = 0;
+  showQuestion();
 }
 
 /* =====================

@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>全商簿記3級 計算トレーニング（文章型・資料型サンプル）</title>
+  <link rel="stylesheet" href="../../../css/common.css">
+  <style>
+    .card{
+      max-width:800px;
+      margin:20px auto;
+      padding:20px;
+      background:white;
+      border-radius:10px;
+      box-shadow:0 3px 8px rgba(0,0,0,0.08);
+    }
+    .hidden{
+      display:none;
+    }
+    #sentence{
+      font-size:18px;
+      line-height:1.7;
+      margin-bottom:15px;
+    }
+    table.data-table{
+      width:100%;
+      border-collapse:collapse;
+      margin-bottom:15px;
+    }
+    table.data-table th,
+    table.data-table td{
+      border:1px solid #ccc;
+      padding:6px 8px;
+      text-align:right;
+    }
+    table.data-table th{
+      background:#f4f4f4;
+      text-align:left;
+    }
+    .entry-row{
+      display:flex;
+      justify-content:flex-start;
+      align-items:center;
+      gap:8px;
+      margin:8px 0;
+    }
+    .entry-row label{
+      min-width:120px;
+      font-weight:bold;
+    }
+    .money{
+      width:160px;
+      padding:6px;
+      text-align:right;
+      font-size:16px;
+    }
+    #result{
+      margin-top:10px;
+      font-weight:bold;
+      min-height:24px;
+    }
+    #explain{
+      margin-top:6px;
+      font-size:14px;
+      color:#555;
+    }
+  </style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="header-left">
+    <img src="../../../images/logo.png" class="header-icon">
+    <div>
+      <h1 class="site-title">検定対策システム</h1>
+      <div class="exam-title">全商簿記3級 計算トレーニング（サンプル）</div>
+    </div>
+  </div>
+</header>
+
+<div class="card" id="mainCard">
+  <div style="text-align:right;margin-bottom:5px;">
+    <span id="qIndex"></span>
+  </div>
+
+  <div id="sentence"></div>
+
+  <!-- 資料表示（文章型の場合は空のまま） -->
+  <div id="dataArea"></div>
+
+  <!-- 答え入力 -->
+  <div class="entry-row">
+    <label id="label1"></label>
+    <input id="ans1" class="money" inputmode="numeric">
+  </div>
+  <div class="entry-row">
+    <label id="label2"></label>
+    <input id="ans2" class="money" inputmode="numeric">
+  </div>
+
+  <p id="result"></p>
+  <p id="explain"></p>
+
+  <div style="text-align:center;margin-top:15px;">
+    <button class="main-btn" id="checkBtn" onclick="checkAnswer()">答え合わせ</button>
+    <button class="main-btn hidden" id="nextBtn" onclick="nextQuestion()">次の問題</button>
+  </div>
+</div>
+
+<div style="text-align:center;margin-top:20px;">
+  ../index.html簿記トップ</a>
+  ../index.htmlポータルへ戻る</a>
+</div>
+
+<script>
+/* =====================
+   グローバル変数
+===================== */
+let questions = [];   // CSVから読み込んだ全問題
+let currentIndex = 0;
+let currentQ = null;
+let autoNextTimer = null;
+
+/* =====================
+   CSV読み込み
+===================== */
+window.addEventListener("DOMContentLoaded", ()=>{
+  loadCSV("../data/keisan3.csv");
+});
+
+async function loadCSV(path){
+  try{
+    const res = await fetch(path);
+    if(!res.ok){
+      throw new Error("CSVが見つかりません: " + path);
+    }
+    let text = await res.text();
+    text = text.replace(/^\uFEFF/, "");
+    questions = parseCSV(text);
+    if(questions.length === 0){
+      document.getElementById("sentence").innerText = "問題がありません。";
+      return;
+    }
+    showQuestion();
+  }catch(e){
+    console.error(e);
+    document.getElementById("sentence").innerText = "CSV読み込みエラー：" + (e.message || e);
+  }
+}
+
+/* =====================
+   CSVパーサー
+   区分,問題文,問1ラベル,答え1,問2ラベル,答え2,資料項目,資料金額,解説
+===================== */
+function parseCSV(text){
+  const rows = text.trim().split(/\r?\n/);
+  const result = [];
+  for(let i=1;i<rows.length;i++){
+    let line = rows[i].trim();
+    if(!line) continue;
+
+    let cols = [];
+    let cur  = "";
+    let inQ  = false;
+    for(let c of line){
+      if(c === '"'){
+        inQ = !inQ;
+        continue;
+      }
+      if(c === "," && !inQ){
+        cols.push(cur);
+        cur = "";
+      }else{
+        cur += c;
+      }
+    }
+    cols.push(cur);
+
+    if(cols.length < 6) continue;
+
+    const kind       = cols[0].trim();
+    const textQ      = cols[1].trim();
+    const label1     = cols[2].trim();
+    const ans1       = cols[3].trim();
+    const label2     = cols[4].trim();
+    const ans2       = cols[5].trim();
+    const itemsStr   = (cols[6] || "").trim();
+    const amountsStr = (cols[7] || "").trim();
+    const explain    = (cols[8] || "").trim();
+
+    // 資料項目・金額は改行や | などで区切られている可能性があるので整理
+    let itemNames = [];
+    let itemValues = [];
+
+    if(itemsStr){
+      // 改行を | に統一した上で split
+      const temp = itemsStr.replace(/\r?\n/g, "|");
+      itemNames = temp.split(/[|｜]/).map(s=>s.trim()).filter(s=>s);
+    }
+    if(amountsStr){
+      const temp = amountsStr.replace(/\r?\n/g, "|");
+      itemValues = temp.split(/[|｜]/).map(s=>s.trim()).filter(s=>s);
+    }
+
+    result.push({
+      kind,          // 文章型 or 資料型
+      text : textQ,
+      label1,
+      answer1: ans1,
+      label2,
+      answer2: ans2,
+      items: itemNames,
+      amounts: itemValues,
+      explain
+    });
+  }
+  return result;
+}
+
+/* =====================
+   問題表示
+===================== */
+function showQuestion(){
+  if(autoNextTimer !== null){
+    clearTimeout(autoNextTimer);
+    autoNextTimer = null;
+  }
+
+  currentQ = questions[currentIndex];
+
+  document.getElementById("qIndex").innerText =
+    "第 " + (currentIndex+1) + " 問 / " + questions.length + " 問";
+
+  document.getElementById("sentence").innerText = currentQ.text;
+
+  // 資料表示
+  const dataArea = document.getElementById("dataArea");
+  dataArea.innerHTML = "";
+  if(currentQ.kind === "資料型" && currentQ.items.length > 0){
+    const table = document.createElement("table");
+    table.className = "data-table";
+
+    const thead = document.createElement("thead");
+    const trh   = document.createElement("tr");
+    const th1   = document.createElement("th");
+    th1.innerText = "項目";
+    const th2   = document.createElement("th");
+    th2.innerText = "金額";
+    trh.appendChild(th1);
+    trh.appendChild(th2);
+    thead.appendChild(trh);
+    table.appendChild(thead);
+
+    const tbody = document.createElement("tbody");
+    for(let i=0;i<currentQ.items.length;i++){
+      const tr = document.createElement("tr");
+      const td1 = document.createElement("td");
+      td1.innerText = currentQ.items[i];
+      const td2 = document.createElement("td");
+      td2.innerText = currentQ.amounts[i] || "";
+      tr.appendChild(td1);
+      tr.appendChild(td2);
+      tbody.appendChild(tr);
+    }
+    table.appendChild(tbody);
+
+    dataArea.appendChild(table);
+  }
+
+  // ラベルセット
+  document.getElementById("label1").innerText = currentQ.label1 + "：";
+  document.getElementById("label2").innerText = currentQ.label2 + "：";
+
+  // 入力欄クリア
+  document.getElementById("ans1").value = "";
+  document.getElementById("ans2").value = "";
+
+  // 結果クリア
+  document.getElementById("result").innerText  = "";
+  document.getElementById("explain").innerText = "";
+
+  // ボタン状態
+  document.getElementById("nextBtn").classList.add("hidden");
+  document.getElementById("checkBtn").disabled = false;
+
+  // カンマ自動補助
+  document.querySelectorAll(".money").forEach(el =>{
+    el.oninput = ()=>{
+      let v = el.value.replace(/,/g,"");
+      if(!isNaN(v) && v !== ""){
+        el.value = Number(v).toLocaleString();
+      }
+    };
+  });
+}
+
+/* =====================
+   数値取得（カンマ除去）
+===================== */
+function getNumber(id){
+  const raw = document.getElementById(id).value.replace(/,/g,"").trim();
+  if(raw === "") return null;
+  const n = Number(raw);
+  return isNaN(n) ? null : n;
+}
+
+/* =====================
+   答え合わせ
+===================== */
+function checkAnswer(){
+  const user1 = getNumber("ans1");
+  const user2 = getNumber("ans2");
+
+  const resultP  = document.getElementById("result");
+  const explainP = document.getElementById("explain");
+
+  if(user1 === null || user2 === null){
+    resultP.innerText = "両方の金額を入力してください。";
+    return;
+  }
+
+  const correct1 = Number(currentQ.answer1);
+  const correct2 = Number(currentQ.answer2);
+
+  const ok1 = (user1 === correct1);
+  const ok2 = (user2 === correct2);
+
+  if(ok1 && ok2){
+    resultP.innerText = "〇 両方とも正解です！";
+    explainP.innerText = currentQ.explain || "";
+    document.getElementById("checkBtn").disabled = true;
+
+    // 1秒後に自動で次の問題へ
+    if(currentIndex < questions.length - 1){
+      autoNextTimer = setTimeout(()=>{
+        currentIndex++;
+        showQuestion();
+      }, 1000);
+    }else{
+      // 最後の問題なら「次の問題」ボタンは不要
+      document.getElementById("nextBtn").classList.add("hidden");
+    }
+  }else{
+    let msg = "× 不正解です。";
+    if(!ok1){
+      msg += "\n・" + currentQ.label1 + "：正解は " + correct1.toLocaleString() + " 円";
+    }
+    if(!ok2){
+      msg += "\n・" + currentQ.label2 + "：正解は " + correct2.toLocaleString() + " 円";
+    }
+    resultP.innerText  = msg;
+    explainP.innerText = currentQ.explain || "";
+
+    document.getElementById("checkBtn").disabled = true;
+    // 間違えたときは「次の問題」ボタンで進む
+    if(currentIndex < questions.length - 1){
+      document.getElementById("nextBtn").classList.remove("hidden");
+    }
+  }
+}
+
+/* =====================
+   次の問題
+===================== */
+function nextQuestion(){
+  if(autoNextTimer !== null){
+    clearTimeout(autoNextTimer);
+    autoNextTimer = null;
+  }
+  if(currentIndex < questions.length - 1){
+    currentIndex++;
+    showQuestion();
+  }
+}
+</script>
+</body>
+</html>

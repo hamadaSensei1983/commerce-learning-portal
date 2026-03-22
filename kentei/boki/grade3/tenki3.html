@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>全商簿記3級 転記トレーニング</title>
+  <link rel="stylesheet" href="../../../css/common.css">
+  <style>
+    .card{
+      max-width:800px;
+      margin:20px auto;
+      padding:20px;
+      background:white;
+      border-radius:10px;
+      box-shadow:0 3px 8px rgba(0,0,0,0.08);
+    }
+    .hidden{ display:none; }
+
+    /* 注意メッセージ */
+    .notice-box{
+      background:#e8f5e9;
+      border-left:6px solid #66bb6a;
+      padding:12px 16px;
+      margin-bottom:18px;
+      border-radius:6px;
+      color:#2e7d32;
+      font-weight:bold;
+    }
+
+    #questionText{
+      font-size:18px;
+      line-height:1.7;
+      margin-bottom:10px;
+    }
+    #journalText{
+      font-size:16px;
+      margin-bottom:15px;
+      color:#333;
+    }
+
+    .hint-btn{
+      padding:3px 8px;
+      font-size:12px;
+      border-radius:6px;
+    }
+
+    /* T勘定の並び（最大3つを横並び） */
+    .ledger-container{
+      display:grid;
+      grid-template-columns:1fr 1fr 1fr;
+      gap:16px;
+      margin-top:10px;
+    }
+
+    .ledger-card{
+      border:1px solid #ccc;      /* 外枠は落ち着いたグレー */
+      border-radius:8px;
+      padding:10px;
+      background:#fafafa;
+    }
+
+    .ledger-title{
+      font-weight:bold;
+      text-align:center;
+      margin-bottom:5px;
+    }
+
+    table.ledger-table{
+      width:100%;
+      border-collapse:collapse;
+      table-layout:fixed; /* 借方／貸方を同じ幅に */
+    }
+    table.ledger-table th,
+    table.ledger-table td{
+      border:1px solid #e53935;   /* 内側の線だけ赤系で強調 */
+      padding:6px;
+      text-align:right;
+      width:50%;
+      box-sizing:border-box;
+    }
+    table.ledger-table th{
+      background:#ffebee;
+      text-align:center;
+      font-weight:bold;
+    }
+
+    .money{
+      width:100%;
+      padding:4px;
+      text-align:right;
+      font-size:14px;
+      box-sizing:border-box;
+    }
+
+    #result{
+      margin-top:12px;
+      font-weight:bold;
+      white-space:pre-line;
+    }
+    #explain{
+      margin-top:6px;
+      font-size:14px;
+      color:#555;
+      white-space:pre-line;
+    }
+  </style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="header-left">
+    <img src="../../../images/logo.png" class="header-icon">
+    <div>
+      <h1 class="site-title">検定対策システム</h1>
+      <div class="exam-title">全商簿記3級 転記トレーニング</div>
+    </div>
+  </div>
+</header>
+
+<!-- ローディング画面（common.cssのスタイルを使用） -->
+<div id="loadingScreen">
+  <div style="text-align:center">
+    <img src="../../../images/logo.png" style="width:90px;margin-bottom:20px">
+    <div class="spinner"></div>
+    <p style="margin-top:15px;font-weight:bold;">問題を読み込み中...</p>
+  </div>
+</div>
+
+<div class="card">
+
+  <div class="notice-box">
+    このページでは「仕訳 → 元帳」への転記を練習します。<br>
+    どの勘定の、どちら側（借方／貸方）に書くのかを意識して入力しましょう。
+  </div>
+
+  <!-- 問題文（CSVから読込） -->
+  <div id="questionText"></div>
+
+  <!-- 仕訳表示ボタン（小さめ） -->
+  <div style="margin-bottom:10px;text-align:left;">
+    <button class="control-btn hint-btn" onclick="toggleJournal()">仕訳を表示</button>
+  </div>
+
+  <!-- 仕訳（デフォルト非表示） -->
+  <div id="journalText" class="hidden"></div>
+
+  <!-- 元帳（簡易T勘定） -->
+  <div class="ledger-container" id="ledgerContainer">
+    <!-- ここにJSでT勘定カードをランダム配置 -->
+  </div>
+
+  <p id="result"></p>
+  <p id="explain"></p>
+
+  <div style="text-align:center;margin-top:15px;">
+    <button class="main-btn" id="checkBtn" onclick="checkAnswer()">答え合わせ</button>
+    <button class="main-btn hidden" id="nextBtn" onclick="nextQuestion()">次の問題</button>
+  </div>
+</div>
+
+<div style="text-align:center;margin-top:20px;">
+  <a href="../index.html" class="portal-btn exam-btn">簿記トップ</a>
+  <a href="../../../index.html" class="portal-btn portal-main">ポータルへ戻る</a>
+</div>
+
+<script>
+/* =====================
+   グローバル変数
+===================== */
+let questions    = [];   // CSVから読み込んだ全問題
+let quizQuestions = [];  // シャッフル済み出題用
+let currentIndex = 0;
+let currentQ     = null;
+let autoNextTimer = null;
+
+/* =====================
+   CSV読み込み（1秒表示ルール付）
+===================== */
+window.addEventListener("DOMContentLoaded", ()=>{
+  loadCSV("../data/tenki3.csv");
+});
+
+async function loadCSV(path){
+  const startTime = Date.now();
+
+  try{
+    const res = await fetch(path);
+    if(!res.ok) throw new Error("CSVが見つかりません: " + path);
+    let text = await res.text();
+    text = text.replace(/^\uFEFF/, "");
+    questions = parseCSV(text);
+  }catch(e){
+    document.getElementById("questionText").innerText =
+      "CSV読み込みエラー：" + (e.message || e);
+  }finally{
+    const elapsed = Date.now() - startTime;
+    const remain  = 1000 - elapsed;   // 最低1秒ローディング表示
+    const hideLoading = ()=>{
+      const loading = document.getElementById("loadingScreen");
+      if(loading) loading.style.display = "none";
+      // 最初の問題を表示
+      if(questions.length > 0){
+        quizQuestions = shuffle([...questions]);
+        currentIndex  = 0;
+        showQuestion();
+      }else{
+        document.getElementById("questionText").innerText = "問題が登録されていません。";
+      }
+    };
+    if(remain > 0){
+      setTimeout(hideLoading, remain);
+    }else{
+      hideLoading();
+    }
+  }
+}
+
+/* =====================
+   CSVパーサー
+   想定形式：
+   区分,問題文,仕訳文,
+   科目1,借方1,貸方1,
+   科目2,借方2,貸方2,
+   科目3,借方3,貸方3
+===================== */
+function parseCSV(text){
+  const rows = text.trim().split(/\r?\n/);
+  const result = [];
+
+  for(let i=1;i<rows.length;i++){
+    const line = rows[i].trim();
+    if(!line) continue;
+
+    let cols = [];
+    let cur  = "";
+    let inQ  = false;
+    for(let c of line){
+      if(c === '"'){ inQ = !inQ; continue; }
+      if(c === "," && !inQ){
+        cols.push(cur);
+        cur="";
+      }else{
+        cur += c;
+      }
+    }
+    cols.push(cur);
+
+    if(cols.length < 12) continue;
+
+    const kind      = cols[0].trim(); // 今は使わないが将来のため残す
+    const qText     = cols[1].trim();
+    const jText     = cols[2].trim(); // 仕訳文（ヒント用）
+
+    const acc1      = cols[3].trim();
+    const d1        = Number((cols[4] || "0").replace(/,/g,""));
+    const c1        = Number((cols[5] || "0").replace(/,/g,""));
+    const acc2      = cols[6].trim();
+    const d2        = Number((cols[7] || "0").replace(/,/g,""));
+    const c2        = Number((cols[8] || "0").replace(/,/g,""));
+    const acc3      = cols[9].trim();
+    const d3        = Number((cols[10]|| "0").replace(/,/g,""));
+    const c3        = Number((cols[11]|| "0").replace(/,/g,""));
+
+    const ledgers = [];
+
+    if(acc1){
+      ledgers.push({
+        id     : "acc1_" + i,
+        name   : acc1,
+        correctD: d1,
+        correctC: c1
+      });
+    }
+    if(acc2){
+      ledgers.push({
+        id     : "acc2_" + i,
+        name   : acc2,
+        correctD: d2,
+        correctC: c2
+      });
+    }
+    if(acc3){
+      ledgers.push({
+        id     : "acc3_" + i,
+        name   : acc3,
+        correctD: d3,
+        correctC: c3
+      });
+    }
+
+    result.push({
+      kind,
+      text    : qText,
+      journal : jText,
+      ledgers // [{id,name,correctD,correctC},...]
+    });
+  }
+
+  return result;
+}
+
+/* =====================
+   汎用シャッフル
+===================== */
+function shuffle(a){
+  for(let i=a.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+
+/* =====================
+   仕訳表示のON/OFF
+===================== */
+function toggleJournal(){
+  const div = document.getElementById("journalText");
+  div.classList.toggle("hidden");
+}
+
+/* =====================
+   カンマ補助
+===================== */
+function setupCommaSupport(){
+  document.querySelectorAll(".money").forEach(el=>{
+    el.oninput = ()=>{
+      let v = el.value.replace(/,/g,"");
+      if(!isNaN(v) && v !== ""){
+        el.value = Number(v).toLocaleString();
+      }
+    };
+  });
+}
+
+/* =====================
+   問題表示
+===================== */
+function showQuestion(){
+  if(autoNextTimer){
+    clearTimeout(autoNextTimer);
+    autoNextTimer = null;
+  }
+
+  const q = quizQuestions[currentIndex];
+  currentQ = q;
+
+  document.getElementById("questionText").innerText =
+    "問題：" + q.text;
+
+  // 仕訳文
+  const jDiv = document.getElementById("journalText");
+  jDiv.innerText = "仕訳：" + q.journal;
+  jDiv.classList.add("hidden"); // デフォルト非表示
+
+  // T勘定カードをランダムに並べる
+  const container = document.getElementById("ledgerContainer");
+  container.innerHTML = "";
+
+  const shuffledLedgers = shuffle([...q.ledgers]);
+  shuffledLedgers.forEach(def=>{
+    const card  = document.createElement("div");
+    card.className = "ledger-card";
+
+    const title = document.createElement("div");
+    title.className = "ledger-title";
+    title.innerText = def.name;
+    card.appendChild(title);
+
+    const table = document.createElement("table");
+    table.className = "ledger-table";
+
+    const thead = document.createElement("thead");
+    const trh   = document.createElement("tr");
+    trh.innerHTML = "<th>借方</th><th>貸方</th>";
+    thead.appendChild(trh);
+    table.appendChild(thead);
+
+    const tbody = document.createElement("tbody");
+    const tr    = document.createElement("tr");
+    tr.innerHTML = `
+      <td><input id="${def.id}_D" class="money" inputmode="numeric"></td>
+      <td><input id="${def.id}_C" class="money" inputmode="numeric"></td>
+    `;
+    tbody.appendChild(tr);
+    table.appendChild(tbody);
+
+    card.appendChild(table);
+    container.appendChild(card);
+  });
+
+  setupCommaSupport();
+
+  document.getElementById("result").innerText  = "";
+  document.getElementById("explain").innerText = "";
+  document.getElementById("checkBtn").disabled = false;
+  document.getElementById("nextBtn").classList.add("hidden");
+}
+
+/* =====================
+   数値取得（空欄は0）
+===================== */
+function getNumber(id){
+  const el = document.getElementById(id);
+  if(!el) return 0;
+  const raw = el.value.replace(/,/g,"").trim();
+  if(raw === "") return 0;
+  const n = Number(raw);
+  return isNaN(n) ? 0 : n;
+}
+
+/* =====================
+   答え合わせ
+===================== */
+function checkAnswer(){
+  const resultP  = document.getElementById("result");
+  const explainP = document.getElementById("explain");
+  const checkBtn = document.getElementById("checkBtn");
+  const nextBtn  = document.getElementById("nextBtn");
+
+  let allOk = true;
+  let msg   = "";
+
+  currentQ.ledgers.forEach(def=>{
+    const dVal = getNumber(`${def.id}_D`);
+    const cVal = getNumber(`${def.id}_C`);
+
+    const okD = (dVal === def.correctD);
+    const okC = (cVal === def.correctC);
+
+    if(!okD || !okC){
+      allOk = false;
+      msg += `・${def.name}：借方 ${def.correctD} / 貸方 ${def.correctC} が正解です。\n`;
+    }
+  });
+
+  if(allOk){
+    resultP.innerText = "〇 正解です！";
+    explainP.innerText =
+      "各勘定の性質と増減の向きを正しく理解できています。";
+    checkBtn.disabled = true;
+
+    if(currentIndex < quizQuestions.length - 1){
+      autoNextTimer = setTimeout(()=>{
+        currentIndex++;
+        showQuestion();
+      }, 1000);
+    }
+  }else{
+    resultP.innerText = "× 不正解です。\n" + msg;
+    explainP.innerText =
+      "どの勘定が増えて（減って）、どちら側に書くのかをもう一度確認しましょう。";
+    checkBtn.disabled = true;
+
+    if(currentIndex < quizQuestions.length - 1){
+      nextBtn.classList.remove("hidden");
+    }
+  }
+}
+
+/* =====================
+   次の問題
+===================== */
+function nextQuestion(){
+  if(autoNextTimer){
+    clearTimeout(autoNextTimer);
+    autoNextTimer = null;
+  }
+  if(currentIndex < quizQuestions.length - 1){
+    currentIndex++;
+    showQuestion();
+  }
+}
+</script>
+</body>
+</html>

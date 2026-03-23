@@ -52,8 +52,8 @@
 
 
     .hint-btn{
-      padding:2px 6px;
-      font-size:11px;
+      padding:4px 10px;
+      font-size:13px;
       border-radius:6px;
       white-space:nowrap;
       width:auto;
@@ -334,8 +334,16 @@ function shuffle(a){
    仕訳表示のON/OFF
 ===================== */
 function toggleJournal(){
-  const div = document.getElementById("journalText");
+  const div  = document.getElementById("journalText");
+  const btn  = document.querySelector(".hint-btn");
+
   div.classList.toggle("hidden");
+
+  if(div.classList.contains("hidden")){
+    btn.textContent = "仕訳を表示";
+  }else{
+    btn.textContent = "仕訳を隠す";
+  }
 }
 
 /* =====================

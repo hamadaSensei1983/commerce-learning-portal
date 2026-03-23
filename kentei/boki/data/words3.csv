@@ -8,14 +8,21 @@
 英単語,資産,Assets,Account|Assets|Credit
 英単語,負債,Liabilities,Liabilities|Assets|Net assets
 英単語,資本,Capital,Capital|Slip|Revenues
+英単語,費用,Expenses,Expenses|Account|Liabilities
 英単語,収益,Revenues,Revenues|Slip|Credit
-英単語,転記,Posting,Posting|Imprest system|Account
-英単語,決算,Closing books,Closing books|Checking account|Capital
 英単語,損益計算書,Profit and loss statement,Profit and loss statement|Balance sheet|Trial balance
 英単語,貸借対照表,Balance sheet,Balance sheet|Profit and loss statement|Book keeping
 英単語,試算表,Trial balance,Trial balance|Balance sheet|Work sheet
 英単語,精算表,Work sheet,Work sheet|Posting|Balance sheet
 英単語,簿記,Bookkeepng,Bookkeeping|Assets|Sales account
+英単語,転記,Posting,Posting|Imprest system|Account
+英単語,決算,Closing books,Closing books|Checking account|Capital
 英単語,仕訳,Journalizing,Journalizing|Transactions|Slip
+英単語,伝票,Slip,Slip|Transactions|Imprest system
+英単語,売上原価,Cost of goods sold,Cost of goods sold|Sales book|Checking account
 英単語,売上帳,Sales book,Sales book|Bank book|Bookkeeping
+英単語,仕入帳,Purchases book,Purchases book|Sales book|Transactions
+英単語,仕訳帳,Journal,Journal|Work sheet|Cash book
+英単語,現金,Cash,Cash|Assets|Money
 英単語,当座預金,Checking account,Checking account|Payment slip|Cash
+英単語,勘定科目,Title of account,Title of account|Closing books|Journalizing

@@ -39,16 +39,10 @@
     #journalText{
       flex:1;
       min-height:1.5em;
-      display:flex;
       align-items:center;
 
       opacity:1;
       transition:opacity 0.25s ease;
-    }
-
-    /* 非表示状態（フェード） */
-    .journal-hidden{
-      opacity:0;
     }
 
     /* 仕訳ボタン＋仕訳表示を横並びに */
@@ -172,7 +166,7 @@
   <!-- 仕訳表示ボタン＋仕訳テキストを横並びに -->
   <div class="journal-row">
     <button class="hint-btn" onclick="toggleJournal()">💡 仕訳を表示</button>
-    <div id="journalText" class="journal-hidden"></div>
+    <div id="journalText"></div>
   </div>
 
   <!-- 元帳（簡易T勘定） -->
@@ -352,12 +346,12 @@ function toggleJournal(){
   const div = document.getElementById("journalText");
   const btn = document.querySelector(".hint-btn");
 
-  div.classList.toggle("journal-hidden");
-
-  if(div.classList.contains("journal-hidden")){
-    btn.textContent = "💡 仕訳を表示";
-  }else{
+  if(div.classList.contains("hidden")){
+    div.classList.remove("hidden");
     btn.textContent = "💡 仕訳を隠す";
+  }else{
+    div.classList.add("hidden");
+    btn.textContent = "💡 仕訳を表示";
   }
 }
 
@@ -392,12 +386,11 @@ function showQuestion(){
   // 仕訳文
   const jDiv = document.getElementById("journalText");
   jDiv.innerText = "仕訳：" + currentQ.journal;
-
-  // ★ 次の問題へ行くたびに仕訳を「非表示」に戻す
-  jDiv.classList.add("journal-hidden");
+  jDiv.classList.add("hidden");
 
   // ★ ボタン文言もリセット
   const btn = document.querySelector(".hint-btn");
+  jDiv.classList.add("hidden");
   btn.textContent = "💡 仕訳を表示";
 
   // T勘定カードをランダムに並べる

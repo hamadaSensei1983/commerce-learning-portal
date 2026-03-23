@@ -35,16 +35,18 @@
       margin-bottom:10px;
     }
 
+    /* 仕訳テキスト */
     #journalText{
       flex:1;
       min-height:1.5em;
       display:flex;
       align-items:center;
+
       opacity:1;
-      transition:opacity 0.25s ease; /* フェード用 */
+      transition:opacity 0.25s ease;
     }
 
-    /* 仕訳を非表示にする専用クラス */
+    /* 非表示状態（フェード） */
     .journal-hidden{
       opacity:0;
     }
@@ -57,18 +59,21 @@
       margin-bottom:15px;
     }
 
+    /* ヒントボタン（緑／やや大きめ） */
     .hint-btn{
-      padding:4px 10px;           /* 少し大きめに */
-      font-size:13px;             /* 読みやすく */
+      padding:4px 10px;
+      font-size:13px;
       border-radius:6px;
       white-space:nowrap;
+
       width:auto;
       min-width:fit-content;
       display:inline-block;
       flex:0 0 auto;
-      background:#c8e6c9;         /* 明るい緑 */
-      border:1px solid #66bb6a;   /* 緑の枠線 */
-      color:#1b5e20;              /* 文字も深い緑に */
+
+      background:#c8e6c9;
+      border:1px solid #66bb6a;
+      color:#1b5e20;
       cursor:pointer;
     }
 
@@ -387,9 +392,13 @@ function showQuestion(){
   // 仕訳文
   const jDiv = document.getElementById("journalText");
   jDiv.innerText = "仕訳：" + currentQ.journal;
-  jDiv.classList.add("journal-hidden");        // 常に非表示スタート
+
+  // ★ 次の問題へ行くたびに仕訳を「非表示」に戻す
+  jDiv.classList.add("journal-hidden");
+
+  // ★ ボタン文言もリセット
   const btn = document.querySelector(".hint-btn");
-  btn.textContent = "💡 仕訳を表示";          // ボタン文字もリセット
+  btn.textContent = "💡 仕訳を表示";
 
   // T勘定カードをランダムに並べる
   const container = document.getElementById("ledgerContainer");

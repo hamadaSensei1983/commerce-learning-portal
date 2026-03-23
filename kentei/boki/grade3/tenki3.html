@@ -34,6 +34,7 @@
     #journalText{
       font-size:16px;
       color:#333;
+      min-height:1.5em;      /* 常に1行分のスペースを確保しておく */
     }
 
     /* 仕訳ボタン＋仕訳表示を横並びに */
@@ -44,9 +45,10 @@
       margin-bottom:15px;
     }
     .hint-btn{
-      padding:3px 8px;
-      font-size:12px;
+      padding:2px 6px;
+      font-size:11px;
       border-radius:6px;
+      white-space:nowrap;    /* ボタン内で折り返さない */
     }
 
     /* T勘定の並び（最大3つを横並び） */
@@ -307,7 +309,7 @@ function parseCSV(text){
 }
 
 /* =====================
-   汎用シャッフル
+   シャッフル
 ===================== */
 function shuffle(a){
   for(let i=a.length-1;i>0;i--){
@@ -440,25 +442,33 @@ function checkAnswer(){
   });
 
   if(allOk){
-    streak++;  // 連続正解数アップ
+    // 連続正解数アップ
+    streak++;
 
-    resultP.innerText = "〇 正解です！";
+    resultP.innerText  = "〇 正解です！";
     explainP.innerText = "各勘定の性質と増減の向きを正しく理解できています。";
-    checkBtn.disabled = true;
+    checkBtn.disabled  = true;
 
-    // 5問連続正解ごとに続けるか確認
+    // ★ 5問連続正解時の挙動
     if(streak >= 5 && currentIndex < quizQuestions.length - 1){
+      // ここでは自動遷移のタイマーは設定しない
       const cont = confirm("かなり慣れてきたようですね。まだ続けますか？");
       if(!cont){
         resultP.innerText += "\n練習を終了します。お疲れさまでした。";
-        // ここでセッションを終了
+        // ここでストリークはそのままでもいいし、リセットしても良い
+        // いったんリセットしておく
+        streak = 0;
         return;
       }else{
-        // 次の5問カウントのためにストリークをリセット
+        // 続ける場合、ストリークをリセットして次の5問チャレンジへ
         streak = 0;
+        currentIndex++;
+        showQuestion();
+        return;
       }
     }
 
+    // 通常の正解時：1秒後に自動で次の問題へ
     if(currentIndex < quizQuestions.length - 1){
       autoNextTimer = setTimeout(()=>{
         currentIndex++;

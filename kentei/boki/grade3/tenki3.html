@@ -40,6 +40,13 @@
       min-height:1.5em;
       display:flex;
       align-items:center;
+      opacity:1;
+      transition:opacity 0.25s ease; /* フェード用 */
+    }
+
+    /* 仕訳を非表示にするための専用クラス */
+    .journal-hidden{
+      opacity:0;
     }
 
     /* 仕訳ボタン＋仕訳表示を横並びに */
@@ -52,14 +59,18 @@
 
 
     .hint-btn{
-      padding:4px 10px;
-      font-size:13px;
+      padding:4px 10px;           /* 少し大きめに */
+      font-size:13px;             /* 読みやすく */
       border-radius:6px;
       white-space:nowrap;
       width:auto;
       min-width:fit-content;
       display:inline-block;
       flex:0 0 auto;
+      background:#c8e6c9;         /* 明るめの緑 */
+      border:1px solid #66bb6a;   /* 緑の枠線 */
+      color:#1b5e20;              /* 濃いめの緑の文字色 */
+      cursor:pointer;
     }
 
     /* T勘定の並び（最大3つを横並び） */
@@ -156,8 +167,8 @@
 
   <!-- 仕訳表示ボタン＋仕訳テキストを横並びに -->
   <div class="journal-row">
-    <button class="hint-btn" onclick="toggleJournal()">仕訳を表示</button>
-    <div id="journalText" class="hidden"></div>
+    <button class="hint-btn" onclick="toggleJournal()">💡 仕訳を表示</button>
+    <div id="journalText" class="journal-hidden"></div>
   </div>
 
   <!-- 元帳（簡易T勘定） -->
@@ -334,15 +345,17 @@ function shuffle(a){
    仕訳表示のON/OFF
 ===================== */
 function toggleJournal(){
-  const div  = document.getElementById("journalText");
-  const btn  = document.querySelector(".hint-btn");
+  const div = document.getElementById("journalText");
+  const btn = document.querySelector(".hint-btn");
 
-  div.classList.toggle("hidden");
+  // フェードクラスのON/OFF
+  div.classList.toggle("journal-hidden");
 
-  if(div.classList.contains("hidden")){
-    btn.textContent = "仕訳を表示";
+  // 表示状態に応じてボタンラベルを切り替え
+  if(div.classList.contains("journal-hidden")){
+    btn.textContent = "💡 仕訳を表示";
   }else{
-    btn.textContent = "仕訳を隠す";
+    btn.textContent = "💡 仕訳を隠す";
   }
 }
 

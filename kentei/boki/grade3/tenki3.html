@@ -13,7 +13,10 @@
       border-radius:10px;
       box-shadow:0 3px 8px rgba(0,0,0,0.08);
     }
-    .hidden{ display:none; }
+
+    .hidden{
+      display:none !important;
+    }
 
     /* 注意メッセージ */
     .notice-box{
@@ -31,6 +34,7 @@
       line-height:1.7;
       margin-bottom:10px;
     }
+
     #journalText{
       flex:1;
       min-height:1.5em;
@@ -45,11 +49,17 @@
       gap:8px;
       margin-bottom:15px;
     }
+
+
     .hint-btn{
       padding:2px 6px;
       font-size:11px;
       border-radius:6px;
-      white-space:nowrap;    /* ボタン内で折り返さない */
+      white-space:nowrap;
+      width:auto;
+      min-width:fit-content;
+      display:inline-block;
+      flex:0 0 auto;
     }
 
     /* T勘定の並び（最大3つを横並び） */

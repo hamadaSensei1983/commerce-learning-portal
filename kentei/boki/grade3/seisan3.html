@@ -45,6 +45,9 @@
       padding:4px;
       text-align:right !important;
       vertical-align:middle;
+
+      /* デフォルト：下だけ破線にする */
+      border-bottom-style:dashed !important;
     }
 
     /* 見出しは全てセンタリング */
@@ -121,6 +124,26 @@
       font-weight:bold;
       white-space:pre-line;
     }
+
+    /* 合計行：上実線、下二重線 */
+    .total-row td{
+      border-top-width:2px !important;
+      border-top-style:solid !important;
+
+      border-bottom-width:3px !important;
+      border-bottom-style:double !important;
+    }
+
+    /* 残高試算表 / 整理記入 / PL の区切りを太線にする */
+    table.seisan th:nth-child(3),
+    table.seisan td:nth-child(3),
+    table.seisan th:nth-child(5),
+    table.seisan td:nth-child(5),
+    table.seisan th:nth-child(7),
+    table.seisan td:nth-child(7){
+      border-right-width:2px !important;
+    }
+
   </style>
 </head>
 <body>
@@ -355,16 +378,17 @@ function renderTable(p){
 
   p.rows.forEach((r,i)=>{
     const tr = document.createElement("tr");
+    tr.className = "total-row";   // ★ 追加
     tr.innerHTML = `
-      <td>${r.subject}</td>
-      <td>${fmt(r.tbD)}</td>
-      <td>${fmt(r.tbC)}</td>
-      <td><input class="money" id="adjD_${i}"></td>
-      <td><input class="money" id="adjC_${i}"></td>
-      <td><input class="money" id="plD_${i}"></td>
-      <td><input class="money" id="plC_${i}"></td>
-      <td><input class="money" id="bsD_${i}"></td>
-      <td><input class="money" id="bsC_${i}"></td>
+      <td><b>合計</b></td>
+      <td><b>${fmt(t.tbD)}</b></td>
+      <td><b>${fmt(t.tbC)}</b></td>
+      <td><b>${fmt(t.adjD)}</b></td>
+      <td><b>${fmt(t.adjC)}</b></td>
+      <td><b>${fmt(t.plD)}</b></td>
+      <td><b>${fmt(t.plC)}</b></td>
+      <td><b>${fmt(t.bsD)}</b></td>
+      <td><b>${fmt(t.bsC)}</b></td>
     `;
     tbody.appendChild(tr);
   });

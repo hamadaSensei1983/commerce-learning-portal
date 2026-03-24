@@ -38,18 +38,8 @@
       table-layout:fixed;
     }
 
-    /* ===== 基本罫線（科目行） ===== */
-    /* td 行の下は破線（科目行のデフォルト） */
-    table.seisan td{
-      border:1px solid #e53935 !important;
-      border-bottom-style:dashed !important;
-      padding:4px;
-      text-align:right !important;
-      vertical-align:middle;
-    }
-
-    /* th は破線にしない（見出し行は実線） */
-    table.seisan th{
+    /* ---- 見出し行（実線） ---- */
+    table.seisan thead th{
       border:1px solid #e53935 !important;
       border-bottom-style:solid !important;
       padding:4px;
@@ -58,7 +48,16 @@
       vertical-align:middle !important;
     }
 
-    /* ===== 外枠（左右）は線なし ===== */
+    /* ---- 通常行（td）：下が破線 ---- */
+    table.seisan tbody td{
+      border:1px solid #e53935 !important;
+      border-bottom-style:dashed !important;
+      padding:4px;
+      text-align:right !important;
+      vertical-align:middle;
+    }
+
+    /* ---- 左右の外枠なし ---- */
     table.seisan th:first-child,
     table.seisan td:first-child{
       border-left:none !important;
@@ -68,34 +67,51 @@
       border-right:none !important;
     }
 
-    /* ===== 列幅 ===== */
-    /* 科目列 8% */
+    /* ---- 科目列：8％幅 ---- */
     table.seisan th:first-child,
     table.seisan td:first-child{
       width:8% !important;
       text-align:left !important;
     }
 
-    /* 残り均等 11.5% */
+    /* ---- 他8列を均等割り ---- */
     table.seisan th:not(:first-child),
     table.seisan td:not(:first-child){
       width:11.5% !important;
     }
 
-    /* ===== セクション区切り縦線（列の右側） ===== */
-    /* 3,5,7,9列目の“右側”を太線にする */
-    table.seisan tr th:nth-child(3),
-    table.seisan tr td:nth-child(3),
-    table.seisan tr th:nth-child(5),
-    table.seisan tr td:nth-child(5),
-    table.seisan tr th:nth-child(7),
-    table.seisan tr td:nth-child(7),
-    table.seisan tr th:nth-child(9),
-    table.seisan tr td:nth-child(9){
+    /* ==========================================
+      4つの区切り縦線（3,5,7,9列目の右側に太線）
+      見出し行 & 本体行で個別に指定
+    ========================================== */
+
+    /* 見出し行の太線 */
+    table.seisan thead tr:nth-child(1) th:nth-child(3),
+    table.seisan thead tr:nth-child(1) th:nth-child(5),
+    table.seisan thead tr:nth-child(1) th:nth-child(7),
+    table.seisan thead tr:nth-child(1) th:nth-child(9){
       border-right-width:3px !important;
     }
 
-    /* ===== 合計行（最下行だけ特別ルール）===== */
+    /* 2行目の見出し（借方/貸方）の太線 */
+    table.seisan thead tr:nth-child(2) th:nth-child(3),
+    table.seisan thead tr:nth-child(2) th:nth-child(5),
+    table.seisan thead tr:nth-child(2) th:nth-child(7),
+    table.seisan thead tr:nth-child(2) th:nth-child(9){
+      border-right-width:3px !important;
+    }
+
+    /* 本体（tbody）行の太線 */
+    table.seisan tbody tr td:nth-child(3),
+    table.seisan tbody tr td:nth-child(5),
+    table.seisan tbody tr td:nth-child(7),
+    table.seisan tbody tr td:nth-child(9){
+      border-right-width:3px !important;
+    }
+
+    /* ==========================================
+      合計行：上実線＆下二重線（破線無効）
+    ========================================== */
     .total-row td{
       border-bottom-style:double !important;
       border-bottom-width:3px !important;
@@ -103,9 +119,11 @@
       border-top-style:solid !important;
       border-top-width:2px !important;
 
-      /* 合計行は破線にしない */
+      /* 破線解除 */
       border-bottom-color:#e53935 !important;
       border-top-color:#e53935 !important;
+      border-bottom-style:double !important;
+      border-top-style:solid !important;
     }
 
     /* 入力ボックスは右寄せ＆精算表になじませる */

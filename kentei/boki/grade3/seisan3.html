@@ -18,7 +18,7 @@
 
     .hidden{ display:none !important; }
 
-    /* 整理事項枠 */
+    /* 整理事項 */
     #notesArea{
       padding:10px;
       background:#f8f8f8;
@@ -38,19 +38,17 @@
       table-layout:fixed;
     }
 
-    /* セル共通：赤罫線・右寄せ */
+    /* 全セル：赤罫線＆右寄せ＆下は破線 */
     table.seisan th,
     table.seisan td{
       border:1px solid #e53935 !important;
       padding:4px;
       text-align:right !important;
       vertical-align:middle;
-
-      /* デフォルト：下だけ破線にする */
-      border-bottom-style:dashed !important;
+      border-bottom-style:dashed !important;  /* 各行の下は破線 */
     }
 
-    /* 見出しは全てセンタリング */
+    /* 見出しはセンタリング */
     table.seisan th{
       background:#ffebee !important;
       font-weight:bold;
@@ -58,7 +56,7 @@
       vertical-align:middle !important;
     }
 
-    /* 左右の外枠（縦線）は無色（=線なし） */
+    /* 左右の外枠（縦線）は無し */
     table.seisan tr th:first-child,
     table.seisan tr td:first-child{
       border-left:none !important;
@@ -68,19 +66,27 @@
       border-right:none !important;
     }
 
-    /* ---- 列幅設定 ---- */
-
-    /* 科目列をかなり細く（8%） */
+    /* 科目列：かなり狭く（8%） */
     table.seisan th:first-child,
     table.seisan td:first-child{
       width:8% !important;
       text-align:left !important;
     }
 
-    /* その他8列を均等（92% ÷ 8 ≒ 11.5%） */
+    /* 他 8列を均等に（92% ÷ 8 ≒ 11.5%） */
     table.seisan th:not(:first-child),
     table.seisan td:not(:first-child){
       width:11.5% !important;
+    }
+
+    /* TB / 整理 / PL / BS の区切り縦線を太線に（3,5,7列目の右） */
+    table.seisan th:nth-child(3),
+    table.seisan td:nth-child(3),
+    table.seisan th:nth-child(5),
+    table.seisan td:nth-child(5),
+    table.seisan th:nth-child(7),
+    table.seisan td:nth-child(7){
+      border-right-width:2px !important;
     }
 
     /* 入力ボックスは右寄せ＆精算表になじませる */
@@ -105,15 +111,14 @@
       position:relative;
     }
 
-    /* 正解表示（赤字・セル直下） */
+    /* 正解表示（赤字）：セル直下に表示 */
     .correct-answer{
       font-size:14px;
       color:#b71c1c;
       font-weight:bold;
       position:absolute;
       right:2px;
-      /* 先生調整版：セル直下少し上め */
-      top: calc(100% - 15px);
+      top: calc(100% - 15px); /* 先生に合わせた位置 */
       z-index:9999;
       background:transparent;
       pointer-events:none;
@@ -124,26 +129,6 @@
       font-weight:bold;
       white-space:pre-line;
     }
-
-    /* 合計行：上実線、下二重線 */
-    .total-row td{
-      border-top-width:2px !important;
-      border-top-style:solid !important;
-
-      border-bottom-width:3px !important;
-      border-bottom-style:double !important;
-    }
-
-    /* 残高試算表 / 整理記入 / PL の区切りを太線にする */
-    table.seisan th:nth-child(3),
-    table.seisan td:nth-child(3),
-    table.seisan th:nth-child(5),
-    table.seisan td:nth-child(5),
-    table.seisan th:nth-child(7),
-    table.seisan td:nth-child(7){
-      border-right-width:2px !important;
-    }
-
   </style>
 </head>
 <body>
@@ -158,7 +143,7 @@
   </div>
 </header>
 
-<!-- ローディング画面（common.cssのspinnerと統一） -->
+<!-- ローディング画面 -->
 <div id="loadingScreen">
   <div style="text-align:center">
     <img src="../../../images/logo.png" style="width:90px;margin-bottom:20px">
@@ -217,7 +202,7 @@
 
 <script>
 /* ==========================================
-   fetch版 CSV ローダー（1秒ルール付き）
+   fetch版：CSV読み込み（1秒ローディング付き）
 ========================================== */
 let problems = [];
 let currentIndex = 0;
@@ -227,10 +212,11 @@ window.addEventListener("DOMContentLoaded", ()=>{
 });
 
 async function loadCSV(path){
-  const start = Date.now();
+  const startTime = Date.now();
   try{
     const res = await fetch(path);
-    let text  = await res.text();
+    if(!res.ok) throw new Error("CSVが見つかりません: " + path);
+    let text = await res.text();
     text = text.replace(/^\uFEFF/,""); // BOM除去
     const rows = parseCSV(text);
     buildProblems(rows);
@@ -238,9 +224,9 @@ async function loadCSV(path){
     document.getElementById("problemText").textContent =
       "CSV読み込みエラー：" + (e.message || e);
   }finally{
-    const elapsed = Date.now() - start;
+    const elapsed = Date.now() - startTime;
     const remain  = 1000 - elapsed;
-    const done = ()=>{
+    const finish = ()=>{
       const loading = document.getElementById("loadingScreen");
       if(loading) loading.style.display = "none";
       if(problems.length > 0){
@@ -252,13 +238,12 @@ async function loadCSV(path){
           "有効な問題がありません。";
       }
     };
-    if(remain > 0) setTimeout(done, remain);
-    else done();
+    if(remain > 0) setTimeout(finish, remain); else finish();
   }
 }
 
 /* ==========================================
-   CSVパーサ（"..."内の改行・カンマ対応）
+   CSVパーサ："..."内の改行・カンマにも対応
 ========================================== */
 function parseCSV(text){
   const lines = text.split(/\r?\n/);
@@ -269,8 +254,10 @@ function parseCSV(text){
   for(let line of lines){
     if(!line && !buffer) continue;
     buffer += (buffer ? "\n" : "") + line;
+
     const qcount = (line.match(/"/g) || []).length;
     if(qcount % 2 !== 0) inQ = !inQ;
+
     if(!inQ){
       recs.push(buffer);
       buffer = "";
@@ -278,15 +265,15 @@ function parseCSV(text){
   }
 
   const data = [];
-  for(let i=0;i<recs.length;i++){
-    const row = recs[i];
+  for(let row of recs){
     if(!row.trim()) continue;
+
     let cols=[], cur="", q=false;
     for(let c of row){
       if(c === '"'){ q = !q; continue; }
       if(c === "," && !q){
         cols.push(cur);
-        cur="";
+        cur = "";
       }else{
         cur += c;
       }
@@ -349,14 +336,15 @@ function showProblem(idx){
   const p = problems[idx];
   if(!p) return;
 
+  // 問題文
   document.getElementById("problemText").textContent = p.text || "";
 
-  // 整理事項（'|'区切り → a., b., c. 表示）
+  // 整理事項（'|'区切り → a., b., c.）
   const notesArea = document.getElementById("notesArea");
   if(p.notes){
     const arr = p.notes.split("|").map(x=>x.trim()).filter(x=>x);
     const abc = "abcdefghijklmnopqrstuvwxyz";
-    notesArea.innerHTML = arr.map((n,i)=>`${abc[i]}. ${n}`).join("\n");
+    notesArea.innerHTML = arr.map((n,i)=> `${abc[i]}. ${n}`).join("\n");
     notesArea.classList.remove("hidden");
   }else{
     notesArea.classList.add("hidden");
@@ -370,7 +358,7 @@ function showProblem(idx){
 }
 
 /* ==========================================
-   精算表の描画
+   精算表描画
 ========================================== */
 function renderTable(p){
   const tbody = document.getElementById("seisanBody");
@@ -378,23 +366,22 @@ function renderTable(p){
 
   p.rows.forEach((r,i)=>{
     const tr = document.createElement("tr");
-    tr.className = "total-row";   // ★ 追加
     tr.innerHTML = `
-      <td><b>合計</b></td>
-      <td><b>${fmt(t.tbD)}</b></td>
-      <td><b>${fmt(t.tbC)}</b></td>
-      <td><b>${fmt(t.adjD)}</b></td>
-      <td><b>${fmt(t.adjC)}</b></td>
-      <td><b>${fmt(t.plD)}</b></td>
-      <td><b>${fmt(t.plC)}</b></td>
-      <td><b>${fmt(t.bsD)}</b></td>
-      <td><b>${fmt(t.bsC)}</b></td>
+      <td>${r.subject}</td>
+      <td>${fmt(r.tbD)}</td>
+      <td>${fmt(r.tbC)}</td>
+      <td><input class="money" id="adjD_${i}"></td>
+      <td><input class="money" id="adjC_${i}"></td>
+      <td><input class="money" id="plD_${i}"></td>
+      <td><input class="money" id="plC_${i}"></td>
+      <td><input class="money" id="bsD_${i}"></td>
+      <td><input class="money" id="bsC_${i}"></td>
     `;
     tbody.appendChild(tr);
   });
 
-  // 合計行
-  const t={tbD:0,tbC:0,adjD:0,adjC:0,plD:0,plC:0,bsD:0,bsC:0};
+  // 合計行（正解値で表示）
+  const t = {tbD:0,tbC:0,adjD:0,adjC:0,plD:0,plC:0,bsD:0,bsC:0};
   p.rows.forEach(r=>{
     t.tbD+=r.tbD; t.tbC+=r.tbC;
     t.adjD+=r.adjD; t.adjC+=r.adjC;
@@ -403,6 +390,7 @@ function renderTable(p){
   });
 
   const tr = document.createElement("tr");
+  tr.className = "total-row";
   tr.innerHTML = `
     <td><b>合計</b></td>
     <td><b>${fmt(t.tbD)}</b></td>
@@ -415,6 +403,18 @@ function renderTable(p){
     <td><b>${fmt(t.bsC)}</b></td>
   `;
   tbody.appendChild(tr);
+
+  // 合計行だけ「上実線・下二重線」にする
+  const totalCells = tr.querySelectorAll("td");
+  totalCells.forEach(td=>{
+    td.style.borderTopWidth    = "2px";
+    td.style.borderTopStyle    = "solid";
+    td.style.borderBottomWidth = "3px";
+    td.style.borderBottomStyle = "double";
+  });
+
+  // テーブル表示
+  document.getElementById("seisanTable").classList.remove("hidden");
 }
 
 /* 表示用フォーマット */
@@ -445,7 +445,7 @@ function checkAnswer(){
   const p = problems[currentIndex];
   if(!p) return;
 
-  // 前回の表示をクリア
+  // 前回表示リセット
   document.querySelectorAll(".correct-answer").forEach(e=>e.remove());
   document.querySelectorAll(".money")
     .forEach(e=>e.classList.remove("correct","wrong"));
@@ -471,7 +471,7 @@ function checkAnswer(){
   document.getElementById("nextBtn").classList.remove("hidden");
 }
 
-/* 不正解セルへの正解表示（赤字） */
+/* 不正解セルに正解表示（赤字） */
 function mark(id,user,correct){
   const el = document.getElementById(id);
   if(!el) return true;
@@ -487,8 +487,8 @@ function mark(id,user,correct){
     el.classList.add("wrong");
 
     const ans = document.createElement("div");
-    ans.className = "correct-answer";
-    ans.textContent = correct.toLocaleString();
+    ans.className  = "correct-answer";
+    ans.textContent= correct.toLocaleString();
 
     el.parentNode.style.position = "relative";
     el.parentNode.appendChild(ans);
@@ -496,9 +496,7 @@ function mark(id,user,correct){
   }
 }
 
-/* ==========================================
-   次の問題
-========================================== */
+/* 次の問題へ */
 function nextProblem(){
   currentIndex++;
   if(currentIndex >= problems.length) currentIndex = 0;

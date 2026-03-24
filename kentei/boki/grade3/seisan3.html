@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>全商簿記3級 精算表トレーニング（ローカル版）</title>
+  <link rel="stylesheet" href="../../../css/common.css">
+  <style>
+
+    /* 全体カード */
+    .card{
+      max-width:950px;
+      margin:20px auto;
+      padding:20px;
+      background:white;
+      border-radius:10px;
+      box-shadow:0 3px 8px rgba(0,0,0,0.08);
+    }
+
+    .hidden{ display:none !important; }
+
+    /* 整理事項 */
+    #notesArea{
+      padding:10px;
+      background:#f8f8f8;
+      border-left:4px solid #66bb6a;
+      margin:10px 0;
+      white-space:pre-line;
+      font-size:14px;
+    }
+
+    /* ================================
+      精算表（赤罫線＋右寄せ）
+    ================================ */
+    table.seisan{
+      width:100%;
+      border-collapse:collapse;
+      font-size:14px;
+      table-layout:fixed;
+    }
+
+    /* セル共通（赤罫線・右寄せ） */
+    table.seisan th,
+    table.seisan td{
+      border:1px solid #e53935 !important;
+      padding:4px;
+      text-align:right !important;
+      vertical-align:middle;
+    }
+
+    /* 見出しは全部センタリング（強制上書き）*/
+    table.seisan th{
+      background:#ffebee !important;
+      font-weight:bold;
+      text-align:center !important;
+      vertical-align:middle !important;
+    }
+
+    /* ---- 列幅設定 ---- */
+
+    /* 科目列：かなり狭く → 8% */
+    table.seisan th:first-child,
+    table.seisan td:first-child{
+      width:8% !important;
+      text-align:left !important;
+    }
+
+    /* その他の列：92% ÷ 8 ≒ 11.5% */
+    table.seisan th:not(:first-child),
+    table.seisan td:not(:first-child){
+      width:11.5% !important;
+    }
+
+    /* 入力ボックス */
+    .money{
+      width:100% !important;
+      text-align:right !important;
+      padding:3px;
+      box-sizing:border-box;
+      border:1px solid #aaa;
+      background:white;
+      font-size:14px;
+    }
+
+    /* 正解ハイライト */
+    .correct{
+      background:#e8f5e9 !important;
+    }
+
+    /* 不正解ハイライト */
+    .wrong{
+      background:#ffebee !important;
+      position:relative;
+    }
+
+    /* ---- 正解表示（視認性大幅改善版） ---- */
+    .correct-answer{
+      font-size:14px;
+      color:#b71c1c;
+      font-weight:bold;
+
+      position:absolute;
+      right:2px;
+
+      /* セルの少し下に表示 */
+      top: calc(100% - 15px);
+
+      z-index:9999;
+      background:transparent;
+      pointer-events:none;  /* クリック干渉なし */
+    }
+
+    #result{
+      margin-top:12px;
+      font-weight:bold;
+      white-space:pre-line;
+    }
+
+  </style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="header-left">
+    <img src="../../../images/logo.png" class="header-icon">
+    <div>
+      <h1 class="site-title">検定対策システム</h1>
+      <div class="exam-title">全商簿記3級 精算表トレーニング（ローカル版）</div>
+    </div>
+  </div>
+</header>
+
+<div class="card">
+  <h2>精算表</h2>
+  <p>
+    実際の精算表とは表示が少し異なりますが、練習用です。<br>
+    わからないところは、先生や友達に聞いて理解してください。
+  </p>
+
+  <!-- CSV 読み込み -->
+  <input type="file" id="csvFile" accept=".csv" onchange="loadLocalCSV(this.files[0])">
+  <br><br>
+
+  <!-- 問題選択 -->
+  <div id="problemArea" class="hidden" style="margin-bottom:10px;">
+    <label for="problemSelect">問題を選択：</label>
+    <select id="problemSelect" onchange="renderProblem()"></select>
+  </div>
+
+  <!-- 問題文 -->
+  <h3 id="problemText"></h3>
+
+  <!-- 決算整理事項 -->
+  <div id="notesArea" class="hidden"></div>
+
+  <!-- 精算表 -->
+  <table class="seisan hidden" id="seisanTable">
+    <thead>
+      <tr>
+        <th rowspan="2">科目</th>
+        <th colspan="2">残高試算表</th>
+        <th colspan="2">整理記入</th>
+        <th colspan="2">損益計算書</th>
+        <th colspan="2">貸借対照表</th>
+      </tr>
+      <tr>
+        <th>借方</th><th>貸方</th>
+        <th>借方</th><th>貸方</th>
+        <th>借方</th><th>貸方</th>
+        <th>借方</th><th>貸方</th>
+      </tr>
+    </thead>
+    <tbody id="seisanBody"></tbody>
+  </table>
+
+  <div style="text-align:center;margin-top:15px;">
+    <button id="checkBtn" class="hidden" onclick="checkAnswer()">答え合わせ</button>
+  </div>
+
+  <p id="result"></p>
+</div>
+
+<div style="text-align:center;margin-top:20px;">
+  <a href="../index.html" class="portal-btn exam-btn">簿記トップ</a>
+  <a href="../../../index.html" class="portal-btn portal-main">ポータルへ戻る</a>
+</div>
+
+<script>
+/* ==========================================
+   強化版 CSV パーサー（"..." 内のカンマ対応）
+========================================== */
+function parseCSV(text){
+  text = text.replace(/^\uFEFF/, ""); // BOM除去
+  const lines = text.split(/\r?\n/).filter(l => l.trim() !== "");
+  const rows = [];
+
+  // 1行ずつ "..." のペアが閉じるまで連結
+  let buffer = "";
+  let inQuotes = false;
+  for(let line of lines){
+    if(buffer){
+      buffer += "\n" + line;
+    }else{
+      buffer = line;
+    }
+    let quoteCount = (line.match(/"/g) || []).length;
+    if(quoteCount % 2 !== 0){
+      inQuotes = !inQuotes;
+    }
+    if(!inQuotes){
+      rows.push(buffer);
+      buffer = "";
+    }
+  }
+
+  // 各行を列に分解
+  const data = [];
+  for(let i=0; i<rows.length; i++){
+    const line = rows[i];
+    if(!line.trim()) continue;
+
+    let cols = [];
+    let cur  = "";
+    let inQ  = false;
+
+    for(let c of line){
+      if(c === '"'){
+        inQ = !inQ;
+        continue;
+      }
+      if(c === "," && !inQ){
+        cols.push(cur);
+        cur = "";
+      }else{
+        cur += c;
+      }
+    }
+    cols.push(cur);
+
+    data.push(cols);
+  }
+  return data;
+}
+
+/* ==========================================
+   グローバル
+========================================== */
+let problems   = {}; // { id: { id, text, notes, rows[] } }
+let problemIds = [];
+let currentId  = null;
+
+/* 数値変換（空欄→0） */
+function num(s){
+  s = (s || "").replace(/,/g,"").trim();
+  return s === "" ? 0 : Number(s);
+}
+
+/* ==========================================
+   ローカルCSV読み込み
+========================================== */
+function loadLocalCSV(file){
+  const reader = new FileReader();
+  reader.onload = e => {
+    const text = e.target.result;
+    const rows = parseCSV(text);
+    buildProblems(rows);
+  };
+  reader.readAsText(file, "utf-8");
+}
+
+/* ==========================================
+   CSV内容 → 問題構造へ
+   想定ヘッダ：
+   問題ID,問題文,整理事項,科目,
+   残高借方,残高貸方,整理借方,整理貸方,
+   PL借方,PL貸方,BS借方,BS貸方
+========================================== */
+function buildProblems(rows){
+  problems   = {};
+  problemIds = [];
+
+  // 先頭行はヘッダ
+  for(let i=1; i<rows.length; i++){
+    const cols = rows[i];
+    if(cols.length < 12) continue;
+
+    const pid   = (cols[0] || "").trim();
+    const pText = (cols[1] || "").trim();
+    const notes = (cols[2] || "").trim();
+    const subj  = (cols[3] || "").trim();
+
+    const row = {
+      subject: subj,
+      tbD:  num(cols[4]),
+      tbC:  num(cols[5]),
+      adjD: num(cols[6]),
+      adjC: num(cols[7]),
+      plD:  num(cols[8]),
+      plC:  num(cols[9]),
+      bsD:  num(cols[10]),
+      bsC:  num(cols[11])
+    };
+
+    if(!problems[pid]){
+      problems[pid] = { id:pid, text:pText, notes:notes, rows:[] };
+      problemIds.push(pid);
+    }else{
+      // 問題文・整理事項は最初の行の非空欄を優先
+      if(!problems[pid].text && pText) problems[pid].text = pText;
+      if(!problems[pid].notes && notes) problems[pid].notes = notes;
+    }
+    problems[pid].rows.push(row);
+  }
+
+  setupProblemSelect();
+}
+
+/* ==========================================
+   問題選択プルダウン生成
+========================================== */
+function setupProblemSelect(){
+  const sel      = document.getElementById("problemSelect");
+  const area     = document.getElementById("problemArea");
+  const table    = document.getElementById("seisanTable");
+  const checkBtn = document.getElementById("checkBtn");
+  const resultP  = document.getElementById("result");
+
+  if(problemIds.length === 0){
+    area.classList.add("hidden");
+    table.classList.add("hidden");
+    checkBtn.classList.add("hidden");
+    resultP.innerText = "有効な問題がありません。";
+    return;
+  }
+
+  sel.innerHTML = "";
+  problemIds.forEach(id=>{
+    const opt = document.createElement("option");
+    opt.value = id;
+    opt.textContent = `問題 ${id}`;
+    sel.appendChild(opt);
+  });
+
+  area.classList.remove("hidden");
+  table.classList.remove("hidden");
+  checkBtn.classList.remove("hidden");
+
+  currentId = problemIds[0];
+  renderProblem();
+}
+
+function renderProblem(){
+  const sel = document.getElementById("problemSelect");
+  currentId = sel.value;
+  const p = problems[currentId];
+  if(!p) return;
+
+  // 問題文
+  document.getElementById("problemText").textContent = p.text || "";
+
+  // 整理事項（'|' 区切りで複数行表示）
+  const notesArea = document.getElementById("notesArea");
+  if(p.notes){
+    const arr = p.notes.split("|").map(x=>x.trim()).filter(x=>x);
+    const abc = "abcdefghijklmnopqrstuvwxyz";  // a,b,c...
+    notesArea.innerHTML = arr
+    .map((n,i)=> `${abc[i]}. ${n}`)
+    .join("\n");    notesArea.classList.remove("hidden");
+  }else{
+    notesArea.classList.add("hidden");
+  }
+
+  // 精算表描画
+  const tbody = document.getElementById("seisanBody");
+  tbody.innerHTML = "";
+
+  p.rows.forEach((row, idx)=>{
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${row.subject}</td>
+      <td>${fmt(row.tbD)}</td>
+      <td>${fmt(row.tbC)}</td>
+      <td><input class="money" id="adjD_${idx}"></td>
+      <td><input class="money" id="adjC_${idx}"></td>
+      <td><input class="money" id="plD_${idx}"></td>
+      <td><input class="money" id="plC_${idx}"></td>
+      <td><input class="money" id="bsD_${idx}"></td>
+      <td><input class="money" id="bsC_${idx}"></td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  // 合計行を正解値で表示
+  const total = {tbD:0,tbC:0,adjD:0,adjC:0,plD:0,plC:0,bsD:0,bsC:0};
+  p.rows.forEach(r=>{
+    total.tbD += r.tbD;
+    total.tbC += r.tbC;
+    total.adjD+= r.adjD;
+    total.adjC+= r.adjC;
+    total.plD += r.plD;
+    total.plC += r.plC;
+    total.bsD += r.bsD;
+    total.bsC += r.bsC;
+  });
+
+  const trTotal = document.createElement("tr");
+  trTotal.innerHTML = `
+    <td><b>合計</b></td>
+    <td><b>${fmt(total.tbD)}</b></td>
+    <td><b>${fmt(total.tbC)}</b></td>
+    <td><b>${fmt(total.adjD)}</b></td>
+    <td><b>${fmt(total.adjC)}</b></td>
+    <td><b>${fmt(total.plD)}</b></td>
+    <td><b>${fmt(total.plC)}</b></td>
+    <td><b>${fmt(total.bsD)}</b></td>
+    <td><b>${fmt(total.bsC)}</b></td>
+  `;
+  tbody.appendChild(trTotal);
+
+  setupCommaSupport();
+  document.getElementById("result").innerText = "";
+}
+
+/* ==========================================
+   カンマ補助
+========================================== */
+function setupCommaSupport(){
+  document.querySelectorAll(".money").forEach(el=>{
+    el.addEventListener("input", ()=>{
+      const v = el.value.replace(/,/g,"");
+      if(!isNaN(v) && v!==""){
+        el.value = Number(v).toLocaleString();
+      }
+    });
+  });
+}
+
+/* ==========================================
+   数値取得
+========================================== */
+function getNumber(id){
+  const el = document.getElementById(id);
+  if(!el) return 0;
+  const raw = el.value.replace(/,/g,"").trim();
+  return raw === "" ? 0 : Number(raw);
+}
+
+/* ==========================================
+   採点
+========================================== */
+function checkAnswer(){
+  const p = problems[currentId];
+  if(!p) return;
+
+  let allOk = true;
+  let msg   = "";
+
+  p.rows.forEach((row, idx)=>{
+    const u_adjD = getNumber(`adjD_${idx}`);
+    const u_adjC = getNumber(`adjC_${idx}`);
+    const u_plD  = getNumber(`plD_${idx}`);
+    const u_plC  = getNumber(`plC_${idx}`);
+    const u_bsD  = getNumber(`bsD_${idx}`);
+    const u_bsC  = getNumber(`bsC_${idx}`);
+
+    let rowOk = true;
+    rowOk &= mark(`adjD_${idx}`, u_adjD, row.adjD);
+    rowOk &= mark(`adjC_${idx}`, u_adjC, row.adjC);
+    rowOk &= mark(`plD_${idx}`,  u_plD,  row.plD);
+    rowOk &= mark(`plC_${idx}`,  u_plC,  row.plC);
+    rowOk &= mark(`bsD_${idx}`,  u_bsD,  row.bsD);
+    rowOk &= mark(`bsC_${idx}`,  u_bsC,  row.bsC);
+
+    if(!rowOk){
+      allOk = false;
+      msg += `・${row.subject} のいずれかの列が誤りです。\n`;
+    }
+  });
+
+  document.getElementById("result").innerText =
+    allOk
+      ? "〇 全て正解です！素晴らしいです。"
+      : "× 不正解の科目があります。\n" + msg;
+}
+
+/* ==========================================
+   セルの正誤ハイライト
+========================================== */
+function mark(id, user, correct){
+  const el = document.getElementById(id);
+  if(!el) return true;
+  el.classList.remove("correct","wrong");
+  if(user === correct){
+    el.classList.add("correct");
+    return true;
+  }else{
+    el.classList.add("wrong");
+    return false;
+  }
+}
+
+/* ==========================================
+   表示用フォーマット
+========================================== */
+function fmt(n){
+  return n ? n.toLocaleString() : "";
+}
+
+function mark(id,user,correct){
+  const el = document.getElementById(id);
+  if(!el) return true;
+
+  // リセット
+  el.classList.remove("correct","wrong");
+  const old = el.parentNode.querySelector(".correct-answer");
+  if(old) old.remove();
+
+  if(user === correct){
+    el.classList.add("correct");
+    return true;
+  }else{
+    el.classList.add("wrong");
+
+    // 正解表示（改善版）
+    const ans = document.createElement("div");
+    ans.className = "correct-answer";
+    ans.textContent = correct.toLocaleString();
+
+    el.parentNode.style.position = "relative";
+    el.parentNode.appendChild(ans);
+
+    return false;
+  }
+}
+
+</script>
+
+</body>
+</html>

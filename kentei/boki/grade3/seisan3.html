@@ -111,12 +111,12 @@
 
     /*---------------------------------
       ★ 太縦線（正しい列位置）
-      thead1行目：th 2,3,4,5 が区切り
+      thead1行目：th 1,2,3,4 が区切り
       thead2行目：th 1,3,5,7 が区切り
       tbody      ：td 1,3,5,7 が区切り
     ---------------------------------*/
 
-    /* thead 1行目（科目は除外 → 区切りは2〜5） */
+    /* thead 1行目（科目は除外 → 区切りは1〜4） */
     table.seisan thead tr:nth-child(1) th:nth-child(1),
     table.seisan thead tr:nth-child(1) th:nth-child(2),
     table.seisan thead tr:nth-child(1) th:nth-child(3),
@@ -125,10 +125,9 @@
     }
 
     /* thead 2行目（借方貸方行）：1,3,5,7列の右 */
-    table.seisan thead tr:nth-child(2) th:nth-child(1),
-    table.seisan thead tr:nth-child(2) th:nth-child(3),
-    table.seisan thead tr:nth-child(2) th:nth-child(5),
-    table.seisan thead tr:nth-child(2) th:nth-child(7){
+    table.seisan thead tr:nth-child(2) th:nth-child(2),
+    table.seisan thead tr:nth-child(2) th:nth-child(4),
+    table.seisan thead tr:nth-child(2) th:nth-child(6){
       border-right:3px solid #e53935 !important;
     }
 

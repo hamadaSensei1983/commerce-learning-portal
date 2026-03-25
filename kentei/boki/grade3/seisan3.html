@@ -82,7 +82,6 @@
     table.seisan thead th:not(:first-child),
     table.seisan tbody td:not(:first-child){
       width:11% !important;
-      text-align:right !important;
     }
 
     /*---------------------------------
@@ -159,6 +158,7 @@
     .wrong{   background:#ffebee !important; position:relative; }
 
     .correct-answer{
+      background:transparent !important;
       font-size:14px;
       color:#b71c1c;
       font-weight:bold;
@@ -176,7 +176,7 @@
     }
 
     /* tbody の右寄せが thead に侵食しないように線引き */
-    table.seisan thead tr th{
+    table.seisan thead th{
       text-align:center !important;
     }
 

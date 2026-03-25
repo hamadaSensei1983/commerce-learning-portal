@@ -120,16 +120,16 @@
       white-space:pre-line;
     }
 
-    /* tbody の行の下線は破線（強制上書き） */
-    table.seisan tbody tr td{
-      border-bottom-style:dashed !important;
+    /* ★ 途中行（tbody）は全部破線で固定（common.css を上書き） */
+    table.seisan tbody td {
+      border-bottom: 1px dashed #e53935 !important;
     }
 
-    /* 合計行だけ破線を解除する（下は実線に） */
-    table.seisan tbody tr.total-row td{
-      border-bottom-style:double !important;
+    /* ★ 合計行だけ破線ではなく実線にする（破線を上書き） */
+    table.seisan tbody tr.total-row td {
+      border-bottom: 2px solid #e53935 !important;
     }
-
+    
   </style>
 </head>
 <body>

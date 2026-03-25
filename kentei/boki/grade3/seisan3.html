@@ -60,7 +60,7 @@
 
     /* 見出し1行目：上下とも実線 */
     table.seisan thead tr:nth-child(1) th{
-      border-top:1px solid #e53935 !important;
+      border-top:2px solid #e53935 !important;
       border-bottom:1px solid #e53935 !important;
     }
 
@@ -117,10 +117,10 @@
     ---------------------------------*/
 
     /* thead 1行目（科目は除外 → 区切りは2〜5） */
+    table.seisan thead tr:nth-child(1) th:nth-child(1),
     table.seisan thead tr:nth-child(1) th:nth-child(2),
     table.seisan thead tr:nth-child(1) th:nth-child(3),
-    table.seisan thead tr:nth-child(1) th:nth-child(4),
-    table.seisan thead tr:nth-child(1) th:nth-child(5){
+    table.seisan thead tr:nth-child(1) th:nth-child(4){
       border-right:3px solid #e53935 !important;
     }
 

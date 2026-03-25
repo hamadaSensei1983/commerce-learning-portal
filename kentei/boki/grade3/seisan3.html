@@ -58,6 +58,21 @@
       vertical-align:middle;
     }
 
+    /* colspan のズレを吸収するため、見出し行は中央揃えを最優先 */
+    table.seisan thead th{
+      text-align:center !important;
+    }
+
+    /* 見出し2行目の借方（内部的な1列目）も中央寄せ */
+    table.seisan thead tr:nth-child(2) th:nth-child(1){
+      text-align:center !important;
+    }
+
+    /* tbody の科目列だけ左揃え（theadには適用されない） */
+    table.seisan tbody td:first-child{
+      text-align:left !important;
+    }
+
     /* 見出し1行目：上下とも実線 */
     table.seisan thead tr:nth-child(1) th{
       border-top:2px solid #e53935 !important;
@@ -75,7 +90,7 @@
     table.seisan thead th:first-child,
     table.seisan tbody td:first-child{
       width:12% !important;
-      text-align:left !important;
+      text-align:center !important;
     }
 
     /* 金額列は少し狭く */
@@ -98,6 +113,11 @@
       border-top:2px solid #e53935 !important;
       border-bottom:3px double #e53935 !important;
       font-weight:bold;
+    }
+    
+    /* 合計行の「合計」を右寄せ */
+    table.seisan tbody tr.total-row td:first-child{
+      text-align:right !important;
     }
 
     /*---------------------------------

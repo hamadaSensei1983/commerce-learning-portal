@@ -176,7 +176,7 @@
     }
 
     /* tbody の右寄せが thead に侵食しないように線引き */
-    table.seisan thead th{
+    table.seisan thead tr th{
       text-align:center !important;
     }
 
@@ -554,6 +554,7 @@ function nextProblem(){
   if(currentIndex >= problems.length) currentIndex = 0;
   showProblem(currentIndex);
 }
+
 </script>
 </body>
 </html>

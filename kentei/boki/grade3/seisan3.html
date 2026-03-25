@@ -51,10 +51,14 @@
     /* データ行（tbody）：下は破線・右寄せ */
     table.seisan tbody td{
       border:1px solid #e53935 !important;
-      border-bottom-style:dashed !important;  /* ★ ここだけが破線 */
       padding:4px;
       text-align:right !important;
       vertical-align:middle;
+    }
+
+    /* tbody の行の下線は破線（強制上書き） */
+    table.seisan tbody tr td{
+      border-bottom-style:dashed !important;
     }
 
     /* 左右外枠なし */

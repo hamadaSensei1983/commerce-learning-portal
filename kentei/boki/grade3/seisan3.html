@@ -6,186 +6,175 @@
   <link rel="stylesheet" href="../../../css/common.css">
 
   <style>
-  /*---------------------------------
-    全体カード
-  ---------------------------------*/
-  .card{
-    max-width:950px;
-    margin:20px auto;
-    padding:20px;
-    background:white;
-    border-radius:10px;
-    box-shadow:0 3px 8px rgba(0,0,0,0.08);
-  }
-  .hidden{ display:none !important; }
+    /*---------------------------------
+      全体カード
+    ---------------------------------*/
+    .card{
+      max-width:950px;
+      margin:20px auto;
+      padding:20px;
+      background:white;
+      border-radius:10px;
+      box-shadow:0 3px 8px rgba(0,0,0,0.08);
+    }
+    .hidden{ display:none !important; }
 
-  /*---------------------------------
-    決算整理事項
-  ---------------------------------*/
-  #notesArea{
-    padding:10px;
-    background:#f8f8f8;
-    border-left:4px solid #66bb6a;
-    margin:10px 0;
-    white-space:pre-line;
-    font-size:14px;
-  }
+    /*---------------------------------
+      決算整理事項
+    ---------------------------------*/
+    #notesArea{
+      padding:10px;
+      background:#f8f8f8;
+      border-left:4px solid #66bb6a;
+      margin:10px 0;
+      white-space:pre-line;
+      font-size:14px;
+    }
 
-  /*---------------------------------
-    精算表 基本
-  ---------------------------------*/
-  table.seisan{
-    width:100%;
-    border-collapse:collapse;
-    table-layout:fixed;
-    font-size:14px;
-  }
+    /*---------------------------------
+      精算表
+    ---------------------------------*/
+    table.seisan{
+      width:100%;
+      border-collapse:collapse;
+      table-layout:fixed;
+      font-size:14px;
+    }
 
-  /* まずすべてリセット */
-  table.seisan th,
-  table.seisan td{
-    border:none !important;
-    padding:4px;
-    vertical-align:middle;
-  }
+    /* 一旦全部リセット */
+    table.seisan th,
+    table.seisan td{
+      border:none !important;
+      padding:4px;
+      vertical-align:middle;
+    }
 
-  /*---------------------------------
-    見出し（1行目＋2行目）
-  ---------------------------------*/
-  /* 文字は中央揃え */
-  table.seisan thead th{
-    text-align:center !important;  /* ★ 修正①：見出しだけセンター確定 */
-    background:#ffebee;
-  }
+    /*---------------------------------
+      見出し（thead）
+    ---------------------------------*/
+    table.seisan thead th{
+      background:#ffebee;
+      text-align:center !important;
+      vertical-align:middle;
+    }
 
-  /* 見出し1行目：上・下に実線 */
-  table.seisan thead tr:nth-child(1) th{
-    border-top:1px solid #e53935 !important;
-    border-bottom:1px solid #e53935 !important;
-  }
+    /* 見出し1行目：上下とも実線 */
+    table.seisan thead tr:nth-child(1) th{
+      border-top:1px solid #e53935 !important;
+      border-bottom:1px solid #e53935 !important;
+    }
 
-  /* 見出し2行目：下に実線 */
-  table.seisan thead tr:nth-child(2) th{
-    border-bottom:1px solid #e53935 !important;
-  }
+    /* 見出し2行目：下実線 */
+    table.seisan thead tr:nth-child(2) th{
+      border-bottom:1px solid #e53935 !important;
+    }
 
-  /*---------------------------------
-    列幅と揃え（tbody 用）
-  ---------------------------------*/
-  /* tbodyの科目列：左揃え */
-  table.seisan tbody td:first-child{
-    width:8% !important;
-    text-align:left !important;     /* ★ 科目は左揃え */
-  }
+    /*---------------------------------
+      列幅（先生リクエスト：科目広め）
+    ---------------------------------*/
+    table.seisan thead th:first-child,
+    table.seisan tbody td:first-child{
+      width:12% !important;
+      text-align:left !important;
+    }
 
-  /* tbodyの数値列：右揃え */
-  table.seisan tbody td:not(:first-child){
-    text-align:right !important;
-    width:11.5% !important;
-  }
+    /* 金額列は少し狭く */
+    table.seisan thead th:not(:first-child),
+    table.seisan tbody td:not(:first-child){
+      width:11% !important;
+      text-align:right !important;
+    }
 
-  /*---------------------------------
-    tbody（科目行）の破線
-  ---------------------------------*/
-  table.seisan tbody tr:not(.total-row) td{
-    border-bottom:1px dashed #e53935 !important;
-  }
+    /*---------------------------------
+      tbody（科目行）破線
+    ---------------------------------*/
+    table.seisan tbody tr:not(.total-row) td{
+      border-bottom:1px dashed #e53935 !important;
+    }
 
-  /*---------------------------------
-    合計行（total-row）
-  ---------------------------------*/
-  table.seisan tbody tr.total-row td{
-    border-top:2px solid #e53935 !important;
-    border-bottom:3px double #e53935 !important;
-    font-weight:bold;
-  }
+    /*---------------------------------
+      合計行
+    ---------------------------------*/
+    table.seisan tbody tr.total-row td{
+      border-top:2px solid #e53935 !important;
+      border-bottom:3px double #e53935 !important;
+      font-weight:bold;
+    }
 
-  /*---------------------------------
-    外枠なし（左右）
-  ---------------------------------*/
-  table.seisan th:first-child,
-  table.seisan td:first-child{
-    border-left:none !important;
-  }
-  table.seisan th:last-child,
-  table.seisan td:last-child{
-    border-right:none !important;
-  }
+    /*---------------------------------
+      細縦線（全列）
+    ---------------------------------*/
+    table.seisan thead th,
+    table.seisan tbody td{
+      border-right:1px solid #e53935 !important;
+    }
 
-  /*---------------------------------
-    細い縦線（全列に復活）
-  ---------------------------------*/
-  table.seisan thead th,
-  table.seisan tbody td{
-    border-right:1px solid #e53935 !important;
-  }
+    /*---------------------------------
+      ★ 太縦線（正しい列位置）
+      thead1行目：th 2,3,4,5 が区切り
+      thead2行目：th 1,3,5,7 が区切り
+      tbody      ：td 1,3,5,7 が区切り
+    ---------------------------------*/
 
-  /*---------------------------------
-    ★ 太い区切り縦線（1,3,5,7列の右側）
-    rowspan を考慮し、thead1/thead2/tbody を個別指定
-  ---------------------------------*/
+    /* thead 1行目（科目は除外 → 区切りは2〜5） */
+    table.seisan thead tr:nth-child(1) th:nth-child(2),
+    table.seisan thead tr:nth-child(1) th:nth-child(3),
+    table.seisan thead tr:nth-child(1) th:nth-child(4),
+    table.seisan thead tr:nth-child(1) th:nth-child(5){
+      border-right:3px solid #e53935 !important;
+    }
 
-  /* tbody の太線 */
-  table.seisan tbody tr td:nth-child(1),
-  table.seisan tbody tr td:nth-child(3),
-  table.seisan tbody tr td:nth-child(5),
-  table.seisan tbody tr td:nth-child(7){
-    border-right:3px solid #e53935 !important;
-  }
+    /* thead 2行目（借方貸方行）：1,3,5,7列の右 */
+    table.seisan thead tr:nth-child(2) th:nth-child(1),
+    table.seisan thead tr:nth-child(2) th:nth-child(3),
+    table.seisan thead tr:nth-child(2) th:nth-child(5),
+    table.seisan thead tr:nth-child(2) th:nth-child(7){
+      border-right:3px solid #e53935 !important;
+    }
 
-  /* thead 2行目の太線（借方貸方行） */
-  table.seisan thead tr:nth-child(2) th:nth-child(1),
-  table.seisan thead tr:nth-child(2) th:nth-child(3),
-  table.seisan thead tr:nth-child(2) th:nth-child(5),
-  table.seisan thead tr:nth-child(2) th:nth-child(7){
-    border-right:3px solid #e53935 !important;
-  }
+    /* tbody */
+    table.seisan tbody td:nth-child(1),
+    table.seisan tbody td:nth-child(3),
+    table.seisan tbody td:nth-child(5),
+    table.seisan tbody td:nth-child(7){
+      border-right:3px solid #e53935 !important;
+    }
 
-  /* thead 1行目（colspan行）は、内部構造のズレを補正して太線を一致 */
-  table.seisan thead tr:nth-child(1) th:nth-child(2), /* TB の区切り */
-  table.seisan thead tr:nth-child(1) th:nth-child(3), /* 整理 の区切り */
-  table.seisan thead tr:nth-child(1) th:nth-child(4), /* PL の区切り */
-  table.seisan thead tr:nth-child(1) th:nth-child(5){ /* BS の区切り */
-    border-right:3px solid #e53935 !important;
-  }
+    /*---------------------------------
+      入力欄
+    ---------------------------------*/
+    .money{
+      width:100% !important;
+      text-align:right !important;
+      padding:3px;
+      border:1px solid #aaa;
+      background:white;
+      box-sizing:border-box;
+      font-size:14px;
+    }
 
-  /*---------------------------------
-    入力ボックス
-  ---------------------------------*/
-  .money{
-    width:100% !important;
-    text-align:right !important;
-    padding:3px;
-    border:1px solid #aaa;
-    background:white;
-    box-sizing:border-box;
-    font-size:14px;
-  }
+    /*---------------------------------
+      採点系
+    ---------------------------------*/
+    .correct{ background:#e8f5e9 !important; }
+    .wrong{   background:#ffebee !important; position:relative; }
 
-  /*---------------------------------
-    採点色
-  ---------------------------------*/
-  .correct{ background:#e8f5e9 !important; }
-  .wrong{   background:#ffebee !important; position:relative; }
+    .correct-answer{
+      font-size:14px;
+      color:#b71c1c;
+      font-weight:bold;
+      position:absolute;
+      right:2px;
+      top:calc(100% - 15px);
+      z-index:9999;
+      pointer-events:none;
+    }
 
-  /* 正解の赤字表示 */
-  .correct-answer{
-    font-size:14px;
-    color:#b71c1c;
-    font-weight:bold;
-    position:absolute;
-    right:2px;
-    top:calc(100% - 15px);
-    z-index:9999;
-    pointer-events:none;
-  }
-
-  /* メッセージ表示 */
-  #result{
-    margin-top:12px;
-    font-weight:bold;
-    white-space:pre-line;
-  }
+    #result{
+      margin-top:12px;
+      font-weight:bold;
+      white-space:pre-line;
+    }
   </style>
 
 </head>

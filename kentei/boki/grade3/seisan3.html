@@ -48,17 +48,12 @@
       vertical-align:middle !important;
     }
 
-    /* データ行（tbody）：下は破線・右寄せ */
+    /* データ行（tbody）：右寄せ */
     table.seisan tbody td{
       border:1px solid #e53935 !important;
       padding:4px;
       text-align:right !important;
       vertical-align:middle;
-    }
-
-    /* tbody の行の下線は破線（強制上書き） */
-    table.seisan tbody tr td{
-      border-bottom-style:dashed !important;
     }
 
     /* 左右外枠なし */
@@ -113,7 +108,7 @@
       font-weight:bold;
       position:absolute;
       right:2px;
-      top: calc(100% - 15px); /* 先生に合わせた位置 */
+      top: calc(100% - 15px);
       z-index:9999;
       background:transparent;
       pointer-events:none;
@@ -125,9 +120,14 @@
       white-space:pre-line;
     }
 
+    /* tbody の行の下線は破線（強制上書き） */
+    table.seisan tbody tr td{
+      border-bottom-style:dashed !important;
+    }
+
     /* 合計行だけ破線を解除する（下は実線に） */
     table.seisan tbody tr.total-row td{
-      border-bottom-style:solid !important;
+      border-bottom-style:double !important;
       border-bottom-width:2px !important;
     }
 

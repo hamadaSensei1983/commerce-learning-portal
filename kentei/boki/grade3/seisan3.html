@@ -38,42 +38,28 @@
       table-layout:fixed;
     }
 
-    /* 見出し行：下は実線・センタリング */
-    table.seisan thead th{
-      border:1px solid #e53935 !important;
-      border-bottom-style:solid !important;
-      padding:4px;
-      text-align:center !important;
-      background:#ffebee !important;
-      vertical-align:middle !important;
-    }
-
-    /* データ行（tbody）：右寄せ */
-    table.seisan tbody td{
-      border:1px solid #e53935 !important;
+    /* まず一旦、すべての枠線を消す */
+    table.seisan th,
+    table.seisan td{
+      border:none !important;
       padding:4px;
       text-align:right !important;
       vertical-align:middle;
     }
 
-    /* 左右外枠なし */
-    table.seisan th:first-child,
-    table.seisan td:first-child{
-      border-left:none !important;
-    }
-    table.seisan th:last-child,
-    table.seisan td:last-child{
-      border-right:none !important;
+    /* 見出し（2行目）の下線は実線 */
+    table.seisan thead tr:nth-child(2) th{
+      border-bottom:1px solid #e53935 !important;
     }
 
-    /* 科目列（左端）を少し狭く・左寄せ */
+    /* 科目列は左寄せ＋少し狭く（8%） */
     table.seisan th:first-child,
     table.seisan td:first-child{
       width:8% !important;
       text-align:left !important;
     }
 
-    /* 残り列を均等割り（ざっくり） */
+    /* その他の列は均等（残りを8列で割る） */
     table.seisan th:not(:first-child),
     table.seisan td:not(:first-child){
       width:11.5% !important;
@@ -120,14 +106,14 @@
       white-space:pre-line;
     }
 
-    /* ★ 途中行（tbody）は全部破線で固定（common.css を上書き） */
-    table.seisan tbody td {
-      border-bottom: 1px dashed #e53935 !important;
+    /* tbody（科目行）は「下線だけ破線」にする */
+    table.seisan tbody tr td{
+      border-bottom:1px dashed #e53935 !important;
     }
 
-    /* ★ 合計行だけ破線ではなく実線にする（破線を上書き） */
-    table.seisan tbody tr.total-row td {
-      border-bottom: 1px double #e53935 !important;
+    /* 合計行だけは、破線を実線に戻す（とりあえず普通の実線） */
+    table.seisan tbody tr.total-row td{
+      border-bottom:1px double #e53935 !important;
     }
 
   </style>

@@ -240,6 +240,15 @@
     わからないところは先生や友達に相談しながら進めてもOKです。
   </p>
 
+  <div id="problemArea" style="margin-bottom:12px;">
+    <label for="problemSelect"><b>問題：</b></label>
+    <select id="problemSelect" onchange="showProblem(this.value)"></select>
+
+    <button class="main-btn" style="width:auto; margin-left:10px;" onclick="randomProblem()">
+      ランダム出題
+    </button>
+  </div>
+
   <!-- 問題文 -->
   <h3 id="problemText"></h3>
 
@@ -310,6 +319,7 @@ async function loadCSV(path){
       const loading = document.getElementById("loadingScreen");
       if(loading) loading.style.display = "none";
       if(problems.length > 0){
+        setupProblemSelect();
         showProblem(0);
         document.getElementById("seisanTable").classList.remove("hidden");
         document.getElementById("checkBtn").classList.remove("hidden");
@@ -406,6 +416,18 @@ function buildProblems(rows){
     map[pid].rows.push(row);
   }
   problems = Object.values(map);
+}
+
+function setupProblemSelect(){
+  const sel = document.getElementById("problemSelect");
+  sel.innerHTML = "";
+
+  problems.forEach((p,i)=>{
+    const opt = document.createElement("option");
+    opt.value = i;
+    opt.textContent = "問題" + (i+1);
+    sel.appendChild(opt);
+  });
 }
 
 /* ==========================================
@@ -568,11 +590,18 @@ function mark(id,user,correct){
   }
 }
 
+function randomProblem(){
+  const r = Math.floor(Math.random() * problems.length);
+  showProblem(r);
+  document.getElementById("problemSelect").value = r;
+}
+
 /* 次の問題へ */
 function nextProblem(){
   currentIndex++;
   if(currentIndex >= problems.length) currentIndex = 0;
   showProblem(currentIndex);
+  document.getElementById("problemSelect").value = currentIndex;  // ★連動
 }
 
 </script>

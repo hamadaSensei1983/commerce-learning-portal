@@ -8,91 +8,131 @@
 
 <style>
 
-/* ===========================================================
-   ▼ 動画カード（既存＋調整）
-=========================================================== */
-.video-grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
-  gap:16px;
-  margin-top:15px;
-}
-.video-card{
-  border:1px solid #ddd;
-  border-radius:10px;
-  overflow:hidden;
-  background:white;
-  box-shadow:0 4px 10px rgba(0,0,0,0.1);
-  transition:0.25s;
-  position:relative;
-}
-.video-card:hover{
-  transform:translateY(-6px);
-  box-shadow:0 10px 22px rgba(0,0,0,0.18);
-}
-.video-card img{ width:100%; }
-.video-title{
-  padding:12px;
-  font-size:14px;
-  line-height:1.4;
-  text-align:center;
-}
+    /* ===========================================================
+    ▼ 動画カード（既存＋調整）
+    =========================================================== */
+    .video-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
+    gap:16px;
+    margin-top:15px;
+    }
+    .video-card{
+    border:1px solid #ddd;
+    border-radius:10px;
+    overflow:hidden;
+    background:white;
+    box-shadow:0 4px 10px rgba(0,0,0,0.1);
+    transition:0.25s;
+    position:relative;
+    }
+    .video-card:hover{
+    transform:translateY(-6px);
+    box-shadow:0 10px 22px rgba(0,0,0,0.18);
+    }
+    .video-card img{ width:100%; }
+    .video-title{
+    padding:12px;
+    font-size:14px;
+    line-height:1.4;
+    text-align:center;
+    }
 
-.grade-title{
-  margin-top:30px;
-  font-size:20px;
-  font-weight:bold;
-}
+    .grade-title{
+    margin-top:30px;
+    font-size:20px;
+    font-weight:bold;
+    }
 
-details{ margin-top:15px; }
-summary{
-  font-size:18px;
-  font-weight:bold;
-  cursor:pointer;
-  padding:4px 0;
-}
+    details{ margin-top:15px; }
+    summary{
+    font-size:18px;
+    font-weight:bold;
+    cursor:pointer;
+    padding:4px 0;
+    }
 
-/* ===========================================================
-   ▼ 単位プルダウンを大きく（calc-input と揃える）
-=========================================================== */
-.biz-unit-select{
-  width:140px;
-  padding:10px;
-  font-size:20px;
-  border:3px solid #444;
-  border-radius:6px;
-  background:white;
-}
+    /* ===========================================================
+    ▼ 単位プルダウンを大きく（calc-input と揃える）
+    =========================================================== */
+    .biz-unit-select{
+    width:140px;
+    padding:10px;
+    font-size:20px;
+    border:3px solid #444;
+    border-radius:6px;
+    background:white;
+    }
 
-/* ===========================================================
-   ▼ タブ切り替えボタン（既存 mode-btn を流用）
-=========================================================== */
-.biz-tab-buttons{
-  display:flex;
-  justify-content:center;
-  gap:12px;
-  margin:10px 0 20px;
-}
+    /* ===========================================================
+    ▼ タブ切り替えボタン（既存 mode-btn を流用）
+    =========================================================== */
+    .biz-tab-buttons{
+    display:flex;
+    justify-content:center;
+    gap:12px;
+    margin:10px 0 20px;
+    }
 
-/* active 時（反転表示）は common.css の .mode-btn.active を使用 */
+    /* active 時（反転表示）は common.css の .mode-btn.active を使用 */
 
-/* ===========================================================
-   ▼ 分野チェックボックス（練習問題用）
-=========================================================== */
-#bizFieldArea{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:8px;
-  max-width:300px;
-  margin:12px auto;
-}
-.two-btn-grid{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:10px;
-  max-width:300px;
-  margin:10px auto 15px auto;
-}
+    /* ===========================================================
+    ▼ 分野チェックボックス（練習問題用）
+    =========================================================== */
+    #bizFieldArea{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+    max-width:300px;
+    margin:12px auto;
+    }
+    .two-btn-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    max-width:300px;
+    margin:10px auto 15px auto;
+    }
+
+    <!-- 追加CSS部分（business.html の <style> 内へ追記） -->
+
+    /* ===========================================================
+    ▼ タブ（解説動画／練習）アクティブ強調
+    =========================================================== */
+    .mode-btn.active {
+    background: var(--main-green) !important;
+    color: white !important;
+    border: 3px solid var(--main-green);
+    box-shadow: 0 0 8px rgba(46,139,87,0.5);
+    transform: translateY(-2px);
+    }
+
+    /* ホバーとの差別化（非アクティブタブのみホバー反応） */
+    .mode-btn:not(.active):hover {
+    background: #f0fff4;
+    border: 2px solid var(--main-green);
+    }
+
+    /* ===========================================================
+    ▼ 練習問題：級セレクトを大きく
+    =========================================================== */
+    #bizLevelSelect {
+    font-size: 20px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 2px solid var(--main-green);
+    }
+
+    /* ===========================================================
+    ▼ 第○問・正解数表示
+    =========================================================== */
+    #bizStatusBar {
+    text-align: center;
+    font-weight: bold;
+    margin-bottom: 10px;
+    font-size: 18px;
+    color: var(--dark-green);
+    }
 
 </style>
 </head>
@@ -179,6 +219,9 @@ summary{
     <!-- ▼ 問題表示エリア -->
     <div id="bizQuizArea" class="hidden" style="margin-top:15px;">
 
+      <!-- ▼ 進捗ステータス表示 -->
+      <div id="bizStatusBar"></div>
+
       <div id="bizQuestion" style="margin-bottom:10px;font-weight:bold;"></div>
 
       <div id="bizInputRow"
@@ -204,6 +247,10 @@ summary{
 </div>
 
 <script>
+
+/* ▼ 練習問題用 進捗管理 */
+let bizCorrectCount = 0;     // 正解数（累計）
+let bizStreak = 0;           // 連続正解
 
 /* ===========================================================
    ▼ 動画エリア（既存）
@@ -406,6 +453,9 @@ function startBusinessQuiz(){
     return;
   }
 
+  bizCorrectCount = 0;
+  bizStreak = 0;
+
   bizCurrentList=shuffle([...list]);
   bizCurrentIndex=0;
 
@@ -413,6 +463,17 @@ function startBusinessQuiz(){
   document.getElementById("bizResult").innerText="";
 
   nextBusinessQuestion();
+}
+
+/* ===========================================================
+   ▼ ステータスバー（第○問 / 正解数 / 連続正解）
+=========================================================== */
+function updateBizStatus(){
+  const total = bizCurrentList.length;
+  const now   = bizCurrentIndex; // 1-based
+  const msg = 
+    `第 ${now} 問 / 全 ${total} 問　｜　正解：${bizCorrectCount}　｜　連続正解：${bizStreak}`;
+  document.getElementById("bizStatusBar").innerText = msg;
 }
 
 /* ===========================================================
@@ -469,6 +530,7 @@ function showBusinessQuestion(q){
       num.value=Number(v).toLocaleString();
     }
   };
+  updateBizStatus();
 }
 
 /* ===========================================================
@@ -512,6 +574,14 @@ function checkBusinessAnswer(){
       "× 不正解<br>正解："+correctStr+
       "<br><br>解説："+descHtml;
   }
+
+  if(ok){
+    bizCorrectCount++;
+    bizStreak++;
+  } else {
+    bizStreak = 0; // 連続記録リセット
+  }
+  updateBizStatus();
 
   document.getElementById("bizNextBtn").classList.remove("hidden");
 }

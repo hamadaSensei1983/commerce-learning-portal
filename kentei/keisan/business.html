@@ -1,333 +1,281 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <link rel="stylesheet" href="../../css/common.css">
-
 <title>ビジネス計算検定</title>
 
 <style>
-
-/* 動画カード */
-
+/* ===========================================================
+   【動画カード・一覧表示のレイアウト】
+   既存の business.html にあった CSS を保持
+=========================================================== */
 .video-grid{
-    display:grid;
-    grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
-    gap:16px;
-    margin-top:15px;
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
+  gap:16px;
+  margin-top:15px;
 }
-
 .video-card{
-    border:1px solid #ddd;
-    border-radius:10px;
-    overflow:hidden;
-    background:white;
-    box-shadow:0 4px 10px rgba(0,0,0,0.1);
-    transition:0.2s;
+  border:1px solid #ddd;
+  border-radius:10px;
+  overflow:hidden;
+  background:white;
+  box-shadow:0 4px 10px rgba(0,0,0,0.1);
+  transition:0.25s;
+  position:relative;
 }
-
 .video-card:hover{
-    transform:translateY(-3px);
+  transform:translateY(-6px);
+  box-shadow:0 10px 22px rgba(0,0,0,0.18);
 }
-
 .video-card img{
-    width:100%;
+  width:100%;
 }
-
 .video-title{
-    padding:10px;
-    font-size:14px;
-    text-align:center;
+  padding:12px;
+  font-size:14px;
+  line-height:1.5;
+  text-align:center;
 }
-
 .video-card a{
-    text-decoration:none;
-    color:#333;
+  text-decoration:none;
+  color:#333;
 }
-
 .grade-title{
-    margin-top:30px;
-    font-size:20px;
-    font-weight:bold;
+  margin-top:30px;
+  font-size:20px;
+  font-weight:bold;
 }
-
 details{
-    margin-top:20px;
+  margin-top:20px;
 }
-
 summary{
-    font-size:20px;
-    font-weight:bold;
-    cursor:pointer;
-    padding:6px 0;
+  font-size:20px;
+  font-weight:bold;
+  cursor:pointer;
+  padding:6px 0;
 }
 
-/* =========================
-   学習ガイド
-========================= */
-
-.study-guide{
-    background:#f9f9f9;
-    border-left:6px solid var(--main-green);
-    padding:12px 15px;
-    margin-bottom:20px;
-    border-radius:6px;
+/* ===========================================================
+   【単位プルダウンを大きくする】
+   calc-input と同じ見た目・サイズ
+=========================================================== */
+.biz-unit-select{
+  width:140px;
+  padding:10px;
+  font-size:20px;
+  border:3px solid #444;
+  border-radius:6px;
+  background:white;
 }
 
-/* =========================
-   動画カード改善
-========================= */
-
-.video-card{
-    border:1px solid #ddd;
-    border-radius:10px;
-    overflow:hidden;
-    background:white;
-    box-shadow:0 4px 10px rgba(0,0,0,0.1);
-    transition:0.25s;
-    position:relative;
-}
-
-.video-card:hover{
-    transform:translateY(-6px);
-    box-shadow:0 10px 22px rgba(0,0,0,0.18);
-}
-
-/* 再生マーク */
-
-.video-card::after{
-    content:"▶";
-    position:absolute;
-    top:50%;
-    left:50%;
-    transform:translate(-50%,-50%);
-    font-size:42px;
-    color:white;
-    text-shadow:0 0 10px rgba(0,0,0,0.7);
-    pointer-events:none;
-}
-
-/* タイトル整形 */
-
-.video-title{
-    padding:12px;
-    font-size:14px;
-    line-height:1.5;
-    text-align:center;
+/* ===========================================================
+   【タブ切り替え（動画／練習）】
+   common.css の mode-btn を利用
+=========================================================== */
+.biz-tab-buttons{
+  display:flex;
+  justify-content:center;
+  gap:12px;
+  margin:10px 0 20px 0;
 }
 
 </style>
-
 </head>
 
 <body>
 
+<!-- ========= ヘッダー ========= -->
 <header class="app-header">
-
-<div class="header-left">
-
-<img src="../../images/logo.png" class="header-icon">
-
-<div>
-
-<h1 class="site-title">ビジネス計算検定</h1>
-
-<div class="exam-title">
-ビジネス計算部門　解説動画
-</div>
-
-</div>
-
-</div>
-
+  <div class="header-left">
+    <img src="../../images/logo.png" class="header-icon">
+    <div>
+      <h1 class="site-title">ビジネス計算検定</h1>
+      <div class="exam-title">解説動画 ＆ 練習問題</div>
+    </div>
+  </div>
 </header>
 
-
 <div class="card">
-    <div class="study-guide">
-        <h3>ビジネス計算部門</h3>
-        <p>
-        <ul>
-            <li>20問出題されます</li>
-            <li>各5点で70点（14問）以上で合格</li>
-            <li>３級から順番に攻略したほうがよい</li>
-        </ul>
-        </p>
-    </div>
 
+  <!-- 学習ガイド（既存） -->
+  <div class="study-guide">
+    <h3>ビジネス計算部門</h3>
+    <ul>
+      <li>20問出題されます</li>
+      <li>各5点で 70点（14問）以上で合格</li>
+      <li>まずは 3級から順に攻略がおすすめ</li>
+    </ul>
+  </div>
+
+  <!-- ▼ タブ切り替えボタン（動画／練習） -->
+  <div class="biz-tab-buttons">
+    <button type="button" id="btnBizTabVideo" class="mode-btn active"
+            onclick="showBizTab('video')">
+      解説動画
+    </button>
+    <button type="button" id="btnBizTabQuiz" class="mode-btn"
+            onclick="showBizTab('quiz')">
+      練習問題
+    </button>
+  </div>
+
+  <!-- ▼ 解説動画タブ -->
+  <div id="bizVideoTab">
     <div id="videoArea"></div>
+  </div>
 
+  <!-- ▼ 練習問題タブ -->
+  <div id="bizQuizTab" class="hidden">
     <hr>
 
     <h3>練習問題にチャレンジ</h3>
 
     <!-- 設定エリア -->
     <div id="quizSetup">
-    <label>
+      <label>
         級：
         <select id="bizLevelSelect">
-        <option value="3">3級</option>
-        <option value="2">2級</option>
-        <option value="1">1級</option>
+          <option value="3">3級</option>
+          <option value="2">2級</option>
+          <option value="1">1級</option>
         </select>
-    </label>
-    <button class="main-btn" onclick="startBusinessQuiz()">この級でスタート</button>
+      </label>
+      <button class="main-btn" onclick="startBusinessQuiz()">この級でスタート</button>
     </div>
 
-    <!-- クイズエリア -->
+    <!-- ▼ クイズエリア -->
     <div id="bizQuizArea" class="hidden" style="margin-top:15px;">
-        <div id="bizQuestion" style="margin-bottom:10px;font-weight:bold;"></div>
 
-        <div id="bizInputRow"
-            style="display:flex;gap:8px;justify-content:center;align-items:center;margin-bottom:8px;">
-            <!-- 並び順は前後フラグで JS 側から組み立て直します -->
-            <select id="bizUnitSelect" class="control-btn" style="max-width:120px;"></select>
-            <input id="bizAnswerNumber" class="calc-input" inputmode="decimal">
-        </div>
+      <div id="bizQuestion" style="margin-bottom:10px;font-weight:bold;"></div>
 
-        <div style="text-align:center;margin-bottom:8px;">
-            <button class="main-btn" onclick="checkBusinessAnswer()">答え合わせ</button>
-            <button class="control-btn hidden" id="bizNextBtn" onclick="nextBusinessQuestion()">次の問題</button>
-        </div>
+      <!-- 入力行（単位と数値の位置は前後フラグでJSが組み替える） -->
+      <div id="bizInputRow"
+           style="display:flex;gap:8px;justify-content:center;align-items:center;margin-bottom:8px;">
+        <select id="bizUnitSelect" class="biz-unit-select"></select>
+        <input id="bizAnswerNumber" class="calc-input" inputmode="decimal">
+      </div>
 
-        <div id="bizResult" style="min-height:40px;"></div>
+      <div style="text-align:center;margin-bottom:8px;">
+        <button class="main-btn" onclick="checkBusinessAnswer()">答え合わせ</button>
+        <button class="control-btn hidden" id="bizNextBtn" onclick="nextBusinessQuestion()">次の問題</button>
+      </div>
+
+      <div id="bizResult" style="min-height:40px;"></div>
     </div>
-    <a href="index.html" class="portal-btn exam-btn">
-    部門選択へ戻る
-    </a>
+  </div>
 
-    <a href="../../index.html" class="portal-btn portal-main">
-    ポータルへ戻る
-    </a>
+  <!-- ポータルボタン -->
+  <a href="index.html" class="portal-btn exam-btn">部門選択へ戻る</a>
+  <a href="../../index.html" class="portal-btn portal-main">ポータルへ戻る</a>
+
 </div>
 
-
 <script>
+/* ===========================================================
+   ▼ 動画一覧の既存スクリプト（business.html にあったもの）
+=========================================================== */
 
-/* CSV読み込み */
-
+/* CSV読み込み（動画） */
 fetch("url.csv")
-.then(res => res.text())
-.then(data => {
-
-    const lines = data.trim().split("\n").slice(1)
-
+  .then(res => res.text())
+  .then(data => {
+    const lines = data.trim().split("\n").slice(1);
     const videos = lines.map(line=>{
-        const parts = line.split("\t")
-        return {
-            grade:parts[0],
-            title:parts[1],
-            url:parts[2]
-        }
-    })
-
-    createVideoCards(videos)
-
-})
+      const parts = line.split("\t");
+      return {
+        grade: parts[0],
+        title: parts[1],
+        url: parts[2]
+      };
+    });
+    createVideoCards(videos);
+  });
 
 function createVideoCards(videos){
+  const area = document.getElementById("videoArea");
+  const grades = ["3","2","1"];
+  grades.forEach(g=>{
+    const list = videos.filter(v => v.grade === g);
+    const block = document.createElement("details");
+    const summary = document.createElement("summary");
+    summary.className = "grade-title";
+    summary.innerText = g + "級";
+    block.appendChild(summary);
 
-    const area=document.getElementById("videoArea")
+    const grid = document.createElement("div");
+    grid.className = "video-grid";
 
-    const grades=["3","2","1"]
+    list.forEach(v=>{
+      const id = getYoutubeID(v.url);
+      const card = document.createElement("div");
+      card.className = "video-card";
+      card.innerHTML = `
+        <a href="${v.url}" target="_blank">
+          <img src="https://img.youtube.com/vi/${id}/mqdefault.jpg">
+          <div class="video-title">${v.title}</div>
+        </a>
+      `;
+      grid.appendChild(card);
+    });
 
-    grades.forEach(g=>{
-
-        const list=videos.filter(v=>v.grade===g)
-
-        const block=document.createElement("details")
-
-        const summary=document.createElement("summary")
-        summary.className="grade-title"
-        summary.innerText=g+"級"
-
-        block.appendChild(summary)
-
-        const grid=document.createElement("div")
-        grid.className="video-grid"
-
-        list.forEach(v=>{
-
-            const id=getYoutubeID(v.url)
-
-            const card=document.createElement("div")
-            card.className="video-card"
-
-            card.innerHTML=`
-            <a href="${v.url}" target="_blank">
-                <img src="https://img.youtube.com/vi/${id}/mqdefault.jpg">
-                <div class="video-title">${v.title}</div>
-            </a>
-            `
-
-            grid.appendChild(card)
-
-        })
-
-        block.appendChild(grid)
-
-        area.appendChild(block)
-
-    })
-
+    block.appendChild(grid);
+    area.appendChild(block);
+  });
 }
 
-/* YouTube ID取得 */
-
+/* YouTube ID 取得 */
 function getYoutubeID(url){
-
-    if(url.includes("youtu.be")){
-        return url.split("/").pop()
-    }
-
-    if(url.includes("watch?v=")){
-        return url.split("v=")[1].split("&")[0]
-    }
-
-    return ""
-
+  if(url.includes("youtu.be")){
+    return url.split("/").pop();
+  }
+  if(url.includes("watch?v=")){
+    return url.split("v=")[1].split("&")[0];
+  }
+  return "";
 }
 
-function normalizeNumber(str){
-  return String(str)
-    .replace(/[\uFF10-\uFF19]/g, s => String.fromCharCode(s.charCodeAt(0)-65248)) // 全角数字
-    .replace(/\uFF0D/g, "-")   // 全角マイナス
-    .replace(/\uFF0B/g, "+")   // 全角プラス
-    .replace(/\uFF0E/g, ".")   // 全角ピリオド
-    .replace(/\uFF0C/g, ",")   // 全角カンマ
-    .replace(/\s+/g, "")       // 空白
-    .trim();
+/* ===========================================================
+   ▼ タブ切り替え（解説動画 ↔ 練習問題）
+=========================================================== */
+function showBizTab(tab){
+  const videoTab = document.getElementById("bizVideoTab");
+  const quizTab  = document.getElementById("bizQuizTab");
+  const btnVideo = document.getElementById("btnBizTabVideo");
+  const btnQuiz  = document.getElementById("btnBizTabQuiz");
+
+  if(tab === "video"){
+    videoTab.classList.remove("hidden");
+    quizTab.classList.add("hidden");
+    btnVideo.classList.add("active");
+    btnQuiz.classList.remove("active");
+  }else{
+    videoTab.classList.add("hidden");
+    quizTab.classList.remove("hidden");
+    btnVideo.classList.remove("active");
+    btnQuiz.classList.add("active");
+  }
 }
 
-/* =====================
-   ビジネス計算 用 変数
-===================== */
-let bizQuestions = [];
-let bizCurrentList = [];
-let bizCurrentIndex = 0;
-let bizCurrentQ = null;
-
-/* =====================
-   keisan3 と同じタイプの CSVパーサー
-===================== */
+/* ===========================================================
+   ▼ ビジネス計算：CSVパース（, と " に完全対応）
+=========================================================== */
 function parseBusinessCSV(text){
-  text = text.replace(/^\uFEFF/, ""); // BOM除去
+  text = text.replace(/^\uFEFF/, "");
   const rows = text.trim().split(/\r?\n/);
   const result = [];
+
   for(let i=1; i<rows.length; i++){
     const line = rows[i].trim();
     if(!line) continue;
     let cols = [];
     let cur = "";
     let inQ = false;
+
     for(let c of line){
-      if(c === '"'){
-        inQ = !inQ;
-        continue;
-      }
+      if(c === '"'){ inQ = !inQ; continue; }
       if(c === "," && !inQ){
         cols.push(cur);
         cur = "";
@@ -336,41 +284,60 @@ function parseBusinessCSV(text){
       }
     }
     cols.push(cur);
-    if(cols.length < 8) continue;
 
     result.push({
-      level  : (cols[0] || "").trim(),   // 級
-      field  : (cols[1] || "").trim(),   // 分野
-      text   : (cols[2] || "").trim(),   // 問題文
-      pos    : (cols[3] || "").trim(),   // 前後 (1:前, 2:後)
-      units  : (cols[4] || "").trim(),   // 単位（|区切り）
-      correctUnit : (cols[5] || "").trim(), // 正解単位
-      answer : Number((cols[6] || "").trim()), // 解答（数値）
-      desc   : (cols[7] || "").trim()    // 解説
+      level: (cols[0]||"").trim(),
+      field: (cols[1]||"").trim(),
+      text : (cols[2]||"").trim(),
+      pos  : (cols[3]||"").trim(),
+      units: (cols[4]||"").trim(),
+      correctUnit: (cols[5]||"").trim(),
+      answer: Number((cols[6]||"").trim()),
+      desc: (cols[7]||"").trim().replace(/\|/g, "\n")  /* ← | を改行扱い */
     });
   }
   return result;
 }
 
-/* =====================
-   business.csv 読み込み
-   パスは配置に合わせて変更
-===================== */
+/* ===========================================================
+   ▼ ビジネス計算：全角 → 半角 正規化
+=========================================================== */
+function normalizeNumber(str){
+  return String(str)
+    .replace(/[\uFF10-\uFF19]/g, s => String.fromCharCode(s.charCodeAt(0)-65248))
+    .replace(/\uFF0D/g,"-")
+    .replace(/\uFF0B/g,"+")
+    .replace(/\uFF0E/g,".")
+    .replace(/\uFF0C/g,",")
+    .replace(/\s+/g,"")
+    .trim();
+}
+
+/* ===========================================================
+   ▼ ビジネス計算：変数
+=========================================================== */
+let bizQuestions = [];
+let bizCurrentList = [];
+let bizCurrentIndex = 0;
+let bizCurrentQ = null;
+
+/* ===========================================================
+   ▼ business.csv 読み込み
+=========================================================== */
 fetch("data/business.csv")
   .then(res => res.text())
   .then(text => {
     bizQuestions = parseBusinessCSV(text);
   })
-  .catch(err => {
-    console.error("business.csv 読み込み失敗", err);
-  });
+  .catch(err => console.error("business.csv 読み込み失敗", err));
 
-/* =====================
-   クイズ開始
-===================== */
+/* ===========================================================
+   ▼ クイズ開始
+=========================================================== */
 function startBusinessQuiz(){
   const level = document.getElementById("bizLevelSelect").value;
   const list = bizQuestions.filter(q => q.level === level);
+
   if(list.length === 0){
     alert(level + "級の問題がまだ登録されていません。");
     return;
@@ -382,12 +349,13 @@ function startBusinessQuiz(){
   nextBusinessQuestion();
 }
 
-/* =====================
-   次の問題へ
-===================== */
+/* ===========================================================
+   ▼ 次の問題
+=========================================================== */
 function nextBusinessQuestion(){
   if(bizCurrentIndex >= bizCurrentList.length){
-    document.getElementById("bizResult").innerText = "この級のサンプル問題は以上です。";
+    document.getElementById("bizResult").innerText =
+      "この級のサンプル問題は以上です。";
     document.getElementById("bizNextBtn").classList.add("hidden");
     return;
   }
@@ -395,40 +363,41 @@ function nextBusinessQuestion(){
   showBusinessQuestion(bizCurrentQ);
 }
 
-/* =====================
-   問題表示
-===================== */
+/* ===========================================================
+   ▼ 問題の表示
+=========================================================== */
 function showBusinessQuestion(q){
   document.getElementById("bizQuestion").innerText = q.text;
-  const numInput  = document.getElementById("bizAnswerNumber");
-  const unitSel   = document.getElementById("bizUnitSelect");
-  const row       = document.getElementById("bizInputRow");
-  const resultDiv = document.getElementById("bizResult");
+
+  const numInput = document.getElementById("bizAnswerNumber");
+  const unitSel  = document.getElementById("bizUnitSelect");
+  const row      = document.getElementById("bizInputRow");
+  const resultDiv= document.getElementById("bizResult");
 
   numInput.value = "";
   resultDiv.innerText = "";
   document.getElementById("bizNextBtn").classList.add("hidden");
 
-  // 単位選択肢を生成（|区切り）
+  /* 単位プルダウン生成（|区切り） */
   unitSel.innerHTML = "";
-  q.units.split("|").map(u => u.trim()).filter(u => u).forEach(u => {
+  q.units.split("|").map(u=>u.trim()).filter(u=>u).forEach(u=>{
     const opt = document.createElement("option");
     opt.value = u;
     opt.textContent = u;
     unitSel.appendChild(opt);
   });
 
-  // 並び順を前後フラグで切り替え
+  /* ● 前後フラグ：1=前置, 2=後置で並びを切替 */
   row.innerHTML = "";
-  if(q.pos === "1"){ // 前： 単位 → 数字
+  if(q.pos === "1"){
     row.appendChild(unitSel);
     row.appendChild(numInput);
-  }else{             // 後： 数字 → 単位
+  }else{
     row.appendChild(numInput);
     row.appendChild(unitSel);
   }
 
-  // カンマ補助
+  /* カンマ補助 */
   numInput.oninput = () => {
     let v = numInput.value.replace(/,/g,"");
     if(!isNaN(v) && v !== ""){
@@ -437,56 +406,59 @@ function showBusinessQuestion(q){
   };
 }
 
-/* =====================
-   答え合わせ
-===================== */
+/* ===========================================================
+   ▼ 答え合わせ
+=========================================================== */
 function checkBusinessAnswer(){
   if(!bizCurrentQ) return;
-  const raw     = document.getElementById("bizAnswerNumber").value;
-  const unit    = document.getElementById("bizUnitSelect").value;
-  const result  = document.getElementById("bizResult");
+
+  const raw  = document.getElementById("bizAnswerNumber").value;
+  const unit = document.getElementById("bizUnitSelect").value;
+  const result = document.getElementById("bizResult");
 
   if(!raw){
     alert("答えを入力してください。");
     return;
   }
 
-  const normalized = normalizeNumber(raw); // 全角 → 半角など
-
-  // 3桁区切りコンマ必須
+  const normalized = normalizeNumber(raw);
   if(!/^\d{1,3}(,\d{3})*(\.\d+)?$/.test(normalized)){
     result.innerText = "コンマで3桁区切りになるように入力してください。";
     return;
   }
 
-  const userValue    = normalized.replace(/,/g,"");
+  const userValue = normalized.replace(/,/g,"");
   const correctValue = String(bizCurrentQ.answer);
-  const correctUnit  = bizCurrentQ.correctUnit;
+  const correctUnit = bizCurrentQ.correctUnit;
 
   const ok = (userValue === correctValue) && (unit === correctUnit);
 
+  /* 改行を <br> に変換して解説表示 */
+  const descHtml = (bizCurrentQ.desc || "").replace(/\n/g,"<br>");
+
   if(ok){
-    result.innerText = "〇 正解！";
+    result.innerHTML = "〇 正解！<br><br>" + descHtml;
   }else{
     const formatted = Number(bizCurrentQ.answer).toLocaleString();
     const correctStr = (bizCurrentQ.pos === "1")
       ? correctUnit + formatted
       : formatted + correctUnit;
+
     result.innerHTML =
-      "× 不正解\n正解：" + correctStr +
-      "\n\n解説：" + (bizCurrentQ.desc || "");
+      "× 不正解<br>正解：" + correctStr +
+      "<br><br>解説：" + descHtml;
   }
 
   document.getElementById("bizNextBtn").classList.remove("hidden");
 }
 
-/* =====================
-   配列シャッフル
-===================== */
+/* ===========================================================
+   ▼ シャッフル
+=========================================================== */
 function shuffle(a){
   for(let i=a.length-1;i>0;i--){
-    const j = Math.floor(Math.random()*(i+1));
-    [a[i],a[j]] = [a[j],a[i]];
+    const j=Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
   }
   return a;
 }

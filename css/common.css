@@ -350,3 +350,18 @@ button {
   max-width: 320px;
   margin: 20px auto;
 }
+
+/* =============================
+   トップページ専用のメニューボタン
+============================= */
+.menu-btn {
+  background: white;
+  color: var(--main-green);
+  border: 2px solid var(--main-green);
+}
+
+.menu-btn:hover {
+  background: var(--main-green);
+  color: white;
+  transform: translateY(-2px);
+}

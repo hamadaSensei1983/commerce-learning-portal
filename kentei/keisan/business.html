@@ -134,6 +134,51 @@
     color: var(--dark-green);
     }
 
+    /* ▼ 2カラム配置 */
+    #bizSelectGrid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 25px;
+      margin-top: 15px;
+    }
+
+    /* ▼ 分野チェックはすでに2列 */
+    #bizFieldArea {
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+    }
+
+    /* ▼ 小さめボタン */
+    .small-btn {
+      font-size: 14px;
+      padding: 6px 8px;
+    }
+    .small-btn-grid button {
+      font-size: 14px;
+      padding: 6px 8px;
+    }
+
+    /* ▼ 級セレクトを美しく */
+    .biz-level-select {
+      font-size: 20px;
+      padding: 5px 8px;
+      width: 120px;
+      border: 2px solid var(--main-green);
+      border-radius: 6px;
+    }
+
+    /* ▼ 正解アニメーション */
+    .correct-anim {
+      animation: popScale 0.45s ease-out;
+    }
+
+    @keyframes popScale {
+      0%   { transform: scale(1);   }
+      40%  { transform: scale(1.25); }
+      100% { transform: scale(1);   }
+    }
+
 </style>
 </head>
 
@@ -201,19 +246,37 @@
       <button class="main-btn" onclick="setupBizFields()">分野選択へ</button>
     </div>
 
-    <!-- ▼ 分野選択エリア（級選択後に表示） -->
     <div id="bizFieldSelectArea" class="hidden">
-      <h4 style="text-align:center;">分野を選択してください</h4>
-      <div id="bizFieldArea"></div>
 
-      <div class="two-btn-grid">
-        <button class="control-btn" onclick="bizSelectAllFields()">全選択</button>
-        <button class="control-btn" onclick="bizClearAllFields()">全解除</button>
+      <div id="bizSelectGrid">
+        <!-- 左：級選択 -->
+        <div>
+          <h4>級を選択</h4>
+          <select id="bizLevelSelect" class="biz-level-select">
+            <option value="3">3級</option>
+            <option value="2">2級</option>
+            <option value="1">1級</option>
+          </select>
+          <br>
+          <button class="main-btn small-btn" onclick="setupBizFields()">分野表示</button>
+        </div>
+
+        <!-- 右：分野選択 -->
+        <div>
+          <h4>分野を選択</h4>
+          <div id="bizFieldArea"></div>
+
+          <div class="two-btn-grid small-btn-grid">
+            <button class="control-btn small-btn" onclick="bizSelectAllFields()">全選択</button>
+            <button class="control-btn small-btn" onclick="bizClearAllFields()">全解除</button>
+          </div>
+        </div>
       </div>
 
       <div style="text-align:center;margin-top:10px;">
         <button class="main-btn" onclick="startBusinessQuiz()">この条件で開始</button>
       </div>
+
     </div>
 
     <!-- ▼ 問題表示エリア -->
@@ -435,6 +498,8 @@ function getBizSelectedFields(){
    ▼ クイズ開始
 =========================================================== */
 let bizCurrentList=[], bizCurrentIndex=0, bizCurrentQ=null;
+const keyStreak = `biz_bestStreak_${level}`;
+let bestStreak = Number(localStorage.getItem(keyStreak) || 0);
 
 function startBusinessQuiz(){
   const level=document.getElementById("bizLevelSelect").value;
@@ -469,12 +534,20 @@ function startBusinessQuiz(){
    ▼ ステータスバー（第○問 / 正解数 / 連続正解）
 =========================================================== */
 function updateBizStatus(){
-  const total = bizCurrentList.length;
-  const now   = bizCurrentIndex; // 1-based
-  const msg = 
-    `第 ${now} 問 / 全 ${total} 問　｜　正解：${bizCorrectCount}　｜　連続正解：${bizStreak}`;
-  document.getElementById("bizStatusBar").innerText = msg;
-}
+  const keyCorrect = `biz_totalCorrect_${bizCurrentQ.level}`;
+  const keyAnswered = `biz_totalAnswered_${bizCurrentQ.level}`;
+  const keyBestStreak = `biz_bestStreak_${bizCurrentQ.level}`;
+
+  const totalCorrect = Number(localStorage.getItem(keyCorrect) || 0);
+  const totalAnswered = Number(localStorage.getItem(keyAnswered) || 0);
+  const bestStreak = Number(localStorage.getItem(keyBestStreak) || 0);
+
+  document.getElementById("bizStatusBar").innerHTML =
+    `第 ${now} 問 / 全 ${total} 問 |
+    正解：${bizCorrectCount} |
+    連続：${bizStreak}（最高 ${bestStreak}） |
+    通算：${totalCorrect}/${totalAnswered}`;
+  }
 
 /* ===========================================================
    ▼ 次の問題
@@ -565,10 +638,40 @@ function checkBusinessAnswer(){
 
   if(ok){
     result.innerHTML="〇 正解！<br><br>"+descHtml;
+    /* 正解時のアニメーション */
+    const qElem = document.getElementById("bizQuestion");
+    qElem.classList.remove("correct-anim");
+    void qElem.offsetWidth; // ← アニメ再生のためリセット
+    qElem.classList.add("correct-anim");
+
+    // ▼ ベスト連続記録の更新
+    if(bizStreak > bestStreak){
+      bestStreak = bizStreak;
+      localStorage.setItem(`biz_bestStreak_${bizCurrentQ.level}`, bestStreak);
+    }
+
+    // ▼ 累積成績（総正解数・総回答数）
+    const keyCorrect = `biz_totalCorrect_${bizCurrentQ.level}`;
+    const keyAnswered = `biz_totalAnswered_${bizCurrentQ.level}`;
+
+    const totalCorrect = Number(localStorage.getItem(keyCorrect) || 0) + 1;
+    const totalAnswered = Number(localStorage.getItem(keyAnswered) || 0) + 1;
+
+    localStorage.setItem(keyCorrect, totalCorrect);
+    localStorage.setItem(keyAnswered, totalAnswered);
+
   }else{
     const formatted=Number(bizCurrentQ.answer).toLocaleString();
     const correctStr=(bizCurrentQ.pos==="1")
       ? correctUnit+formatted : formatted+correctUnit;
+
+    // ▼ 不正解のとき（回答数のみ+1）
+    const keyAnswered = `biz_totalAnswered_${bizCurrentQ.level}`;
+    const totalAnswered = Number(localStorage.getItem(keyAnswered) || 0) + 1;
+    localStorage.setItem(keyAnswered, totalAnswered);
+
+    // ストリークはリセット
+    bizStreak = 0;
 
     result.innerHTML=
       "× 不正解<br>正解："+correctStr+

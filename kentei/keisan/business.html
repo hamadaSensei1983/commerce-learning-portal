@@ -187,8 +187,6 @@
           <option value="2">2級</option>
           <option value="1">1級</option>
         </select>
-        <br><br>
-        <button class="main-btn small-btn" onclick="setupBizFields()">分野を表示</button>
       </div>
 
       <!-- 右：分野選択 -->
@@ -426,31 +424,20 @@ function getBizSelectedFields(){
 let bizCurrentList=[], bizCurrentIndex=0, bizCurrentQ=null;
 let bizCorrectCount=0, bizStreak=0;
 
-function startBusinessQuiz(){
-  const level=document.getElementById("bizLevelSelect").value;
-  const fields=getBizSelectedFields();
+function setupBizFields(){
+  const level = document.getElementById("bizLevelSelect").value;
+  const list = bizQuestions.filter(q => q.level === level);
+  const area = document.getElementById("bizFieldArea");
 
-  if(fields.length===0){
-    alert("分野を選択してください");
-    return;
-  }
+  const fields = [...new Set(list.map(q => q.field))];
 
-  const list=bizQuestions.filter(q=>q.level===level && fields.includes(q.field));
-
-  if(list.length===0){
-    alert("その条件の問題がありません");
-    return;
-  }
-
-  bizCurrentList=shuffle([...list]);
-  bizCurrentIndex=0;
-  bizCorrectCount=0;
-  bizStreak=0;
-
-  document.getElementById("bizQuizArea").classList.remove("hidden");
-  nextBusinessQuestion();
+  area.innerHTML = "";
+  fields.forEach(f=>{
+    const lb=document.createElement("label");
+    lb.innerHTML = `<input type="checkbox" value="${f}" checked> ${f}`;
+    area.appendChild(lb);
+  });
 }
-
 
 /* ===========================================================
    ▼ 8. ステータスバー表示

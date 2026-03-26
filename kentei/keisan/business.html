@@ -519,11 +519,27 @@ function showBusinessQuestion(q){
   }
 
   /* カンマ補助 */
-  num.oninput=()=>{
-    let v=num.value.replace(/,/g,"");
-    if(!isNaN(v)&&v!==""){
-      num.value=Number(v).toLocaleString();
+  num.oninput = () => {
+    let raw = num.value;
+
+    // ▼ 小数入力途中（末尾が "."）ならそのまま許可
+    if(raw.endsWith(".")){
+      return;
     }
+
+    // ▼ 小数点ありの場合（例：12.5）
+    if(/^\d+(\.\d+)?$/.test(raw.replace(/,/g,""))){
+      let parts = raw.replace(/,/g,"").split(".");
+
+      // 整数部分にだけコンマ付与
+      parts[0] = Number(parts[0]).toLocaleString();
+
+      num.value = parts.join(".");
+      return;
+    }
+
+    // ▼ それ以外の異常な文字は除去
+    num.value = raw.replace(/[^\d\.,]/g, "");
   };
 
   updateBizStatus();

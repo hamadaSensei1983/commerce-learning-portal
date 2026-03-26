@@ -480,66 +480,78 @@ function showBusinessQuestion(q){
 
 /* ▼ 答え合わせ */
 function checkBusinessAnswer(){
-  if(!bizCurrentQ) return;
+  if (!bizCurrentQ) return;
 
-  const raw=document.getElementById("bizAnswerNumber").value;
-  const unit=document.getElementById("bizUnitSelect").value;
-  const result=document.getElementById("bizResult");
+  const raw   = document.getElementById("bizAnswerNumber").value;
+  const unit  = document.getElementById("bizUnitSelect").value;
+  const result = document.getElementById("bizResult");
 
-  if(!raw){ alert("答えを入力してください"); return; }
-
-  const normalized=normalizeNumber(raw);
-  if(!/^\d{1,3}(,\d{3})*(\.\d+)?$/.test(normalized)){
-    result.innerText="コンマで3桁区切りにしてください。";
+  if (!raw) {
+    alert("答えを入力してください");
     return;
   }
 
-  const userValue=normalized.replace(/,/g,"");
-  const correctValue=String(bizCurrentQ.answer);
-  const correctUnit=bizCurrentQ.correctUnit;
+  const normalized = normalizeNumber(raw);
 
-  const lv=bizCurrentQ.level;
-  let bestStreak=Number(localStorage.getItem(`biz_bestStreak_${lv}`)||0);
-  let totalCorrect=Number(localStorage.getItem(`biz_totalCorrect_${lv}`)||0);
-  let totalAnswered=Number(localStorage.getItem(`biz_totalAnswered_${lv}`)||0);
+  // 3桁区切り＋小数点の形式チェック
+  if (!/^\d{1,3}(,\d{3})*(\.\d+)?$/.test(normalized)) {
+    result.innerText = "コンマで3桁区切りにしてください。";
+    return;
+  }
 
-  const ok=(userValue===correctValue && unit===correctUnit);
-  const descHtml=(bizCurrentQ.desc||"").replace(/\n/g,"<br>");
+  const userValue    = normalized.replace(/,/g, "");
+  const correctValue = String(bizCurrentQ.answer);
+  const correctUnit  = bizCurrentQ.correctUnit;
 
-  if(ok){
-    result.innerHTML=`〇 正解！<br><br>${descHtml}`;
+  const lv = bizCurrentQ.level;
+  let bestStreak    = Number(localStorage.getItem(`biz_bestStreak_${lv}`)    || 0);
+  let totalCorrect  = Number(localStorage.getItem(`biz_totalCorrect_${lv}`)  || 0);
+  let totalAnswered = Number(localStorage.getItem(`biz_totalAnswered_${lv}`) || 0);
 
-    /* 正解アニメ */
-    const qElem=document.getElementById("bizQuestion");
+  const ok       = (userValue === correctValue && unit === correctUnit);
+  const descHtml = (bizCurrentQ.desc || "").replace(/\n/g, "<br>");
+
+  if (ok) {
+    // ▼ 正解時
+    result.innerHTML = `〇 正解！<br><br>${descHtml}`;
+
+    // 正解アニメーション
+    const qElem = document.getElementById("bizQuestion");
     qElem.classList.remove("correct-anim");
-    void qElem.offsetWidth;
+    void qElem.offsetWidth; // 再生リセット用
     qElem.classList.add("correct-anim");
 
     bizCorrectCount++;
     bizStreak++;
     totalCorrect++;
-    bestStreak=Math.max(bestStreak,bizStreak);
-  }else{
-    bizStreak=0;
-    result.innerHTML=
-      `× 不正解<br>正解：${
-        q.pos==="1"
-        ? correctUnit+Number(correctValue).toLocaleString()
-        : Number(correctValue).toLocaleString()+correctUnit
-      }<br><br>解説：${descHtml}`;
+    bestStreak = Math.max(bestStreak, bizStreak);
+
+  } else {
+    // ▼ 不正解時
+    bizStreak = 0;
+
+    const formatted = Number(correctValue).toLocaleString();
+    const correctStr = (bizCurrentQ.pos === "1")
+      ? correctUnit + formatted   // 単位が前
+      : formatted + correctUnit;  // 単位が後
+
+    result.innerHTML =
+      `× 不正解<br>正解：${correctStr}<br><br>解説：${descHtml}`;
   }
 
   totalAnswered++;
 
-  /* 保存 */
-  localStorage.setItem(`biz_bestStreak_${lv}`,bestStreak);
-  localStorage.setItem(`biz_totalCorrect_${lv}`,totalCorrect);
-  localStorage.setItem(`biz_totalAnswered_${lv}`,totalAnswered);
+  // ▼ 成績を localStorage に保存
+  localStorage.setItem(`biz_bestStreak_${lv}`,    bestStreak);
+  localStorage.setItem(`biz_totalCorrect_${lv}`,  totalCorrect);
+  localStorage.setItem(`biz_totalAnswered_${lv}`, totalAnswered);
 
+  // ▼ ステータスバー更新
   updateBizStatus();
+
+  // ▼ 「次の問題」ボタンを表示
   document.getElementById("bizNextBtn").classList.remove("hidden");
 }
-
 
 /* ▼ シャッフル */
 function shuffle(a){

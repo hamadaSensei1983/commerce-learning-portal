@@ -8,6 +8,7 @@
 
 <style>
 summary.grade-title{
+  content:"▶ ";
   font-size:20px !important;
   font-weight:bold;
 }
@@ -138,7 +139,7 @@ summary.grade-title{
     <h3>ビジネス計算部門</h3>
     <ul>
       <li>20問出題</li>
-      <li>70点以上で合格</li>
+      <li>各5点×20問　（70点以上で合格）</li>
       <li>まずは3級から攻略しよう！</li>
     </ul>
   </div>
@@ -219,7 +220,7 @@ summary.grade-title{
 
 <script>
 
-/* ▼ 動画読み込み（省略：あなたのコードのまま） */
+/* ▼ 動画読み込み */
 fetch("url.csv")
   .then(res => res.text())
   .then(text => {
@@ -239,7 +240,7 @@ function createVideoCards(videos){
     const det=document.createElement("details");
     const sum=document.createElement("summary");
     sum.className="grade-title";
-    sum.innerText="▶ "+g+"級";
+    sum.innerText=g+"級";
     det.appendChild(sum);
 
     const grid=document.createElement("div");
@@ -280,6 +281,7 @@ function showBizTab(tab){
     v.classList.remove("hidden"); q.classList.add("hidden");
     bV.classList.add("active");   bQ.classList.remove("active");
   }else{
+    setupBizFields();
     v.classList.add("hidden");    q.classList.remove("hidden");
     bV.classList.remove("active");bQ.classList.add("active");
   }
@@ -547,6 +549,10 @@ function shuffle(a){
   }
   return a;
 }
+
+window.addEventListener("DOMContentLoaded", () => {
+  setupBizFields();
+});
 
 </script>
 </body>

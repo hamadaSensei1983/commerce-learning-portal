@@ -160,6 +160,41 @@ summary{
 
     <div id="videoArea"></div>
 
+    <hr>
+
+    <h3>練習問題にチャレンジ</h3>
+
+    <!-- 設定エリア -->
+    <div id="quizSetup">
+    <label>
+        級：
+        <select id="bizLevelSelect">
+        <option value="3">3級</option>
+        <option value="2">2級</option>
+        <option value="1">1級</option>
+        </select>
+    </label>
+    <button class="main-btn" onclick="startBusinessQuiz()">この級でスタート</button>
+    </div>
+
+    <!-- クイズエリア -->
+    <div id="bizQuizArea" class="hidden" style="margin-top:15px;">
+        <div id="bizQuestion" style="margin-bottom:10px;font-weight:bold;"></div>
+
+        <div id="bizInputRow"
+            style="display:flex;gap:8px;justify-content:center;align-items:center;margin-bottom:8px;">
+            <!-- 並び順は前後フラグで JS 側から組み立て直します -->
+            <select id="bizUnitSelect" class="control-btn" style="max-width:120px;"></select>
+            <input id="bizAnswerNumber" class="calc-input" inputmode="decimal">
+        </div>
+
+        <div style="text-align:center;margin-bottom:8px;">
+            <button class="main-btn" onclick="checkBusinessAnswer()">答え合わせ</button>
+            <button class="control-btn hidden" id="bizNextBtn" onclick="nextBusinessQuestion()">次の問題</button>
+        </div>
+
+        <div id="bizResult" style="min-height:40px;"></div>
+    </div>
     <a href="index.html" class="portal-btn exam-btn">
     部門選択へ戻る
     </a>
@@ -254,6 +289,206 @@ function getYoutubeID(url){
 
     return ""
 
+}
+
+function normalizeNumber(str){
+  return String(str)
+    .replace(/[\uFF10-\uFF19]/g, s => String.fromCharCode(s.charCodeAt(0)-65248)) // 全角数字
+    .replace(/\uFF0D/g, "-")   // 全角マイナス
+    .replace(/\uFF0B/g, "+")   // 全角プラス
+    .replace(/\uFF0E/g, ".")   // 全角ピリオド
+    .replace(/\uFF0C/g, ",")   // 全角カンマ
+    .replace(/\s+/g, "")       // 空白
+    .trim();
+}
+
+/* =====================
+   ビジネス計算 用 変数
+===================== */
+let bizQuestions = [];
+let bizCurrentList = [];
+let bizCurrentIndex = 0;
+let bizCurrentQ = null;
+
+/* =====================
+   keisan3 と同じタイプの CSVパーサー
+===================== */
+function parseBusinessCSV(text){
+  text = text.replace(/^\uFEFF/, ""); // BOM除去
+  const rows = text.trim().split(/\r?\n/);
+  const result = [];
+  for(let i=1; i<rows.length; i++){
+    const line = rows[i].trim();
+    if(!line) continue;
+    let cols = [];
+    let cur = "";
+    let inQ = false;
+    for(let c of line){
+      if(c === '"'){
+        inQ = !inQ;
+        continue;
+      }
+      if(c === "," && !inQ){
+        cols.push(cur);
+        cur = "";
+      }else{
+        cur += c;
+      }
+    }
+    cols.push(cur);
+    if(cols.length < 8) continue;
+
+    result.push({
+      level  : (cols[0] || "").trim(),   // 級
+      field  : (cols[1] || "").trim(),   // 分野
+      text   : (cols[2] || "").trim(),   // 問題文
+      pos    : (cols[3] || "").trim(),   // 前後 (1:前, 2:後)
+      units  : (cols[4] || "").trim(),   // 単位（|区切り）
+      correctUnit : (cols[5] || "").trim(), // 正解単位
+      answer : Number((cols[6] || "").trim()), // 解答（数値）
+      desc   : (cols[7] || "").trim()    // 解説
+    });
+  }
+  return result;
+}
+
+/* =====================
+   business.csv 読み込み
+   パスは配置に合わせて変更
+===================== */
+fetch("data/business.csv")
+  .then(res => res.text())
+  .then(text => {
+    bizQuestions = parseBusinessCSV(text);
+  })
+  .catch(err => {
+    console.error("business.csv 読み込み失敗", err);
+  });
+
+/* =====================
+   クイズ開始
+===================== */
+function startBusinessQuiz(){
+  const level = document.getElementById("bizLevelSelect").value;
+  const list = bizQuestions.filter(q => q.level === level);
+  if(list.length === 0){
+    alert(level + "級の問題がまだ登録されていません。");
+    return;
+  }
+  bizCurrentList = shuffle([...list]);
+  bizCurrentIndex = 0;
+  document.getElementById("bizQuizArea").classList.remove("hidden");
+  document.getElementById("bizResult").innerText = "";
+  nextBusinessQuestion();
+}
+
+/* =====================
+   次の問題へ
+===================== */
+function nextBusinessQuestion(){
+  if(bizCurrentIndex >= bizCurrentList.length){
+    document.getElementById("bizResult").innerText = "この級のサンプル問題は以上です。";
+    document.getElementById("bizNextBtn").classList.add("hidden");
+    return;
+  }
+  bizCurrentQ = bizCurrentList[bizCurrentIndex++];
+  showBusinessQuestion(bizCurrentQ);
+}
+
+/* =====================
+   問題表示
+===================== */
+function showBusinessQuestion(q){
+  document.getElementById("bizQuestion").innerText = q.text;
+  const numInput  = document.getElementById("bizAnswerNumber");
+  const unitSel   = document.getElementById("bizUnitSelect");
+  const row       = document.getElementById("bizInputRow");
+  const resultDiv = document.getElementById("bizResult");
+
+  numInput.value = "";
+  resultDiv.innerText = "";
+  document.getElementById("bizNextBtn").classList.add("hidden");
+
+  // 単位選択肢を生成（|区切り）
+  unitSel.innerHTML = "";
+  q.units.split("|").map(u => u.trim()).filter(u => u).forEach(u => {
+    const opt = document.createElement("option");
+    opt.value = u;
+    opt.textContent = u;
+    unitSel.appendChild(opt);
+  });
+
+  // 並び順を前後フラグで切り替え
+  row.innerHTML = "";
+  if(q.pos === "1"){ // 前： 単位 → 数字
+    row.appendChild(unitSel);
+    row.appendChild(numInput);
+  }else{             // 後： 数字 → 単位
+    row.appendChild(numInput);
+    row.appendChild(unitSel);
+  }
+
+  // カンマ補助
+  numInput.oninput = () => {
+    let v = numInput.value.replace(/,/g,"");
+    if(!isNaN(v) && v !== ""){
+      numInput.value = Number(v).toLocaleString();
+    }
+  };
+}
+
+/* =====================
+   答え合わせ
+===================== */
+function checkBusinessAnswer(){
+  if(!bizCurrentQ) return;
+  const raw     = document.getElementById("bizAnswerNumber").value;
+  const unit    = document.getElementById("bizUnitSelect").value;
+  const result  = document.getElementById("bizResult");
+
+  if(!raw){
+    alert("答えを入力してください。");
+    return;
+  }
+
+  const normalized = normalizeNumber(raw); // 全角 → 半角など
+
+  // 3桁区切りコンマ必須
+  if(!/^\d{1,3}(,\d{3})*(\.\d+)?$/.test(normalized)){
+    result.innerText = "コンマで3桁区切りになるように入力してください。";
+    return;
+  }
+
+  const userValue    = normalized.replace(/,/g,"");
+  const correctValue = String(bizCurrentQ.answer);
+  const correctUnit  = bizCurrentQ.correctUnit;
+
+  const ok = (userValue === correctValue) && (unit === correctUnit);
+
+  if(ok){
+    result.innerText = "〇 正解！";
+  }else{
+    const formatted = Number(bizCurrentQ.answer).toLocaleString();
+    const correctStr = (bizCurrentQ.pos === "1")
+      ? correctUnit + formatted
+      : formatted + correctUnit;
+    result.innerHTML =
+      "× 不正解\n正解：" + correctStr +
+      "\n\n解説：" + (bizCurrentQ.desc || "");
+  }
+
+  document.getElementById("bizNextBtn").classList.remove("hidden");
+}
+
+/* =====================
+   配列シャッフル
+===================== */
+function shuffle(a){
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
 }
 
 </script>

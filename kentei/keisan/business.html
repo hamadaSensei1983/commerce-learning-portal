@@ -203,7 +203,7 @@ summary.grade-title{
       </div>
 
       <div style="text-align:center;margin-bottom:8px;">
-        <button class="main-btn" onclick="checkBusinessAnswer()">答え合わせ</button>
+        <button id="bizCheckBtn" class="main-btn" onclick="checkBusinessAnswer()">答え合わせ</button>
         <button class="control-btn hidden" id="bizNextBtn" onclick="nextBusinessQuestion()">次の問題</button>
       </div>
 
@@ -272,21 +272,33 @@ function getYoutubeID(url){
 
 /* ▼ タブ切り替え */
 function showBizTab(tab){
-  const v=document.getElementById("bizVideoTab");
-  const q=document.getElementById("bizQuizTab");
-  const bV=document.getElementById("btnBizTabVideo");
-  const bQ=document.getElementById("btnBizTabQuiz");
+  const v  = document.getElementById("bizVideoTab");
+  const q  = document.getElementById("bizQuizTab");
+  const bV = document.getElementById("btnBizTabVideo");
+  const bQ = document.getElementById("btnBizTabQuiz");
 
-  if(tab==="video"){
-    v.classList.remove("hidden"); q.classList.add("hidden");
-    bV.classList.add("active");   bQ.classList.remove("active");
-  }else{
+  if (tab === "video") {
+    // ▼ 解説動画タブへ → 練習状態はリセット
+    resetBusinessQuiz();
+
+    v.classList.remove("hidden");
+    q.classList.add("hidden");
+    bV.classList.add("active");
+    bQ.classList.remove("active");
+
+  } else {
+    // ▼ 練習タブへ → まずリセットしてから分野生成
+    resetBusinessQuiz();
+
+    v.classList.add("hidden");
+    q.classList.remove("hidden");
+    bV.classList.remove("active");
+    bQ.classList.add("active");
+
+    // ここで現在の級に応じた分野を再表示（3級がデフォルト）
     setupBizFields();
-    v.classList.add("hidden");    q.classList.remove("hidden");
-    bV.classList.remove("active");bQ.classList.add("active");
   }
 }
-
 
 /* ▼ CSV パース */
 function parseBusinessCSV(text){
@@ -421,15 +433,17 @@ function updateBizStatus(){
 
 /* ▼ 次へ */
 function nextBusinessQuestion(){
-  if(bizCurrentIndex>=bizCurrentList.length){
-    document.getElementById("bizResult").innerText="以上で終了です。";
+  const checkBtn = document.getElementById("bizCheckBtn");
+  if (checkBtn) checkBtn.disabled = false;
+
+  if (bizCurrentIndex >= bizCurrentList.length) {
+    document.getElementById("bizResult").innerText = "以上で終了です。";
     document.getElementById("bizNextBtn").classList.add("hidden");
     return;
   }
-  bizCurrentQ=bizCurrentList[bizCurrentIndex++];
+  bizCurrentQ = bizCurrentList[bizCurrentIndex++];
   showBusinessQuestion(bizCurrentQ);
 }
-
 
 /* ▼ 問題表示 */
 function showBusinessQuestion(q){
@@ -482,9 +496,10 @@ function showBusinessQuestion(q){
 function checkBusinessAnswer(){
   if (!bizCurrentQ) return;
 
-  const raw   = document.getElementById("bizAnswerNumber").value;
-  const unit  = document.getElementById("bizUnitSelect").value;
+  const raw    = document.getElementById("bizAnswerNumber").value;
+  const unit   = document.getElementById("bizUnitSelect").value;
   const result = document.getElementById("bizResult");
+  const checkBtn = document.getElementById("bizCheckBtn");
 
   if (!raw) {
     alert("答えを入力してください");
@@ -493,11 +508,14 @@ function checkBusinessAnswer(){
 
   const normalized = normalizeNumber(raw);
 
-  // 3桁区切り＋小数点の形式チェック
+  // 3桁区切り＋小数の形式チェック
   if (!/^\d{1,3}(,\d{3})*(\.\d+)?$/.test(normalized)) {
     result.innerText = "コンマで3桁区切りにしてください。";
     return;
   }
+
+  // ここまで来たら「答え合わせ」ボタンは無効化（1問1回限定）
+  if (checkBtn) checkBtn.disabled = true;
 
   const userValue    = normalized.replace(/,/g, "");
   const correctValue = String(bizCurrentQ.answer);
@@ -518,7 +536,7 @@ function checkBusinessAnswer(){
     // 正解アニメーション
     const qElem = document.getElementById("bizQuestion");
     qElem.classList.remove("correct-anim");
-    void qElem.offsetWidth; // 再生リセット用
+    void qElem.offsetWidth; // 再生リセット
     qElem.classList.add("correct-anim");
 
     bizCorrectCount++;
@@ -530,7 +548,7 @@ function checkBusinessAnswer(){
     // ▼ 不正解時
     bizStreak = 0;
 
-    const formatted = Number(correctValue).toLocaleString();
+    const formatted  = Number(correctValue).toLocaleString();
     const correctStr = (bizCurrentQ.pos === "1")
       ? correctUnit + formatted   // 単位が前
       : formatted + correctUnit;  // 単位が後
@@ -541,15 +559,15 @@ function checkBusinessAnswer(){
 
   totalAnswered++;
 
-  // ▼ 成績を localStorage に保存
+  // ▼ 成績保存
   localStorage.setItem(`biz_bestStreak_${lv}`,    bestStreak);
   localStorage.setItem(`biz_totalCorrect_${lv}`,  totalCorrect);
   localStorage.setItem(`biz_totalAnswered_${lv}`, totalAnswered);
 
-  // ▼ ステータスバー更新
+  // ▼ ステータス更新
   updateBizStatus();
 
-  // ▼ 「次の問題」ボタンを表示
+  // ▼ 次の問題ボタン表示
   document.getElementById("bizNextBtn").classList.remove("hidden");
 }
 
@@ -560,6 +578,33 @@ function shuffle(a){
     [a[i],a[j]]=[a[j],a[i]];
   }
   return a;
+}
+
+function resetBusinessQuiz(){
+  // 状態変数のリセット
+  bizCurrentList  = [];
+  bizCurrentIndex = 0;
+  bizCurrentQ     = null;
+  bizCorrectCount = 0;
+  bizStreak       = 0;
+
+  // 画面要素のリセット
+  const status   = document.getElementById("bizStatusBar");
+  const qElem    = document.getElementById("bizQuestion");
+  const resElem  = document.getElementById("bizResult");
+  const nextBtn  = document.getElementById("bizNextBtn");
+  const checkBtn = document.getElementById("bizCheckBtn");
+  const quizArea = document.getElementById("bizQuizArea");
+
+  if (status)  status.innerText = "";
+  if (qElem) {
+    qElem.innerText = "";
+    qElem.classList.remove("correct-anim");
+  }
+  if (resElem) resElem.innerText = "";
+  if (nextBtn) nextBtn.classList.add("hidden");
+  if (checkBtn) checkBtn.disabled = false;
+  if (quizArea) quizArea.classList.add("hidden");
 }
 
 window.addEventListener("DOMContentLoaded", () => {

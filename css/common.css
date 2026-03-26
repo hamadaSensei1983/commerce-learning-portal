@@ -1,447 +1,352 @@
 /* =============================
-   カラーテーマ
+   カラーテーマ（全ページ共通）
 ============================= */
-:root{
-    --main-green:#2e8b57;
-    --dark-green:#1f6a42;
-    --light-green:#e8f5e9;
-    --shadow:0 6px 18px rgba(0,0,0,0.15);
+:root {
+  --main-green: #2e8b57;
+  --dark-green: #1f6a42;
+  --light-green: #e8f5e9;
+  --shadow: 0 6px 18px rgba(0,0,0,0.15);
 }
 
 /* =============================
    基本レイアウト
 ============================= */
-body{
-    font-family: "Segoe UI", sans-serif;
-    margin:0;
-    background:var(--light-green);
+body {
+  font-family: "Segoe UI", sans-serif;
+  margin: 0;
+  background: var(--light-green);
 }
 
-.hidden{
-    display:none;
+.hidden {
+  display: none;
 }
 
-.card{
-    background:white;
-    max-width:650px;
-    margin:40px auto;
-    padding:25px;
-    border-radius:14px;
-    box-shadow:var(--shadow);
-    transition:0.3s;
-}
-
-/* =============================
-   ポータルヘッダー
-============================= */
-
-/* ===== ヘッダー構造 ===== */
-
-.app-header{
-    background:var(--main-green);
-    padding:12px 20px;
-    color:white;
-}
-
-.header-left{
-    display:flex;
-    align-items:center;
-    gap:12px;
-}
-
-.header-icon{
-    width:40px;
-}
-
-.site-title{
-    font-size:18px;
-    margin:0;
-}
-
-.exam-title{
-    font-size:14px;
-    opacity:0.9;
+.card {
+  background: white;
+  max-width: 650px;
+  margin: 40px auto;
+  padding: 25px;
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  transition: 0.3s;
 }
 
 /* =============================
-   ボタン共通
+   ヘッダー
 ============================= */
-button{
-    width:100%;
-    padding:12px;
-    margin:6px 0;
-    font-size:16px;
-    border-radius:8px;
-    cursor:pointer;
-    transition:0.2s ease;
+.app-header {
+  background: var(--main-green);
+  padding: 12px 20px;
+  color: white;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-icon {
+  width: 40px;
+}
+
+.site-title {
+  font-size: 18px;
+  margin: 0;
+}
+
+.exam-title {
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+/* =============================
+   ボタン（共通）
+============================= */
+button {
+  width: 100%;
+  padding: 12px;
+  margin: 6px 0;
+  font-size: 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.2s ease;
 }
 
 /* メイン（緑）ボタン */
-.main-btn:hover{
-    background:white;
-    color:var(--main-green);
-    border:2px solid var(--main-green);
+.main-btn {
+  background: var(--main-green);
+  color: white;
+  border: none;
 }
-
-.main-btn:hover{
-    background:white;
-    color:var(--main-green);
-    border:2px solid var(--main-green);
-    transform:translateY(-2px);
+.main-btn:hover {
+  background: white;
+  color: var(--main-green);
+  border: 2px solid var(--main-green);
+  transform: translateY(-2px);
 }
 
 /* サブ（白）ボタン */
-.control-btn{
-    background:white;
-    color:var(--main-green);
-    border:2px solid var(--main-green);
+.control-btn {
+  background: white;
+  color: var(--main-green);
+  border: 2px solid var(--main-green);
 }
-
-.control-btn:hover{
-    background:var(--main-green);
-    color:white;
-}
-
-/* =============================
-   未公開検定（グレーアウト）
-============================= */
-
-.disabled-btn{
-    background:#ccc;
-    color:#666;
-    border:2px solid #aaa;
-    cursor:not-allowed;
-    pointer-events:none;   /* クリック無効 */
-}
-
-.disabled-btn:hover{
-    background:#ccc;
-    color:#666;
-    transform:none;
-}
-
-/* =============================
-   クイズ選択肢ボタン（浮かない）
-============================= */
-
-.quiz-btn{
-    width:100%;
-    padding:12px;
-    margin:6px 0;
-    font-size:16px;
-    border-radius:8px;
-    cursor:pointer;
-    background:white;
-    color:var(--main-green);
-    border:2px solid var(--main-green);
-    transition:0.15s;
-}
-
-.quiz-btn:hover{
-    background:#f0fff4;
-}
-
-/* 正解表示 */
-.correct-answer {
-  background-color: #4CAF50;
+.control-btn:hover {
+  background: var(--main-green);
   color: white;
+}
+
+/* =============================
+   クイズ選択肢ボタン（共通）
+   → 緑フチの標準タイプ
+============================= */
+.quiz-btn {
+  width: 100%;
+  padding: 12px;
+  margin: 6px 0;
+  font-size: 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  background: white;
+  color: var(--main-green);
+  border: 2px solid var(--main-green);
+  transition: 0.15s;
+}
+
+.quiz-btn:hover {
+  background: #f0fff4;
+}
+
+/* --- 派生スタイル（必要に応じ各ページで使う） --- */
+
+/* 大型ボタン（情報処理などの4択用） */
+.quiz-btn.large {
+  font-size: 20px;
+  padding: 14px;
+  border: 2px solid #333;
+  border-radius: 10px;
+}
+
+.quiz-btn.large:hover {
+  background: #f0f0f0;
+}
+
+/* ダークフレーム版（黒系で統一したいページ用） */
+.quiz-btn.dark {
+  border-color: #222;
+  color: #222;
+}
+.quiz-btn.dark:hover {
+  background: #f3f3f3;
+}
+
+/* =============================
+   正誤表示（共通）
+============================= */
+.correct-answer {
+  background-color: #4caf50;
+  color: white !important;
   font-weight: bold;
 }
 
-/* 不正解表示 */
 .wrong-answer {
   background-color: #f44336;
-  color: white;
+  color: white !important;
 }
 
-/* モード選択専用 */
-.mode-btn{
-    width:100%;
-    padding:14px;
-    border-radius:10px;
-    border:2px solid var(--main-green);
-    background:white;
-    color:var(--main-green);
-    font-size:16px;
-    cursor:pointer;
-    transition:0.15s;
+/* =============================
+   モード切替ボタン（カード型）
+============================= */
+.mode-btn {
+  width: 100%;
+  padding: 14px;
+  border-radius: 10px;
+  border: 2px solid var(--main-green);
+  background: white;
+  color: var(--main-green);
+  font-size: 16px;
+  cursor: pointer;
+  transition: 0.15s;
 }
 
-.mode-btn:hover{
-    background:#f0fff4;
+.mode-btn:hover {
+  background: #f0fff4;
 }
 
 /* =============================
    進捗バー
 ============================= */
-.progress-wrapper{
-    margin-bottom:15px;
+.progress-wrapper {
+  margin-bottom: 15px;
 }
 
-.progress-text{
-    margin-bottom:5px;
-    font-weight:bold;
+.progress-text {
+  margin-bottom: 5px;
+  font-weight: bold;
 }
 
-.progress-bar{
-    background:#ddd;
-    height:14px;
-    border-radius:10px;
-    overflow:hidden;
+.progress-bar {
+  background: #ddd;
+  height: 14px;
+  border-radius: 10px;
+  overflow: hidden;
 }
 
-.progress-bar-fill{
-    background:var(--main-green);
-    height:100%;
-    transition:width 0.3s;
+.progress-bar-fill {
+  background: var(--main-green);
+  height: 100%;
+  transition: width 0.3s;
 }
 
 /* =============================
    タイマー
 ============================= */
-#timerBox{
-    font-weight:bold;
-    color:var(--dark-green);
-    margin-bottom:10px;
+#timerBox {
+  font-weight: bold;
+  color: var(--dark-green);
+  margin-bottom: 10px;
 }
 
 /* =============================
-   ポータルへ戻るボタン（浮遊）
+   ポータルに戻るボタン（右下固定）
 ============================= */
-.portal-btn{
-    position:fixed;
-    bottom:25px;
-    background:var(--main-green);
-    color:white;
-    padding:12px 18px;
-    border-radius:30px;
-    text-decoration:none;
-    font-weight:bold;
-    box-shadow:0 8px 20px rgba(0,0,0,0.25);
+.portal-btn {
+  position: fixed;
+  bottom: 25px;
+  background: var(--main-green);
+  color: white;
+  padding: 12px 18px;
+  border-radius: 30px;
+  text-decoration: none;
+  font-weight: bold;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.25);
 }
 
-.portal-main{
-    right:25px;
+.portal-main {
+  right: 25px;
 }
 
-.exam-btn{
-    right:170px;
+.exam-btn {
+  right: 170px;
 }
 
 /* =============================
-   分野選択チェックボックス整形
+   分野チェックボックス（2列）
 ============================= */
-.field-grid{
-    display:grid;
-    grid-template-columns:repeat(2,1fr);
-    gap:8px;
-    margin-bottom:15px;
+.field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-bottom: 15px;
 }
 
-.field-grid label{
-    background:#f9f9f9;
-    padding:6px;
-    border-radius:6px;
+.field-grid label {
+  background: #f9f9f9;
+  padding: 6px;
+  border-radius: 6px;
 }
 
 /* =============================
-   ローディング
+   ローディング画面
 ============================= */
-#loadingScreen{
-    position:fixed;
-    inset:0;
-    background:rgba(255,255,255,0.9);
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    z-index:1000;
+#loadingScreen {
+  position: fixed;
+  inset: 0;
+  background: rgba(255,255,255,0.9);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
 }
 
-.spinner{
-    width:40px;
-    height:40px;
-    border:5px solid #ddd;
-    border-top:5px solid var(--main-green);
-    border-radius:50%;
-    animation:spin 1s linear infinite;
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 5px solid #ddd;
+  border-top: 5px solid var(--main-green);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
 }
 
-@keyframes spin{
-    to{transform:rotate(360deg);}
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 /* =============================
-   学習モード改良
+   学習モード（カード・スライド）
 ============================= */
-
-.study-term-wrapper{
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    gap:15px;
-    margin-bottom:20px;
+.study-term-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  margin-bottom: 20px;
 }
 
-.nav-btn{
-    width:45px;
-    height:45px;
-    border-radius:50%;
-    border:2px solid var(--main-green);
-    background:white;
-    color:var(--main-green);
-    font-size:18px;
-    cursor:pointer;
-    transition:0.2s;
+.nav-btn {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  border: 2px solid var(--main-green);
+  background: white;
+  color: var(--main-green);
+  font-size: 18px;
+  cursor: pointer;
+  transition: 0.2s;
 }
 
-.nav-btn:hover{
-    background:var(--main-green);
-    color:white;
+.nav-btn:hover {
+  background: var(--main-green);
+  color: white;
 }
 
-.study-meaning-box{
-    min-height:90px;      /* ← 高さ固定 */
-    padding:10px;
-    border-radius:10px;
-    background:#f9f9f9;
-    margin-bottom:10px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    text-align:center;
+.study-meaning-box {
+  min-height: 120px;
+  padding: 15px;
+  border-radius: 10px;
+  background: #f9f9f9;
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+/* カードスライド */
+.study-container {
+  overflow: hidden;
+}
+
+#studyCard {
+  transition: transform 0.35s ease;
 }
 
 /* =============================
-   学習モード（左右配置版）
+   計算問題入力欄
 ============================= */
-
-.study-row{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    margin-bottom:20px;
+.calc-input {
+  width: 140px;
+  padding: 10px;
+  font-size: 20px;
+  border: 3px solid #444;
+  border-radius: 6px;
+  text-align: center;
+  background: #fff;
 }
-
-.study-center{
-    flex:1;
-    text-align:center;
-}
-
-.nav-square{
-    width:40px;
-    height:40px;
-    border-radius:6px;
-    border:2px solid var(--main-green);
-    background:white;
-    color:var(--main-green);
-    font-size:18px;
-    cursor:pointer;
-    transition:0.15s;
-}
-
-.nav-square:hover{
-    background:var(--main-green);
-    color:white;
-}
-
-.study-position{
-    margin-top:6px;
-    font-size:14px;
-    color:#666;
-}
-
-.study-meaning-box{
-    min-height:120px;      /* ← スペース固定 */
-    padding:15px;
-    border-radius:10px;
-    background:#f9f9f9;
-    margin-bottom:15px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    text-align:center;
+.calc-input:focus {
+  outline: none;
+  border-color: #2a7fff;
+  box-shadow: 0 0 6px rgba(42,127,255,0.6);
 }
 
 /* =============================
-   スライドアニメーション
+   4択の並びレイアウト
 ============================= */
-
-.slide-area{
-    transition:transform 0.25s ease, opacity 0.25s ease;
-}
-
-.slide-left{
-    transform:translateX(-20px);
-    opacity:0;
-}
-
-.slide-right{
-    transform:translateX(20px);
-    opacity:0;
-}
-
-/* 学習カードアニメーション */
-
-.study-container{
-    overflow:hidden;
-}
-
-#studyCard{
-    transition: transform 0.35s ease;
-}
-
-/* =====================
-   計算問題入力ボックス
-===================== */
-
-.calc-input{
-
-    width:140px;
-    padding:10px;
-
-    font-size:20px;
-
-    border:3px solid #444;
-    border-radius:6px;
-
-    text-align:center;
-    background:#fff;
-
-}
-
-.calc-input:focus{
-
-    outline:none;
-    border-color:#2a7fff;
-    box-shadow:0 0 6px rgba(42,127,255,0.6);
-
-}
-
-/* =====================
-   容量計算４択用
-===================== */
-
-#choicesArea{
-
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:12px;
-
-    max-width:320px;
-    margin:20px auto;
-
-}
-
-.quiz-btn{
-
-    font-size:20px;
-    padding:14px;
-    border:2px solid #333;
-    border-radius:10px;
-    background:white;
-
-}
-
-.quiz-btn:hover{
-    background:#f0f0f0;
+#choicesArea {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  max-width: 320px;
+  margin: 20px auto;
 }

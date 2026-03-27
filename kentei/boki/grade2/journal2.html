@@ -40,7 +40,7 @@
     .journal{
       display:grid;
       grid-template-columns:1fr 1fr;
-      gap:22px;
+      gap:16px;
       margin-top:16px;
       padding:14px;
       background:#f9fdf9;
@@ -272,6 +272,8 @@ let examIndex = 0;
 let examResults = [];
 
 let currentRows = 0;        // 現在表示している行数（借方・貸方共通）
+
+let hintVisible = false;
 
 const loadStartTime = Date.now();
 
@@ -513,23 +515,39 @@ function clearHint(){
 function showHint(){
   if(mode === "exam") return;
   if(!current) return;
+
+  const btn = document.getElementById("hintBtn");
+  const res = document.getElementById("result");
+
+  /* ===== すでにヒント表示中 → 隠す ===== */
+  if(hintVisible){
+    clearHint();
+    hintVisible = false;
+    if(btn) btn.textContent = "ヒント";
+    if(res) res.innerText = "";
+    return;
+  }
+
+  /* ===== ヒントを表示 ===== */
   clearHint();
 
   const needD = current.correct.D.length;
   const needC = current.correct.C.length;
 
-  // 借方の先頭 needD 行を強調
+  // 借方
   for(let i=0;i<Math.min(needD, currentRows); i++){
     const el = document.getElementById(`d${i}`)?.closest(".entry");
     if(el) el.classList.add("hint-required");
   }
-  // 貸方の先頭 needC 行を強調
+
+  // 貸方
   for(let i=0;i<Math.min(needC, currentRows); i++){
     const el = document.getElementById(`c${i}`)?.closest(".entry");
     if(el) el.classList.add("hint-required");
   }
 
-  const res = document.getElementById("result");
+  hintVisible = true;
+  if(btn) btn.textContent = "ヒントを隠す";
   if(res){
     res.innerText = `ヒント：借方は${needD}行、貸方は${needC}行の仕訳です。`;
   }
@@ -670,6 +688,9 @@ function init(){
 function showQuestion(qObj){
   current = qObj;
 
+  hintVisible = false;
+  document.getElementById("hintBtn").textContent = "ヒント";
+
   document.getElementById("journalArea").style.display = "block";
   document.getElementById("question").innerText = qObj.q;
   document.getElementById("qMeta").innerText = `分野：${qObj.field}　/　ID：${qObj.id}`;
@@ -694,6 +715,7 @@ function showQuestion(qObj){
   }
   document.getElementById("nextBtn").classList.add("hidden");
   document.getElementById("retryExamBtn").classList.add("hidden");
+
 }
 
 /* =====================
@@ -897,7 +919,7 @@ function check(){
 
     lockInputs();
 
-    // 正解なら1秒後に自動で次へ（3級の挙動）[1](https://chinzeigakuinedjp01-my.sharepoint.com/personal/hirotoshi_hamada_chinzeigakuinedjp01_onmicrosoft_com/_layouts/15/Doc.aspx?sourcedoc=%7B57BDBB37-35C1-43CE-A2BF-4B836356A299%7D&file=journal3.csv&action=default&mobileredirect=true)
+    // 正解なら1秒後に自動で次へ（3級の挙動）
     setTimeout(()=>{
       next();
     }, 1000);

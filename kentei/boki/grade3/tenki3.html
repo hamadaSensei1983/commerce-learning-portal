@@ -514,15 +514,30 @@ function checkAnswer(){
     // 間違えたら連続正解数リセット
     streak = 0;
 
+    // ▼ 正解の金額をT勘定に表示（0は表示しない）
+    currentQ.ledgers.forEach(def=>{
+      const dInput = document.getElementById(`${def.id}_D`);
+      const cInput = document.getElementById(`${def.id}_C`);
+
+      if(dInput && def.correctD > 0){
+        dInput.value = def.correctD.toLocaleString();
+      }
+      if(cInput && def.correctC > 0){
+        cInput.value = def.correctC.toLocaleString();
+      }
+    });
+
     resultP.innerText = "× 不正解です。\n" + msg;
     explainP.innerText =
-      "どの勘定が増えて（減って）、どちら側に書くのかをもう一度確認しましょう。";
+      "正解の金額をT勘定に表示しました。\nどの勘定が増えて（減って）、どちら側に書くのかを確認しましょう。";
+
     checkBtn.disabled = true;
 
     if(currentIndex < quizQuestions.length - 1){
       nextBtn.classList.remove("hidden");
     }
   }
+
 }
 
 /* =====================

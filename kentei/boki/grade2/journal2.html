@@ -242,11 +242,15 @@
 <a href="../../../index.html" class="portal-btn portal-main">ポータルへ戻る</a>
 
 <script>
-/* =====================================================
+/* =========================================================
    journal2.html Script①
-   基盤・状態管理・UI制御
-===================================================== */
+   - CSVパース（クォート対応）
+   - journal2.csv 読み込み
+   - UI制御（分野ロック/モード切替）
+   - 初期化＆ローディング解除
+========================================================= */
 
+/* ===== グローバル ===== */
 let allData = [];
 let data = [];
 let current = null;
@@ -254,6 +258,10 @@ let current = null;
 let mode = "practice";
 let inSession = false;
 
+let streak = 0;
+let bestStreak = 0;
+
+let wrongPool = [];
 let quizOrder = [];
 let quizIndex = 0;
 
@@ -261,33 +269,100 @@ let examQuestions = [];
 let examIndex = 0;
 let examResults = [];
 
-let wrongPool = [];
 let currentRows = 0;
-
 let hintVisible = false;
 
+const loadStartTime = Date.now();
+
 const modeInfoText = {
-  practice: "練習モード：1問ずつ解いて理解を深めます。",
-  review  : "復習モード：間違えた問題だけを出題します。",
-  exam    : "検定モード：各分野から1問ずつ出題します。"
+  practice: "練習モード：1問ずつ解いて、すぐに答え合わせをします。",
+  review  : "復習モード：間違えた問題だけをもう一度出題します。",
+  exam    : "検定モード：各分野から1問ずつ出題します（分野数＝出題数）。"
 };
 
-/* ---------- utility ---------- */
+/* ===== 数値変換（空欄→0、カンマ除去） ===== */
 function toNumber(v){
   if(!v) return 0;
   const s = String(v).replace(/,/g,"").trim();
-  return s === "" ? 0 : Number(s);
+  if(s === "") return 0;
+  const n = Number(s);
+  return isNaN(n) ? 0 : n;
 }
 
-function shuffle(a){
-  for(let i=a.length-1;i>0;i--){
-    const j = Math.floor(Math.random()*(i+1));
-    [a[i],a[j]] = [a[j],a[i]];
+/* ===== CSVセル正規化（改行/全角｜/バックスラッシュ改行吸収） ===== */
+function normalizeCell(raw){
+  return (raw || "")
+    .replace(/\\\r?\n/g, "|")   // バックスラッシュ+改行 → |
+    .replace(/\r?\n/g, "|")     // 改行 → |
+    .replace(/｜/g, "|")        // 全角｜ → 半角|
+    .trim();
+}
+
+/* ===== CSVパーサー（全文走査・クォート対応） ===== */
+function parseCSV(text){
+  text = text.replace(/^\uFEFF/, "");
+  const out = [];
+  let row = [];
+  let cur = "";
+  let inQuotes = false;
+
+  for(let i=0; i<text.length; i++){
+    const c = text[i];
+
+    if(c === '"'){
+      inQuotes = !inQuotes;
+      continue;
+    }
+    if(c === "," && !inQuotes){
+      row.push(cur);
+      cur = "";
+      continue;
+    }
+    if((c === "\n" || c === "\r") && !inQuotes){
+      if(c === "\r" && text[i+1] === "\n") i++;
+      row.push(cur);
+
+      if(row.join("").trim() !== "") out.push(row);
+      row = [];
+      cur = "";
+      continue;
+    }
+    cur += c;
   }
-  return a;
+
+  row.push(cur);
+  if(row.join("").trim() !== "") out.push(row);
+  return out;
 }
 
-/* ---------- UIロック（分野のみ） ---------- */
+/* ===== 仕訳データ（借方|借方;貸方|貸方 / 科目:金額） ===== */
+function parseJournalData(raw){
+  raw = normalizeCell(raw);
+  const parts = raw.split(";");
+  const debitPart  = (parts[0] || "").trim();
+  const creditPart = (parts[1] || "").trim();
+
+  function parseSide(str){
+    if(!str) return [];
+    return str.split("|")
+      .map(x=>x.trim())
+      .filter(Boolean)
+      .map(line=>{
+        const [a,m] = line.split(":").map(x=>x.trim());
+        return { a: a || "", m: toNumber(m) };
+      })
+      .filter(x=>x.a && x.m>0);
+  }
+
+  return { D: parseSide(debitPart), C: parseSide(creditPart) };
+}
+
+/* ===== 使用科目（|区切り） ===== */
+function parseAllowedAccounts(raw){
+  return normalizeCell(raw).split("|").map(s=>s.trim()).filter(Boolean);
+}
+
+/* ===== 分野ロック（開始後のみ） ===== */
 function lockFieldArea(){
   document.getElementById("fieldArea")?.classList.add("ui-locked");
 }
@@ -295,32 +370,56 @@ function unlockFieldArea(){
   document.getElementById("fieldArea")?.classList.remove("ui-locked");
 }
 
-/* ---------- モード切替 ---------- */
+/* ===== ストリーク ===== */
+function loadBestStreak(){
+  const key = "journal2_bestStreak";
+  const v = localStorage.getItem(key);
+  bestStreak = v ? parseInt(v,10) : 0;
+}
+function saveBestStreak(){
+  localStorage.setItem("journal2_bestStreak", String(bestStreak));
+}
+function updateStreakDisplay(){
+  const statsDiv = document.getElementById("stats");
+  if(statsDiv) statsDiv.textContent = `連続正解：${streak}（最高：${bestStreak}）`;
+}
+
+/* ===== resetSession / setMode ===== */
 function resetSession(){
   unlockFieldArea();
-  inSession = false;
+
   current = null;
+  inSession = false;
+
   quizOrder = [];
   quizIndex = 0;
+
   examQuestions = [];
-  examResults = [];
   examIndex = 0;
+  examResults = [];
 
   document.getElementById("journalArea").style.display = "none";
   document.getElementById("question").innerText = "";
   document.getElementById("qMeta").innerText = "";
   document.getElementById("result").innerHTML = "";
+
   document.getElementById("nextBtn").classList.add("hidden");
   document.getElementById("retryExamBtn").classList.add("hidden");
+
+  const checkBtn = document.getElementById("checkBtn");
+  if(checkBtn) checkBtn.disabled = false;
+
+  hintVisible = false;
+  const hintBtn = document.getElementById("hintBtn");
+  if(hintBtn) hintBtn.textContent = "ヒント";
 }
 
 function setMode(m, force){
   if(!force && m === mode) return;
 
   if(!force && inSession){
-    if(!confirm("モードを切り替えると、現在の問題はリセットされます。\nよろしいですか？")){
-      return;
-    }
+    const ok = confirm("モードを切り替えると、いまの問題は中断されます。\nよろしいですか？\n（※解答内容は保存されません）");
+    if(!ok) return;
     resetSession();
   }
 
@@ -329,174 +428,432 @@ function setMode(m, force){
   ["btnPractice","btnReview","btnExam"].forEach(id=>{
     document.getElementById(id)?.classList.remove("active");
   });
-  document.getElementById(
-    m==="practice" ? "btnPractice" :
-    m==="review"   ? "btnReview"   : "btnExam"
-  ).classList.add("active");
+  if(m==="practice") document.getElementById("btnPractice")?.classList.add("active");
+  if(m==="review")   document.getElementById("btnReview")?.classList.add("active");
+  if(m==="exam")     document.getElementById("btnExam")?.classList.add("active");
 
-  document.getElementById("modeInfo").textContent = modeInfoText[m] || "";
+  const info = document.getElementById("modeInfo");
+  if(info) info.textContent = modeInfoText[m] || "";
 
-  // 検定モードは分野選択を非表示
-  document.getElementById("fieldArea").style.display =
-    (m==="exam") ? "none" : "";
+  // ヒントは検定モードで隠す
+  const hintBtn = document.getElementById("hintBtn");
+  if(hintBtn) hintBtn.style.display = (m==="exam") ? "none" : "";
+
+  // 検定モードは分野選択UIを隠す（各分野から1問ずつ）
+  const fieldList = document.getElementById("fieldList");
+  const fieldControls = document.getElementById("fieldControls");
+  if(m==="exam"){
+    if(fieldList) fieldList.style.display = "none";
+    if(fieldControls) fieldControls.style.display = "none";
+  }else{
+    if(fieldList) fieldList.style.display = "";
+    if(fieldControls) fieldControls.style.display = "";
+  }
 }
+
+/* ===== 分野UI ===== */
+function selectAll(){
+  document.querySelectorAll("#fieldList input").forEach(x=>x.checked=true);
+}
+function clearAll(){
+  document.querySelectorAll("#fieldList input").forEach(x=>x.checked=false);
+}
+
+/* ===== シャッフル ===== */
+function shuffle(a){
+  for(let i=a.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+
+/* ===== 初期化（CSV読込後） ===== */
+function init(){
+  const fields = [...new Set(allData.map(x=>x.field))];
+  const area = document.getElementById("fieldList");
+  area.innerHTML = "";
+  fields.forEach(f=>{
+    const label = document.createElement("label");
+    label.innerHTML = `<input type="checkbox" value="${f}"> ${f}`;
+    area.appendChild(label);
+  });
+
+  loadBestStreak();
+  updateStreakDisplay();
+  setMode("practice", true);
+}
+
+/* ===== CSV読込＆ローディング解除 ===== */
+(async function loadAll(){
+  try{
+    const res = await fetch("../data/journal2.csv");
+    if(!res.ok) throw new Error("journal2.csv が見つかりません");
+
+    let text = await res.text();
+    text = text.replace(/^\uFEFF/,"");
+
+    const rows = parseCSV(text);
+    const body = rows.slice(1).filter(r=>r.length && r.join("").trim()!=="");
+
+    allData = body.map(cols=>{
+      const field = (cols[0] || "").trim();
+      const id    = (cols[1] || "").trim();
+      const q     = (cols[2] || "").trim();
+
+      const allowed = parseAllowedAccounts(cols[3] || "");
+      const correct = parseJournalData(cols[4] || "");
+      const desc    = (cols[5] || "").trim();
+
+      return { field, id, q, allowed, correct, desc };
+    });
+
+    init();
+
+    // 最低1秒ローディング
+    const elapsed = Date.now() - loadStartTime;
+    const remain = 1000 - elapsed;
+    const show = ()=>{
+      document.getElementById("loadingScreen").style.display = "none";
+      document.getElementById("mainCard").classList.remove("hidden");
+    };
+    if(remain > 0) setTimeout(show, remain); else show();
+
+  }catch(e){
+    console.error("CSV読み込み失敗", e);
+    document.getElementById("loadingScreen").style.display = "none";
+    document.getElementById("mainCard").classList.remove("hidden");
+    document.getElementById("question").innerText = "CSV読み込みエラー";
+    document.getElementById("result").innerText = e.message || e;
+  }
+})();
 </script>
 
 <script>
-/* =====================================================
+/* =========================================================
    journal2.html Script②
-   出題・表示・採点・ヒント
-===================================================== */
+   - 表示（可変行）
+   - 出題（練習/復習/検定）
+   - 採点（不正解時に正解仕訳表示）
+   - ヒント（トグル）
+========================================================= */
 
-/* ---------- 仕訳入力欄生成 ---------- */
-function renderRows(containerId, allowed, rows, prefix){
+/* ===== マルチセット比較（順不同＋個数一致） ===== */
+function multisetMap(list){
+  const map = new Map();
+  for(const x of list){
+    const k = x.a + "|" + x.m;
+    map.set(k, (map.get(k) || 0) + 1);
+  }
+  return map;
+}
+function compareMulti(userList, correctList){
+  const a = multisetMap(userList);
+  const b = multisetMap(correctList);
+  if(a.size !== b.size) return false;
+  for(const [k,v] of a.entries()){
+    if(b.get(k) !== v) return false;
+  }
+  return true;
+}
+
+/* ===== 入力欄生成（左右・可変行） ===== */
+function renderRows(containerId, allowedAccounts, rowCount, prefix){
   const box = document.getElementById(containerId);
   box.innerHTML = "";
 
-  for(let i=0;i<rows;i++){
-    const div = document.createElement("div");
-    div.className = "entry";
+  for(let i=0;i<rowCount;i++){
+    const row = document.createElement("div");
+    row.className = "entry";
 
     const sel = document.createElement("select");
     sel.id = `${prefix}${i}`;
-    sel.innerHTML = `<option value=""></option>` +
-      allowed.map(a=>`<option>${a}</option>`).join("");
+    const blank = document.createElement("option");
+    blank.value = "";
+    blank.textContent = "";
+    sel.appendChild(blank);
+
+    allowedAccounts.forEach(a=>{
+      const opt = document.createElement("option");
+      opt.value = a;
+      opt.textContent = a;
+      sel.appendChild(opt);
+    });
 
     const inp = document.createElement("input");
     inp.id = `${prefix}m${i}`;
     inp.className = "money";
-    inp.oninput = ()=>{
-      const v = inp.value.replace(/,/g,"");
-      if(!isNaN(v) && v!==""){
+    inp.inputMode = "numeric";
+    inp.addEventListener("input", ()=>{
+      let v = inp.value.replace(/,/g,"");
+      if(!isNaN(v) && v !== ""){
         inp.value = Number(v).toLocaleString();
       }
-    };
+    });
 
-    div.appendChild(sel);
-    div.appendChild(inp);
-    box.appendChild(div);
+    row.appendChild(sel);
+    row.appendChild(inp);
+    box.appendChild(row);
   }
 }
 
-/* ---------- 問題表示 ---------- */
-function showQuestion(q){
-  current = q;
+/* ===== 入力収集（空行は無視） ===== */
+function collectEntries(prefix, rowCount){
+  const arr = [];
+  for(let i=0;i<rowCount;i++){
+    const a = document.getElementById(`${prefix}${i}`).value;
+    const m = toNumber(document.getElementById(`${prefix}m${i}`).value);
+    if(a && m>0) arr.push({a,m});
+  }
+  return arr;
+}
+
+/* ===== 問題表示 ===== */
+function showQuestion(qObj){
+  current = qObj;
   hintVisible = false;
   document.getElementById("hintBtn").textContent = "ヒント";
 
   document.getElementById("journalArea").style.display = "block";
-  document.getElementById("question").innerText = q.q;
-  document.getElementById("qMeta").innerText = `分野：${q.field} / ID：${q.id}`;
+  document.getElementById("question").innerText = qObj.q;
+  document.getElementById("qMeta").innerText = `分野：${qObj.field} / ID：${qObj.id}`;
   document.getElementById("result").innerHTML = "";
 
-  currentRows = Math.max(q.correct.D.length, q.correct.C.length, 2);
-  renderRows("debitBox", q.allowed, currentRows, "d");
-  renderRows("creditBox", q.allowed, currentRows, "c");
+  // 行数決定
+  const needD = qObj.correct.D.length;
+  const needC = qObj.correct.C.length;
+  currentRows = Math.max(needD, needC);
+  if(currentRows < 2) currentRows = 2;
 
+  renderRows("debitBox", qObj.allowed, currentRows, "d");
+  renderRows("creditBox", qObj.allowed, currentRows, "c");
+
+  // ボタン状態
   document.getElementById("checkBtn").disabled = false;
   document.getElementById("nextBtn").classList.add("hidden");
+  document.getElementById("retryExamBtn").classList.add("hidden");
 }
 
-/* ---------- 開始 ---------- */
+/* ===== 開始 ===== */
 function start(){
-  if(mode !== "exam"){
-    const selected = [...document.querySelectorAll("#fieldList input:checked")]
-      .map(x=>x.value);
-    if(selected.length === 0){
-      alert("分野を選択してください");
-      return;
-    }
-    data = allData.filter(x=>selected.includes(x.field));
+  // 検定モード
+  if(mode === "exam"){
+    lockFieldArea();
+    inSession = true;
+    pickExamQuestions();
+    examIndex = 0;
+    examResults = [];
+    showQuestion(examQuestions[0]);
+    return;
+  }
+
+  // 練習/復習：分野チェック確認
+  const selected = [...document.querySelectorAll("#fieldList input:checked")].map(x=>x.value);
+  if(selected.length === 0){
+    alert("分野を選択してください");
+    return;
   }
 
   lockFieldArea();
-  inSession = true;
+
+  if(mode === "review"){
+    if(wrongPool.length === 0){
+      alert("復習する問題がありません（まだ間違いが記録されていません）。");
+      unlockFieldArea();
+      return;
+    }
+    data = [...wrongPool];
+  }else{
+    data = allData.filter(x=>selected.includes(x.field));
+  }
 
   quizOrder = shuffle([...data]);
   quizIndex = 0;
+  inSession = true;
+  next();
+}
+
+/* ===== 次の問題（練習/復習） ===== */
+function next(){
+  if(mode === "exam") return;
+
+  if(!quizOrder || quizOrder.length===0) return;
+
+  if(quizIndex >= quizOrder.length){
+    quizOrder = shuffle([...data]);
+    quizIndex = 0;
+  }
+
   showQuestion(quizOrder[quizIndex++]);
 }
 
-/* ---------- 答え合わせ ---------- */
+/* ===== 検定：各分野から1問ずつ ===== */
+function pickExamQuestions(){
+  const byField = {};
+  allData.forEach(q=>{
+    if(!byField[q.field]) byField[q.field] = [];
+    byField[q.field].push(q);
+  });
+
+  const fields = Object.keys(byField);
+  shuffle(fields);
+
+  examQuestions = [];
+  for(const f of fields){
+    const list = byField[f];
+    shuffle(list);
+    examQuestions.push(list[0]);
+  }
+}
+
+/* ===== 検定結果表示 ===== */
+function showExamResult(){
+  const total = examResults.length;
+  const correctCount = examResults.filter(r=>r.correct).length;
+
+  let html = "";
+  html += "<b>検定モード 結果</b><br>";
+  html += `${total}問中 ${correctCount}問 正解<br><br>`;
+  html += "（各分野から1問ずつ出題）<br><br>";
+
+  examResults.forEach((r, idx)=>{
+    html += `${idx+1}問目：${r.correct ? "〇 正解" : "× 不正解"}（分野：${r.question.field} / ID：${r.question.id}）<br>`;
+  });
+
+  document.getElementById("result").innerHTML = html;
+
+  document.getElementById("retryExamBtn").classList.remove("hidden");
+  unlockFieldArea();
+  inSession = false;
+}
+
+/* ===== 検定リトライ ===== */
+function retryExam(){
+  if(mode !== "exam") return;
+  pickExamQuestions();
+  examIndex = 0;
+  examResults = [];
+  document.getElementById("result").innerHTML = "";
+  lockFieldArea();
+  inSession = true;
+  showQuestion(examQuestions[0]);
+}
+
+/* ===== ヒント（トグル） ===== */
+function showHint(){
+  if(mode === "exam") return;
+  if(!current) return;
+
+  const btn = document.getElementById("hintBtn");
+  const res = document.getElementById("result");
+
+  // 隠す
+  if(hintVisible){
+    document.querySelectorAll(".entry").forEach(e=>e.classList.remove("hint-required"));
+    hintVisible = false;
+    btn.textContent = "ヒント";
+    if(res) res.innerHTML = "";
+    return;
+  }
+
+  // 表示
+  document.querySelectorAll(".entry").forEach(e=>e.classList.remove("hint-required"));
+
+  const needD = current.correct.D.length;
+  const needC = current.correct.C.length;
+
+  for(let i=0;i<Math.min(needD, currentRows);i++){
+    document.getElementById(`d${i}`)?.closest(".entry")?.classList.add("hint-required");
+  }
+  for(let i=0;i<Math.min(needC, currentRows);i++){
+    document.getElementById(`c${i}`)?.closest(".entry")?.classList.add("hint-required");
+  }
+
+  hintVisible = true;
+  btn.textContent = "ヒントを隠す";
+  if(res) res.innerText = `ヒント：借方は${needD}行、貸方は${needC}行です。`;
+}
+
+/* ===== 答え合わせ ===== */
 function check(){
-  const btn = document.getElementById("checkBtn");
+  const checkBtn = document.getElementById("checkBtn");
   const result = document.getElementById("result");
 
-  if(btn.disabled) return;
+  if(!current) return;
 
-  const userD = [];
-  const userC = [];
+  const userD = collectEntries("d", currentRows);
+  const userC = collectEntries("c", currentRows);
 
-  for(let i=0;i<currentRows;i++){
-    const da = document.getElementById(`d${i}`).value;
-    const dm = toNumber(document.getElementById(`dm${i}`).value);
-    const ca = document.getElementById(`c${i}`).value;
-    const cm = toNumber(document.getElementById(`cm${i}`).value);
-    if(da && dm>0) userD.push({a:da,m:dm});
-    if(ca && cm>0) userC.push({a:ca,m:cm});
-  }
+  const sumD = userD.reduce((s,x)=>s+x.m,0);
+  const sumC = userC.reduce((s,x)=>s+x.m,0);
 
   if(userD.length===0 && userC.length===0){
     result.innerText = "科目と金額を入力してください";
     return;
   }
+  if(sumD===0 && sumC===0){
+    result.innerText = "金額を入力してください";
+    return;
+  }
+  if(sumD !== sumC){
+    result.innerText = "借方と貸方の金額が一致していません";
+    return;
+  }
 
-  const ok =
-    JSON.stringify(userD.sort((a,b)=>a.a.localeCompare(b.a))) ===
-    JSON.stringify(current.correct.D.sort((a,b)=>a.a.localeCompare(b.a))) &&
-    JSON.stringify(userC.sort((a,b)=>a.a.localeCompare(b.a))) ===
-    JSON.stringify(current.correct.C.sort((a,b)=>a.a.localeCompare(b.a)));
+  const ok = compareMulti(userD, current.correct.D) && compareMulti(userC, current.correct.C);
 
+  // 検定モード
+  if(mode === "exam"){
+    examResults.push({question: current, correct: ok});
+
+    examIndex++;
+    if(examIndex < examQuestions.length){
+      showQuestion(examQuestions[examIndex]);
+    }else{
+      showExamResult();
+    }
+    return;
+  }
+
+  // 練習/復習
   if(ok){
     result.innerText = "〇 正解！";
-    btn.disabled = true;
-    setTimeout(()=>{
-      if(quizIndex < quizOrder.length){
-        showQuestion(quizOrder[quizIndex++]);
-      }
-    },1000);
+    streak++;
+    if(streak > bestStreak){
+      bestStreak = streak;
+      saveBestStreak();
+    }
+    updateStreakDisplay();
+
+    checkBtn.disabled = true;
+    setTimeout(()=>next(), 1000);
+
   }else{
-    // ❌ 不正解：正解仕訳を表示
-    const d = current.correct.D.map(x=>`${x.a} ${x.m.toLocaleString()}`).join("<br>");
-    const c = current.correct.C.map(x=>`${x.a} ${x.m.toLocaleString()}`).join("<br>");
+    // 不正解：正解仕訳表示（復活）
+    streak = 0;
+    updateStreakDisplay();
+
+    wrongPool.push(current);
+
+    const correctStrD = current.correct.D.map(x=>`${x.a} ${x.m.toLocaleString()}`).join("<br>");
+    const correctStrC = current.correct.C.map(x=>`${x.a} ${x.m.toLocaleString()}`).join("<br>");
+    const desc = (normalizeCell(current.desc||"").split("|").join("\n")).replace(/\n/g,"<br>");
 
     result.innerHTML =
       "× 不正解<br><br>" +
       "<b>正解</b>" +
       "<div class='answer-journal'>" +
-      `<div class='answer-side'><b>借方</b><br>${d}</div>` +
-      `<div class='answer-side'><b>貸方</b><br>${c}</div>` +
-      "</div>";
+        `<div class='answer-side'><b>借方</b><br>${correctStrD}</div>` +
+        `<div class='answer-side'><b>貸方</b><br>${correctStrC}</div>` +
+      "</div><br>" +
+      "解説：<br>" + desc;
 
-    // ★ 不正解時はボタンを無効にしない
+    // ★不正解時は答え合わせボタンは押せるまま（不正防止したいならdisabledでもOK）
     document.getElementById("nextBtn").classList.remove("hidden");
   }
 }
-
-/* ---------- ヒント ---------- */
-function showHint(){
-  if(!current) return;
-
-  const entries = document.querySelectorAll(".entry");
-
-  if(hintVisible){
-    entries.forEach(e=>e.classList.remove("hint-required"));
-    hintVisible = false;
-    document.getElementById("hintBtn").textContent = "ヒント";
-    return;
-  }
-
-  for(let i=0;i<current.correct.D.length;i++){
-    entries[i]?.classList.add("hint-required");
-  }
-  for(let i=0;i<current.correct.C.length;i++){
-    entries[i]?.classList.add("hint-required");
-  }
-
-  hintVisible = true;
-  document.getElementById("hintBtn").textContent = "ヒントを隠す";
-}
 </script>
+
 
 </body>
 </html>

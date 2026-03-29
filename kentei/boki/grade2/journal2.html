@@ -435,6 +435,87 @@ function init(){
   setMode("practice", true);
 }
 
+/* ===== 仕訳入力欄生成（左右・可変行） ===== */
+function renderRows(containerId, allowedAccounts, rowCount, prefix){
+  const box = document.getElementById(containerId);
+  if(!box) return;
+
+  box.innerHTML = "";
+
+  for(let i = 0; i < rowCount; i++){
+    const row = document.createElement("div");
+    row.className = "entry";
+
+    const sel = document.createElement("select");
+    sel.id = `${prefix}${i}`;
+
+    const blank = document.createElement("option");
+    blank.value = "";
+    blank.textContent = "";
+    sel.appendChild(blank);
+
+    allowedAccounts.forEach(a=>{
+      const opt = document.createElement("option");
+      opt.value = a;
+      opt.textContent = a;
+      sel.appendChild(opt);
+    });
+
+    const inp = document.createElement("input");
+    inp.id = `${prefix}m${i}`;
+    inp.className = "money";
+    inp.inputMode = "numeric";
+
+    inp.addEventListener("input", ()=>{
+      let v = inp.value.replace(/,/g,"");
+      if(!isNaN(v) && v !== ""){
+        inp.value = Number(v).toLocaleString();
+      }
+    });
+
+    row.appendChild(sel);
+    row.appendChild(inp);
+    box.appendChild(row);
+  }
+}
+
+/* ===== 入力収集（空行は無視） ===== */
+function collectEntries(prefix, rowCount){
+  const arr = [];
+  for(let i = 0; i < rowCount; i++){
+    const a = document.getElementById(`${prefix}${i}`)?.value;
+    const mRaw = document.getElementById(`${prefix}m${i}`)?.value || "";
+    const m = toNumber(mRaw);
+    if(a && m > 0){
+      arr.push({ a, m });
+    }
+  }
+  return arr;
+}
+
+/* ===== 入力ロック ===== */
+function lockInputs(){
+  for(let i = 0; i < currentRows; i++){
+    document.getElementById(`d${i}`)?.setAttribute("disabled", true);
+    document.getElementById(`dm${i}`)?.setAttribute("disabled", true);
+    document.getElementById(`c${i}`)?.setAttribute("disabled", true);
+    document.getElementById(`cm${i}`)?.setAttribute("disabled", true);
+  }
+}
+
+function unlockInputs(){
+  for(let i = 0; i < currentRows; i++){
+    document.getElementById(`d${i}`)?.removeAttribute("disabled");
+    document.getElementById(`dm${i}`)?.removeAttribute("disabled");
+    document.getElementById(`c${i}`)?.removeAttribute("disabled");
+    document.getElementById(`cm${i}`)?.removeAttribute("disabled");
+  }
+}
+
+</script>
+
+<script>
+
 /* =========================================================
    journal2.html Script②
    出題・採点・学習フロー

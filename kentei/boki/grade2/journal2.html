@@ -602,8 +602,46 @@ function check(){
     result.innerText="〇 正解！";
     setTimeout(()=>next(),1000);
   }else{
-    result.innerHTML="× 不正解<br>正解は以下のとおりです。";
-    nextBtn.classList.remove("hidden");
+    // 不正解
+    streak = 0;
+    updateStreakDisplay();
+
+    // 復習用に貯める
+    wrongPool.push(current);
+
+    lockInputs();
+
+    // ===== 正解仕訳を組み立てて表示 =====
+    const correctStrD = current.correct.D
+      .map(x => `${x.a} ${x.m.toLocaleString()}`)
+      .join("\n");
+
+    const correctStrC = current.correct.C
+      .map(x => `${x.a} ${x.m.toLocaleString()}`)
+      .join("\n");
+
+    const desc = (current.desc || "")
+      .split("|")
+      .join("\n");
+
+    result.innerHTML =
+      "× 不正解<br><br>" +
+      "<b>正解</b>" +
+      "<div class='answer-journal'>" +
+        "<div class='answer-side'>" +
+          "<b>借方</b><br>" +
+          correctStrD.replace(/\n/g,"<br>") +
+        "</div>" +
+        "<div class='answer-side'>" +
+          "<b>貸方</b><br>" +
+          correctStrC.replace(/\n/g,"<br>") +
+        "</div>" +
+      "</div><br>" +
+      "解説：<br>" +
+      desc.replace(/\n/g,"<br>");
+
+    // 次へボタン表示
+    document.getElementById("nextBtn").classList.remove("hidden");
   }
 }
 

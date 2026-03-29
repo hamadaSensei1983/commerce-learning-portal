@@ -243,27 +243,22 @@
 
 <script>
 /* =========================================================
-   簿記2級 仕訳トレーニング（journal2.html）
-   - CSV: ../data/journal2.csv
-   - モード: 練習 / 復習 / 検定（各分野から1問）
-   - 使用科目: 問題ごとに限定（ダミー混在OK）
-   - 入力欄: 正解仕訳の行数に合わせて可変生成（左右表示）
+   journal2.html Script①
+   基盤・ユーティリティ・UI制御
 ========================================================= */
 
-/* =====================
-   グローバル変数
-===================== */
+/* ===== グローバル変数 ===== */
 let allData = [];
 let data = [];
 let current = null;
 
-let mode = "practice";      // practice / review / exam
+let mode = "practice";        // practice / review / exam
 let inSession = false;
 
 let streak = 0;
 let bestStreak = 0;
 
-let wrongPool = [];         // 復習用（問題オブジェクトを溜める）
+let wrongPool = [];
 let quizOrder = [];
 let quizIndex = 0;
 
@@ -271,8 +266,7 @@ let examQuestions = [];
 let examIndex = 0;
 let examResults = [];
 
-let currentRows = 0;        // 現在表示している行数（借方・貸方共通）
-
+let currentRows = 0;
 let hintVisible = false;
 
 const loadStartTime = Date.now();
@@ -283,9 +277,7 @@ const modeInfoText = {
   exam    : "検定モード：各分野から1問ずつ出題します（分野数＝出題数）。"
 };
 
-/* =====================
-   文字列 → 数値（カンマ除去）
-===================== */
+/* ===== 数値処理 ===== */
 function toNumber(v){
   if(!v) return 0;
   const s = String(v).replace(/,/g,"").trim();
@@ -294,367 +286,160 @@ function toNumber(v){
   return isNaN(n) ? 0 : n;
 }
 
-/* =====================
-   CSVのセルを正規化
-   - 改行 → |
-   - 全角｜ → |
-   - "\ + 改行"（Excel等で出やすい）も吸収
-===================== */
+/* ===== CSVセル正規化 ===== */
 function normalizeCell(raw){
   return (raw || "")
-    .replace(/\\\r?\n/g, "|")     // バックスラッシュ＋改行 → |
-    .replace(/\r?\n/g, "|")       // 改行 → |
-    .replace(/｜/g, "|")          // 全角｜ → 半角|
+    .replace(/\\\r?\n/g, "\n")
+    .replace(/\r?\n/g, "\n")
+    .replace(/｜/g, "|")
     .trim();
 }
 
-/* =====================
-   CSVパーサー（クォート対応・全体走査）
-   - 行をsplitしないで、文字列全体をスキャン
-   - "..." 内の , や改行を安全に扱う
-===================== */
+/* ===== CSVパーサー ===== */
 function parseCSV(text){
   text = text.replace(/^\uFEFF/, "");
-  // 末尾の改行に強くする
   const out = [];
-  let row = [];
-  let cur = "";
-  let inQuotes = false;
+  let row = [], cur = "", inQ = false;
 
-  for(let i=0; i<text.length; i++){
+  for(let i=0;i<text.length;i++){
     const c = text[i];
-
-    if(c === '"'){
-      inQuotes = !inQuotes;
-      continue;
+    if(c === '"'){ inQ = !inQ; continue; }
+    if(c === "," && !inQ){
+      row.push(cur); cur=""; continue;
     }
-
-    if(c === "," && !inQuotes){
-      row.push(cur);
-      cur = "";
-      continue;
-    }
-
-    // 行区切り
-    if((c === "\n" || c === "\r") && !inQuotes){
-      // \r\n をまとめて処理
+    if((c === "\n" || c === "\r") && !inQ){
       if(c === "\r" && text[i+1] === "\n") i++;
-
       row.push(cur);
-      // 空行除外
-      if(row.join("").trim() !== ""){
-        out.push(row);
-      }
-      row = [];
-      cur = "";
-      continue;
+      if(row.join("").trim() !== "") out.push(row);
+      row = []; cur=""; continue;
     }
-
     cur += c;
   }
-
-  // 最後のセル
   row.push(cur);
-  if(row.join("").trim() !== ""){
-    out.push(row);
-  }
-
+  if(row.join("").trim() !== "") out.push(row);
   return out;
 }
 
-/* =====================
-   仕訳データパーサー（省略版）
-   形式: 借方行|借方行;貸方行|貸方行
-   1行: 科目:金額
-===================== */
+/* ===== 仕訳データ ===== */
 function parseJournalData(raw){
   raw = normalizeCell(raw);
   const parts = raw.split(";");
-  const debitPart  = (parts[0] || "").trim();
-  const creditPart = (parts[1] || "").trim();
+  const d = parts[0] || "";
+  const c = parts[1] || "";
 
   function parseSide(str){
-    if(!str) return [];
     return str.split("|")
       .map(x=>x.trim())
       .filter(Boolean)
       .map(line=>{
         const [a,m] = line.split(":").map(x=>x.trim());
-        return { a: a || "", m: toNumber(m) };
+        return {a, m:toNumber(m)};
       })
-      .filter(x => x.a && x.m > 0);
+      .filter(x=>x.a && x.m>0);
   }
-
-  return { D: parseSide(debitPart), C: parseSide(creditPart) };
+  return { D:parseSide(d), C:parseSide(c) };
 }
 
-/* =====================
-   使用科目パース（|区切り）
-===================== */
 function parseAllowedAccounts(raw){
-  raw = normalizeCell(raw);
-  return raw.split("|").map(s=>s.trim()).filter(Boolean);
+  return normalizeCell(raw)
+    .split("|").map(s=>s.trim()).filter(Boolean);
 }
 
-/* =====================
-   マルチセット比較（順不同＋個数一致）
-===================== */
+/* ===== マルチセット比較 ===== */
 function multisetMap(list){
-  const map = new Map();
-  for(const x of list){
-    const k = x.a + "|" + x.m;
-    map.set(k, (map.get(k) || 0) + 1);
-  }
-  return map;
+  const m = new Map();
+  list.forEach(x=>{
+    const k = x.a+"|"+x.m;
+    m.set(k,(m.get(k)||0)+1);
+  });
+  return m;
 }
-function compareMulti(userList, correctList){
-  const a = multisetMap(userList);
-  const b = multisetMap(correctList);
-  if(a.size !== b.size) return false;
-  for(const [k,v] of a.entries()){
-    if(b.get(k) !== v) return false;
+function compareMulti(a,b){
+  const A = multisetMap(a), B = multisetMap(b);
+  if(A.size !== B.size) return false;
+  for(const [k,v] of A.entries()){
+    if(B.get(k)!==v) return false;
   }
   return true;
 }
 
-/* =====================
-   入力欄生成（左右・可変行）
-===================== */
-function renderRows(containerId, allowedAccounts, rowCount, prefix){
-  const box = document.getElementById(containerId);
-  box.innerHTML = "";
-
-  for(let i=0;i<rowCount;i++){
-    const row = document.createElement("div");
-    row.className = "entry";
-
-    const sel = document.createElement("select");
-    sel.id = `${prefix}${i}`;
-
-    const blank = document.createElement("option");
-    blank.value = "";
-    blank.textContent = "";
-    sel.appendChild(blank);
-
-    allowedAccounts.forEach(a=>{
-      const opt = document.createElement("option");
-      opt.value = a;
-      opt.textContent = a;
-      sel.appendChild(opt);
-    });
-
-    const inp = document.createElement("input");
-    inp.id = `${prefix}m${i}`;
-    inp.className = "money";
-    inp.inputMode = "numeric";
-
-    // カンマ補助（3級と同系）[1](https://chinzeigakuinedjp01-my.sharepoint.com/personal/hirotoshi_hamada_chinzeigakuinedjp01_onmicrosoft_com/_layouts/15/Doc.aspx?sourcedoc=%7B57BDBB37-35C1-43CE-A2BF-4B836356A299%7D&file=journal3.csv&action=default&mobileredirect=true)
-    inp.addEventListener("input", ()=>{
-      let v = inp.value.replace(/,/g,"");
-      if(!isNaN(v) && v !== ""){
-        inp.value = Number(v).toLocaleString();
-      }
-    });
-
-    row.appendChild(sel);
-    row.appendChild(inp);
-    box.appendChild(row);
-  }
+/* ===== UIロック（分野のみ） ===== */
+function lockFieldArea(){
+  document.getElementById("fieldArea")?.classList.add("ui-locked");
+}
+function unlockFieldArea(){
+  document.getElementById("fieldArea")?.classList.remove("ui-locked");
 }
 
-/* =====================
-   入力収集（空行は無視）
-===================== */
-function collectEntries(prefix, rowCount){
-  const arr = [];
-  for(let i=0;i<rowCount;i++){
-    const a = document.getElementById(`${prefix}${i}`).value;
-    const mRaw = document.getElementById(`${prefix}m${i}`).value;
-    const m = toNumber(mRaw);
-    if(a && m > 0){
-      arr.push({a,m});
-    }
-  }
-  return arr;
-}
-
-/* =====================
-   入力ロック / 解除
-===================== */
-function lockInputs(){
-  for(let i=0;i<currentRows;i++){
-    const ds = document.getElementById(`d${i}`);
-    const dm = document.getElementById(`dm${i}`);
-    const cs = document.getElementById(`c${i}`);
-    const cm = document.getElementById(`cm${i}`);
-    if(ds) ds.disabled = true;
-    if(dm) dm.disabled = true;
-    if(cs) cs.disabled = true;
-    if(cm) cm.disabled = true;
-  }
-}
-function unlockInputs(){
-  for(let i=0;i<currentRows;i++){
-    const ds = document.getElementById(`d${i}`);
-    const dm = document.getElementById(`dm${i}`);
-    const cs = document.getElementById(`c${i}`);
-    const cm = document.getElementById(`cm${i}`);
-    if(ds) ds.disabled = false;
-    if(dm) dm.disabled = false;
-    if(cs) cs.disabled = false;
-    if(cm) cm.disabled = false;
-  }
-}
-
-/* =====================
-   ヒント（必要行数を強調）
-===================== */
-function clearHint(){
-  document.querySelectorAll(".entry").forEach(e=>e.classList.remove("hint-required"));
-}
-function showHint(){
-  if(mode === "exam") return;
-  if(!current) return;
-
-  const btn = document.getElementById("hintBtn");
-  const res = document.getElementById("result");
-
-  /* ===== すでにヒント表示中 → 隠す ===== */
-  if(hintVisible){
-    clearHint();
-    hintVisible = false;
-    if(btn) btn.textContent = "ヒント";
-    if(res) res.innerText = "";
-    return;
-  }
-
-  /* ===== ヒントを表示 ===== */
-  clearHint();
-
-  const needD = current.correct.D.length;
-  const needC = current.correct.C.length;
-
-  // 借方
-  for(let i=0;i<Math.min(needD, currentRows); i++){
-    const el = document.getElementById(`d${i}`)?.closest(".entry");
-    if(el) el.classList.add("hint-required");
-  }
-
-  // 貸方
-  for(let i=0;i<Math.min(needC, currentRows); i++){
-    const el = document.getElementById(`c${i}`)?.closest(".entry");
-    if(el) el.classList.add("hint-required");
-  }
-
-  hintVisible = true;
-  if(btn) btn.textContent = "ヒントを隠す";
-  if(res){
-    res.innerText = `ヒント：借方は${needD}行、貸方は${needC}行の仕訳です。`;
-  }
-}
-
-/* =====================
-   ストリーク（localStorage）
-===================== */
-function loadBestStreak(){
-  const key = "journal2_bestStreak";
-  const v = localStorage.getItem(key);
-  bestStreak = v ? parseInt(v,10) : 0;
-}
-function saveBestStreak(){
-  const key = "journal2_bestStreak";
-  localStorage.setItem(key, String(bestStreak));
-}
-function updateStreakDisplay(){
-  const statsDiv = document.getElementById("stats");
-  if(!statsDiv) return;
-  statsDiv.textContent = `連続正解：${streak}（最高：${bestStreak}）`;
-}
-
-/* =====================
-   モード切替・セッションリセット
-===================== */
+/* ===== モード切替 ===== */
 function resetSession(){
-  unlockUI();
+  unlockFieldArea();
   current = null;
   quizOrder = [];
   quizIndex = 0;
   examQuestions = [];
   examResults = [];
   examIndex = 0;
+  inSession = false;
 
-  clearHint();
-  document.getElementById("question").innerText = "";
-  document.getElementById("qMeta").innerText = "";
-  document.getElementById("result").innerHTML = "";
-  document.getElementById("journalArea").style.display = "none";
-
-  const checkBtn = document.getElementById("checkBtn");
-  if(checkBtn){
-    checkBtn.disabled = false;
-    checkBtn.textContent = "答え合わせ";
-  }
+  document.getElementById("journalArea").style.display="none";
+  document.getElementById("question").innerText="";
+  document.getElementById("qMeta").innerText="";
+  document.getElementById("result").innerText="";
   document.getElementById("nextBtn").classList.add("hidden");
   document.getElementById("retryExamBtn").classList.add("hidden");
-
-  inSession = false;
 }
 
 function setMode(m, force){
-  if(!force && m === mode) return;
+  if(!force && m===mode) return;
 
   if(!force && inSession){
-    const ok = confirm("モードを切り替えると、いまの問題は中断されます。\nよろしいですか？\n（※解答内容は保存されません）");
+    const ok = confirm(
+      "モードを切り替えると、いまの問題は中断されます。\nよろしいですか？"
+    );
     if(!ok) return;
     resetSession();
   }
 
   mode = m;
-
   ["btnPractice","btnReview","btnExam"].forEach(id=>{
-    const btn = document.getElementById(id);
-    if(btn) btn.classList.remove("active");
+    document.getElementById(id)?.classList.remove("active");
   });
-  if(m==="practice") document.getElementById("btnPractice").classList.add("active");
-  if(m==="review")   document.getElementById("btnReview").classList.add("active");
-  if(m==="exam")     document.getElementById("btnExam").classList.add("active");
+  if(m==="practice") btnPractice.classList.add("active");
+  if(m==="review")   btnReview.classList.add("active");
+  if(m==="exam")     btnExam.classList.add("active");
 
-  const info = document.getElementById("modeInfo");
-  if(info) info.textContent = modeInfoText[m] || "";
+  document.getElementById("modeInfo").textContent = modeInfoText[m] || "";
 
-  // ヒントは検定では非表示
   const hintBtn = document.getElementById("hintBtn");
-  if(hintBtn){
-    hintBtn.style.display = (m==="exam") ? "none" : "";
-  }
+  if(hintBtn) hintBtn.style.display = (m==="exam")?"none":"";
 
-  // 検定モードは分野選択を隠す（全分野から各1問）
-  const fieldListDiv = document.getElementById("fieldList");
-  const fieldControlsDiv = document.getElementById("fieldControls");
   if(m==="exam"){
-    if(fieldListDiv) fieldListDiv.style.display = "none";
-    if(fieldControlsDiv) fieldControlsDiv.style.display = "none";
+    fieldList.style.display="none";
+    fieldControls.style.display="none";
   }else{
-    if(fieldListDiv) fieldListDiv.style.display = "";
-    if(fieldControlsDiv) fieldControlsDiv.style.display = "";
+    fieldList.style.display="";
+    fieldControls.style.display="";
   }
-
-  document.getElementById("retryExamBtn").classList.add("hidden");
 }
 
-/* =====================
-   分野選択UI
-===================== */
-function selectAll(){
-  document.querySelectorAll("#fieldList input").forEach(x=>x.checked=true);
-}
-function clearAll(){
-  document.querySelectorAll("#fieldList input").forEach(x=>x.checked=false);
+/* ===== 初期化 ===== */
+function init(){
+  const fields = [...new Set(allData.map(x=>x.field))];
+  fieldList.innerHTML="";
+  fields.forEach(f=>{
+    const label=document.createElement("label");
+    label.innerHTML=`<input type="checkbox" value="${f}"> ${f}`;
+    fieldList.appendChild(label);
+  });
+  setMode("practice", true);
 }
 
-/* =====================
-   シャッフル
-===================== */
+/* =========================================================
+   journal2.html Script②
+   出題・採点・学習フロー
+========================================================= */
+
 function shuffle(a){
   for(let i=a.length-1;i>0;i--){
     const j=Math.floor(Math.random()*(i+1));
@@ -663,371 +448,106 @@ function shuffle(a){
   return a;
 }
 
-/* =====================
-   初期化（CSV読込後）
-===================== */
-function init(){
-  // 分野一覧生成
-  const fields = [...new Set(allData.map(x=>x.field))];
-  const area = document.getElementById("fieldList");
-  area.innerHTML = "";
-  fields.forEach(f=>{
-    const label = document.createElement("label");
-    label.innerHTML = `<input type="checkbox" value="${f}"> ${f}`;
-    area.appendChild(label);
-  });
+/* ===== 出題 ===== */
+function showQuestion(q){
+  current = q;
+  hintVisible=false;
+  journalArea.style.display="block";
+  question.innerText=q.q;
+  qMeta.innerText=`分野：${q.field} / ID：${q.id}`;
+  result.innerText="";
 
-  loadBestStreak();
-  updateStreakDisplay();
-  setMode("practice", true);
+  currentRows = Math.max(q.correct.D.length, q.correct.C.length, 2);
+  renderRows("debitBox", q.allowed, currentRows, "d");
+  renderRows("creditBox", q.allowed, currentRows, "c");
+
+  nextBtn.classList.add("hidden");
 }
 
-/* =====================
-   問題表示（可変行）
-===================== */
-function showQuestion(qObj){
-  current = qObj;
-
-  hintVisible = false;
-  document.getElementById("hintBtn").textContent = "ヒント";
-
-  document.getElementById("journalArea").style.display = "block";
-  document.getElementById("question").innerText = qObj.q;
-  document.getElementById("qMeta").innerText = `分野：${qObj.field}　/　ID：${qObj.id}`;
-  document.getElementById("result").innerHTML = "";
-  clearHint();
-
-  // 行数決定（借方・貸方の最大）
-  const needD = qObj.correct.D.length;
-  const needC = qObj.correct.C.length;
-  currentRows = Math.max(needD, needC);
-  if(currentRows < 2) currentRows = 2; // 最低2行は出す（見た目＆入力余裕）
-
-  renderRows("debitBox", qObj.allowed, currentRows, "d");
-  renderRows("creditBox", qObj.allowed, currentRows, "c");
-
-  unlockInputs();
-
-  const checkBtn = document.getElementById("checkBtn");
-  if(checkBtn){
-    checkBtn.disabled = false;
-    checkBtn.textContent = (mode==="exam" && examIndex < examQuestions.length-1) ? "次へ" : "答え合わせ";
-  }
-  document.getElementById("nextBtn").classList.add("hidden");
-  document.getElementById("retryExamBtn").classList.add("hidden");
-
-}
-
-/* =====================
-   開始（練習・復習・検定）
-===================== */
+/* ===== 開始 ===== */
 function start(){
-  lockUI();
-  const checkBtn = document.getElementById("checkBtn");
-  if(checkBtn){
-    checkBtn.disabled = false;
-    checkBtn.textContent = "答え合わせ";
-  }
-  document.getElementById("retryExamBtn").classList.add("hidden");
+  const selected=[...document.querySelectorAll("#fieldList input:checked")]
+    .map(x=>x.value);
 
-  // 検定モード：各分野から1問ずつ
-  if(mode === "exam"){
-    pickExamQuestions();
-    examIndex = 0;
-    examResults = [];
-    inSession = true;
-    showQuestion(examQuestions[examIndex]);
-    return;
-  }
-
-  // 練習／復習
-  const selected = [...document.querySelectorAll("#fieldList input:checked")].map(x=>x.value);
-
-  if(selected.length === 0){
+  if(mode!=="exam" && selected.length===0){
     alert("分野を選択してください");
     return;
   }
 
-  if(mode === "review"){
-    if(wrongPool.length === 0){
-      alert("復習する問題がありません（まだ間違いが記録されていません）。");
-      return;
-    }
-    data = [...wrongPool];
-  }else{
-    data = allData.filter(x=>selected.includes(x.field));
+  lockFieldArea();
+  inSession=true;
+
+  if(mode==="exam"){
+    pickExamQuestions();
+    examIndex=0;
+    showQuestion(examQuestions[0]);
+    return;
   }
 
-  streak = 0;
-  updateStreakDisplay();
+  data = (mode==="review")
+    ? [...wrongPool]
+    : allData.filter(x=>selected.includes(x.field));
 
-  quizOrder = shuffle([...data]);
-  quizIndex = 0;
-
-  inSession = true;
+  quizOrder=shuffle([...data]);
+  quizIndex=0;
   next();
 }
 
-/* =====================
-   次の問題（練習・復習）
-===================== */
 function next(){
-  if(mode === "exam") return;
-
-  if(!quizOrder || quizOrder.length===0) return;
-
-  if(quizIndex >= quizOrder.length){
-    quizOrder = shuffle([...data]);
-    quizIndex = 0;
+  if(quizIndex>=quizOrder.length){
+    quizOrder=shuffle([...data]);
+    quizIndex=0;
   }
-
-  const qObj = quizOrder[quizIndex++];
-  showQuestion(qObj);
+  showQuestion(quizOrder[quizIndex++]);
 }
 
-/* =====================
-   検定モード：各分野から1問
-===================== */
-function pickExamQuestions(){
-  const byField = {};
-  allData.forEach(q=>{
-    if(!byField[q.field]) byField[q.field] = [];
-    byField[q.field].push(q);
-  });
-
-  const fields = Object.keys(byField);
-  shuffle(fields);
-
-  examQuestions = [];
-  for(const f of fields){
-    const list = byField[f];
-    shuffle(list);
-    examQuestions.push(list[0]);  // 各分野から1問
-  }
-}
-
-/* =====================
-   検定結果表示
-===================== */
-function showExamResult(){
-  const total = examResults.length;
-  const correctCount = examResults.filter(r=>r.correct).length;
-
-  let html = "";
-  html += "<b>検定モード 結果</b><br>";
-  html += `${total}問中 ${correctCount}問 正解<br><br>`;
-  html += `（各分野から1問ずつ出題）<br><br>`;
-
-  examResults.forEach((r, idx)=>{
-    html += `${idx+1}問目：${r.correct ? "〇 正解" : "× 不正解"}（分野：${r.question.field}／ID：${r.question.id}）<br>`;
-  });
-
-  html += "<br>";
-  if(correctCount === total){
-    html += "満点です！この調子で頑張りましょう！";
-  }else if(correctCount <= Math.floor(total/2)){
-    html += "練習モードでしっかり復習しましょう！";
-  }else{
-    html += "よくできています。間違えた分野は復習モードで確認しましょう。";
-  }
-
-  document.getElementById("result").innerHTML = html;
-
-  const checkBtn = document.getElementById("checkBtn");
-  if(checkBtn){
-    checkBtn.disabled = true;
-    checkBtn.textContent = "答え合わせ";
-  }
-  document.getElementById("retryExamBtn").classList.remove("hidden");
-  unlockUI();
-}
-
-/* =====================
-   検定：もう一度挑戦
-===================== */
-function retryExam(){
-  if(mode !== "exam") return;
-  pickExamQuestions();
-  examIndex = 0;
-  examResults = [];
-  document.getElementById("result").innerHTML = "";
-  showQuestion(examQuestions[examIndex]);
-  inSession = true;
-}
-
-/* =====================
-   答え合わせ（全モード共通）
-===================== */
+/* ===== 採点 ===== */
 function check(){
-  const checkBtn = document.getElementById("checkBtn");
-  const result = document.getElementById("result");
   if(!current) return;
-  if(checkBtn.disabled) return;
 
   const userD = collectEntries("d", currentRows);
   const userC = collectEntries("c", currentRows);
 
-  const sumD = userD.reduce((s,x)=>s+x.m,0);
-  const sumC = userC.reduce((s,x)=>s+x.m,0);
-
-  // 最低入力チェック
   if(userD.length===0 && userC.length===0){
-    result.innerText = "科目と金額を入力してください";
-    return;
-  }
-  if(sumD===0 && sumC===0){
-    result.innerText = "金額を入力してください";
-    return;
-  }
-  if(sumD !== sumC){
-    result.innerText = "借方と貸方の金額が一致していません";
+    result.innerText="科目と金額を入力してください";
     return;
   }
 
-  // 判定
-  const ok = compareMulti(userD, current.correct.D) && compareMulti(userC, current.correct.C);
-
-  /* ===== 検定モード ===== */
-  if(mode === "exam"){
-    examResults.push({ question: current, correct: ok });
-    checkBtn.disabled = true;
-
-    // 次へ or 結果
-    examIndex++;
-    if(examIndex < examQuestions.length){
-      showQuestion(examQuestions[examIndex]);
-    }else{
-      lockInputs();
-      clearHint();
-      showExamResult();
-      inSession = false;
-    }
-    return;
-  }
-
-  /* ===== 練習・復習モード ===== */
-  checkBtn.disabled = true;
+  const ok =
+    compareMulti(userD, current.correct.D) &&
+    compareMulti(userC, current.correct.C);
 
   if(ok){
-    result.innerText = "〇 正解！";
-    streak++;
-    if(streak > bestStreak){
-      bestStreak = streak;
-      saveBestStreak();
-    }
-    updateStreakDisplay();
-
-    lockInputs();
-
-    // 正解なら1秒後に自動で次へ（3級の挙動）
-    setTimeout(()=>{
-      next();
-    }, 1000);
-
+    result.innerText="〇 正解！";
+    setTimeout(()=>next(),1000);
   }else{
-    // 不正解
-    streak = 0;
-    updateStreakDisplay();
-
-    // 復習用に貯める（重複は許容：必要ならIDでユニーク化も可能）
-    wrongPool.push(current);
-
-    lockInputs();
-
-    // 正解仕訳表示
-    const correctStrD = current.correct.D.map(x=>`${x.a} ${x.m.toLocaleString()}`).join("\n");
-    const correctStrC = current.correct.C.map(x=>`${x.a} ${x.m.toLocaleString()}`).join("\n");
-    const desc = (current.desc || "").split("|").join("\n");
-
-    result.innerHTML =
-      "× 不正解<br><br>" +
-      "<b>正解</b>" +
-      "<div class='answer-journal'>" +
-        "<div class='answer-side'><b>借方</b><br>" + correctStrD.replace(/\n/g,"<br>") + "</div>" +
-        "<div class='answer-side'><b>貸方</b><br>" + correctStrC.replace(/\n/g,"<br>") + "</div>" +
-      "</div><br>" +
-      "解説：<br>" + desc.replace(/\n/g,"<br>");
-
-    // 次へボタン表示
-    document.getElementById("nextBtn").classList.remove("hidden");
+    result.innerHTML="× 不正解<br>正解は以下のとおりです。";
+    nextBtn.classList.remove("hidden");
   }
 }
 
-/* =====================
-   次へボタン（不正解時）
-===================== */
-function nextBtnHandler(){
-  next();
-}
+/* ===== CSV読込 ===== */
+(async function(){
+  const res = await fetch("../data/journal2.csv");
+  const text = await res.text();
+  const rows = parseCSV(text);
+  const body = rows.slice(1);
 
-/* nextBtn は onclick="next()" なので関数名は next のままでOK */
-
-/* =====================
-   起動：CSV読み込み
-===================== */
-(async function loadAll(){
-  try{
-    const res = await fetch("../data/journal2.csv");
-    if(!res.ok) throw new Error("journal2.csv が見つかりません");
-    let text = await res.text();
-    text = text.replace(/^\uFEFF/,"");
-
-    const rows = parseCSV(text);
-    const body = rows.slice(1).filter(r=>r.length && r.join("").trim()!=="");
-
-    // CSV → オブジェクト化
-    allData = body.map(cols=>{
-      const field = (cols[0] || "").trim();
-      const id    = (cols[1] || "").trim();
-      const q     = (cols[2] || "").trim();
-      const allowedRaw = cols[3] || "";
-      const journalRaw = cols[4] || "";
-      const descRaw    = cols[5] || "";
-
-      const allowed = parseAllowedAccounts(allowedRaw);
-      const correct = parseJournalData(journalRaw);
-
-      return {
-        field,
-        id,
-        q,
-        allowed,     // 使用科目（限定候補）
-        correct,     // {D:[], C:[]}
-        desc: descRaw || ""
-      };
-    });
-
-    // 初期化
-    init();
-
-    // ローディング最短1秒
-    const elapsed = Date.now() - loadStartTime;
-    const minDuration = 1000;
-    const showMain = ()=>{
-      document.getElementById("loadingScreen").style.display = "none";
-      document.getElementById("mainCard").classList.remove("hidden");
+  allData = body.map(c=>{
+    return {
+      field:c[0].trim(),
+      id:c[1].trim(),
+      q:c[2].trim(),
+      allowed:parseAllowedAccounts(c[3]),
+      correct:parseJournalData(c[4]),
+      desc:c[5]||""
     };
-    if(elapsed >= minDuration) showMain();
-    else setTimeout(showMain, minDuration - elapsed);
+  });
 
-  }catch(e){
-    console.error("CSV読み込み失敗", e);
-    document.getElementById("loadingScreen").style.display = "none";
-    document.getElementById("mainCard").classList.remove("hidden");
-    document.getElementById("question").innerText = "CSV読み込みエラー";
-    document.getElementById("result").innerText = e.message || e;
-  }
+  init();
+  loadingScreen.style.display="none";
+  mainCard.classList.remove("hidden");
 })();
-
-function lockUI(){
-  document.querySelector(".mode-switch")?.classList.add("ui-locked");
-  document.getElementById("fieldArea")?.classList.add("ui-locked");
-}
-
-function unlockUI(){
-  document.querySelector(".mode-switch")?.classList.remove("ui-locked");
-  document.getElementById("fieldArea")?.classList.remove("ui-locked");
-}
 
 </script>
 

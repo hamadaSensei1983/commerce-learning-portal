@@ -444,7 +444,7 @@ function showQuestion(){
   document.getElementById("checkBtn").disabled = false;
   document.getElementById("nextBtn").classList.add("hidden");
 
-  // ★ 自動補正表示（赤文字）をリセット
+  // ★ 自動補正（赤文字）をリセット
   document.querySelectorAll(".money.auto-correct").forEach(el=>{
     el.classList.remove("auto-correct");
   });
@@ -466,54 +466,67 @@ function getNumber(id){
    答え合わせ
 ===================== */
 function checkAnswer(){
-  const resultP  = document.getElementById("result");
+  const resultP = document.getElementById("result");
   const explainP = document.getElementById("explain");
   const checkBtn = document.getElementById("checkBtn");
-  const nextBtn  = document.getElementById("nextBtn");
+  const nextBtn = document.getElementById("nextBtn");
+
+  // すでに答え合わせ済みなら何もしない（不正防止）
+  if(checkBtn.disabled) return;
 
   let allOk = true;
-  let msg   = "";
+  let msg = "";
 
-  currentQ.ledgers.forEach(def=>{
-    const dInput = document.getElementById(`${def.id}_D`);
-    const cInput = document.getElementById(`${def.id}_C`);
+  // ★ ここが重要：採点に使う「ユーザー入力」を先にスナップショット化する
+  const snap = currentQ.ledgers.map(def => {
+    return {
+      def,
+      userD: getNumber(`${def.id}_D`),
+      userC: getNumber(`${def.id}_C`)
+    };
+  });
 
-    const userD = getNumber(`${def.id}_D`);
-    const userC = getNumber(`${def.id}_C`);
+  // 未入力チェック（全部0なら「入力してください」で終了）
+  const anyInput = snap.some(x => x.userD !== 0 || x.userC !== 0);
+  if(!anyInput){
+    resultP.innerText = "科目ごとの借方・貸方に金額を入力してください。";
+    explainP.innerText = "";
+    return;
+  }
 
-    // 借方：間違っていた場合のみ、赤で正解を表示
-    if(dInput && userD !== def.correctD && def.correctD > 0){
-      dInput.value = def.correctD.toLocaleString();
-      dInput.classList.add("auto-correct");
-    }
+  // ★ 採点はスナップショットで行う（この時点では input を書き換えない）
+  snap.forEach(x=>{
+    const def = x.def;
+    const okD = (x.userD === def.correctD);
+    const okC = (x.userC === def.correctC);
 
-    // 貸方：間違っていた場合のみ、赤で正解を表示
-    if(cInput && userC !== def.correctC && def.correctC > 0){
-      cInput.value = def.correctC.toLocaleString();
-      cInput.classList.add("auto-correct");
+    if(!okD || !okC){
+      allOk = false;
+
+      // 表示用（0は空欄扱いで表示しない）
+      const cd = def.correctD > 0 ? def.correctD.toLocaleString() : "（空欄）";
+      const cc = def.correctC > 0 ? def.correctC.toLocaleString() : "（空欄）";
+      msg += `・${def.name}：借方 ${cd} / 貸方 ${cc} が正解です。\n`;
     }
   });
+
+  // 判定結果でボタンを無効化（1問1回）
+  checkBtn.disabled = true;
 
   if(allOk){
     // 連続正解数アップ
     streak++;
-
-    resultP.innerText  = "〇 正解です！";
+    resultP.innerText = "〇 正解です！";
     explainP.innerText = "各勘定の性質と増減の向きを正しく理解できています。";
-    checkBtn.disabled  = true;
 
-    // ★ 5問連続正解時の挙動
+    // 5問連続正解の処理（元の仕様を維持） [1](https://chinzeigakuinedjp01-my.sharepoint.com/personal/hirotoshi_hamada_chinzeigakuinedjp01_onmicrosoft_com/Documents/Microsoft%20Copilot%20Chat%20%E3%83%95%E3%82%A1%E3%82%A4%E3%83%AB/tenki3.html)
     if(streak >= 5 && currentIndex < quizQuestions.length - 1){
-      // ここでは自動遷移のタイマーは設定しない
       const cont = confirm("かなり慣れてきたようですね。まだ続けますか？");
       if(!cont){
         resultP.innerText += "\n練習を終了します。お疲れさまでした。";
-        // ここでストリークはそのままでもいいし、リセットしても良い
-        // いったんリセットしておく
         streak = 0;
         return;
       }else{
-        // 続ける場合、ストリークをリセットして次の5問チャレンジへ
         streak = 0;
         currentIndex++;
         showQuestion();
@@ -521,42 +534,59 @@ function checkAnswer(){
       }
     }
 
-    // 通常の正解時：1秒後に自動で次の問題へ
+    // 正解時のみ自動で次へ
     if(currentIndex < quizQuestions.length - 1){
       autoNextTimer = setTimeout(()=>{
         currentIndex++;
         showQuestion();
-      },1000);
+      }, 1000);
     }
 
-  }else{
-    // 間違えたら連続正解数リセット
-    streak = 0;
+  } else {
+    // 不正解：赤字で「間違い箇所だけ」正解値を表示
+    // （正解箇所は黒のまま）
+    snap.forEach(x=>{
+      const def = x.def;
 
-    // ▼ 正解の金額をT勘定に表示（0は表示しない）
-    currentQ.ledgers.forEach(def=>{
       const dInput = document.getElementById(`${def.id}_D`);
       const cInput = document.getElementById(`${def.id}_C`);
 
-      if(dInput && def.correctD > 0){
-        dInput.value = def.correctD.toLocaleString();
+      // 借方：間違いなら正解表示（0は表示しない）
+      if(dInput && x.userD !== def.correctD){
+        if(def.correctD > 0){
+          dInput.value = def.correctD.toLocaleString();
+          dInput.classList.add("auto-correct");
+        }else{
+          // 正解が0なら空欄にする（赤字も不要）
+          dInput.value = "";
+          dInput.classList.remove("auto-correct");
+        }
       }
-      if(cInput && def.correctC > 0){
-        cInput.value = def.correctC.toLocaleString();
+
+      // 貸方：間違いなら正解表示（0は表示しない）
+      if(cInput && x.userC !== def.correctC){
+        if(def.correctC > 0){
+          cInput.value = def.correctC.toLocaleString();
+          cInput.classList.add("auto-correct");
+        }else{
+          cInput.value = "";
+          cInput.classList.remove("auto-correct");
+        }
       }
     });
 
+    // 間違えたら連続正解数リセット
+    streak = 0;
+
     resultP.innerText = "× 不正解です。\n" + msg;
     explainP.innerText =
-      "正解の金額をT勘定に表示しました。\nどの勘定が増えて（減って）、どちら側に書くのかを確認しましょう。";
+      "赤字は「正解として補われた金額」です。どの勘定のどちら側に書くか確認しましょう。";
 
-    checkBtn.disabled = true;
-
+    // 不正解時は自動で次へ行かず、次の問題ボタンを出す
     if(currentIndex < quizQuestions.length - 1){
       nextBtn.classList.remove("hidden");
     }
   }
-
 }
 
 /* =====================

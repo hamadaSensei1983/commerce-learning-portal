@@ -130,6 +130,13 @@
       color:#555;
       white-space:pre-line;
     }
+
+    /* 正解として自動表示された金額（赤） */
+    .money.auto-correct{
+      color:#b71c1c;
+      font-weight:bold;
+    }
+
   </style>
 </head>
 <body>
@@ -436,6 +443,11 @@ function showQuestion(){
   document.getElementById("explain").innerText = "";
   document.getElementById("checkBtn").disabled = false;
   document.getElementById("nextBtn").classList.add("hidden");
+
+  // ★ 自動補正表示（赤文字）をリセット
+  document.querySelectorAll(".money.auto-correct").forEach(el=>{
+    el.classList.remove("auto-correct");
+  });
 }
 
 /* =====================
@@ -463,15 +475,22 @@ function checkAnswer(){
   let msg   = "";
 
   currentQ.ledgers.forEach(def=>{
-    const dVal = getNumber(`${def.id}_D`);
-    const cVal = getNumber(`${def.id}_C`);
+    const dInput = document.getElementById(`${def.id}_D`);
+    const cInput = document.getElementById(`${def.id}_C`);
 
-    const okD = (dVal === def.correctD);
-    const okC = (cVal === def.correctC);
+    const userD = getNumber(`${def.id}_D`);
+    const userC = getNumber(`${def.id}_C`);
 
-    if(!okD || !okC){
-      allOk = false;
-      msg += `・${def.name}：借方 ${def.correctD} / 貸方 ${def.correctC} が正解です。\n`;
+    // 借方：間違っていた場合のみ、赤で正解を表示
+    if(dInput && userD !== def.correctD && def.correctD > 0){
+      dInput.value = def.correctD.toLocaleString();
+      dInput.classList.add("auto-correct");
+    }
+
+    // 貸方：間違っていた場合のみ、赤で正解を表示
+    if(cInput && userC !== def.correctC && def.correctC > 0){
+      cInput.value = def.correctC.toLocaleString();
+      cInput.classList.add("auto-correct");
     }
   });
 

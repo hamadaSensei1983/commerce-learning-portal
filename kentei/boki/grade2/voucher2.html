@@ -302,8 +302,8 @@
     <table class="summary">
       <thead>
         <tr>
-          <th>勘定科目</th>
           <th>借方</th>
+          <th>勘定科目</th>
           <th>貸方</th>
         </tr>
       </thead>
@@ -479,7 +479,6 @@ function renderSlips(slips){
       const card = document.createElement("div");
       card.className = "vcard furikae";
       card.innerHTML = `
-        <div class="vtitle">振替伝票</div>
         <div class="dc-grid">
           <div class="dc-col"><b>借方</b>${escapeHtml(s.acc1)} ${fmt(s.amount)}</div>
           <div class="dc-col"><b>貸方</b>${escapeHtml(s.acc2)} ${fmt(s.amount)}</div>
@@ -491,7 +490,6 @@ function renderSlips(slips){
       const card = document.createElement("div");
       card.className = "vcard nyukin";
       card.innerHTML = `
-        <div class="vtitle">入金伝票</div>
         <div class="single-line">${escapeHtml(other)} ${fmt(s.amount)}</div>
       `;
       nyu.appendChild(card);
@@ -500,7 +498,6 @@ function renderSlips(slips){
       const card = document.createElement("div");
       card.className = "vcard shukkin";
       card.innerHTML = `
-        <div class="vtitle">出金伝票</div>
         <div class="single-line">${escapeHtml(other)} ${fmt(s.amount)}</div>
       `;
       shu.appendChild(card);
@@ -569,11 +566,10 @@ function renderSummary(tableRows, totals){
 
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${escapeHtml(acct)}</td>
       <td class="ans-cell">${debitCell}</td>
+      <td>${escapeHtml(acct)}</td>
       <td class="ans-cell">${creditCell}</td>
-    `;
-    tbody.appendChild(tr);
+    `;    tbody.appendChild(tr);
   });
 
   // 入力欄にカンマ補助
@@ -586,6 +582,24 @@ function renderSummary(tableRows, totals){
       }
     });
   });
+
+  // ===== 合計行を自動挿入 =====
+  let totalDebit = 0;
+  let totalCredit = 0;
+
+  Object.values(totals).forEach(t=>{
+    totalDebit  += t.debit;
+    totalCredit += t.credit;
+  });
+
+  const trTotal = document.createElement("tr");
+  trTotal.innerHTML = `
+    <td style="text-align:right;font-weight:bold;">合計</td>
+    <td class="ans-cell" style="font-weight:bold;">${fmt(totalDebit)}</td>
+    <td class="ans-cell" style="font-weight:bold;">${fmt(totalCredit)}</td>
+  `;
+  tbody.appendChild(trTotal);
+
 }
 
 /* ---------- 答え合わせ ---------- */
@@ -659,7 +673,7 @@ function escapeHtml(s){
 
 /* ---------- CSV読み込み（ローディング1秒付き） ---------- */
 (async function initAll(){
-  const start = Date.now();
+  const loadStart = Date.now();
   try{
     const [qText, tText] = await Promise.all([
       fetch("../data/voucher2_question.csv").then(r=>{
@@ -708,7 +722,7 @@ function escapeHtml(s){
     console.error(e);
     alert(e.message || e);
   }finally{
-    const elapsed = Date.now() - start;
+    const elapsed = Date.now() - loadStart;
     const remain = 1000 - elapsed;
     const show = ()=>{
       document.getElementById("loadingScreen").style.display="none";

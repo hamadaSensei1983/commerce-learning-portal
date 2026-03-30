@@ -41,11 +41,11 @@
       モード切替（上部）
     ========================== */
     .mode-switch{
-      display:flex;
-      justify-content:center;
+      display:grid;
+      grid-template-columns: 1fr 1fr; /* ★ 2列固定 */
       gap:10px;
-      margin:10px 0 12px;
-      flex-wrap:wrap;
+      max-width:300px;
+      margin:10px auto 12px;
     }
     .mode-btn{
       border:none;
@@ -83,8 +83,8 @@
     ========================== */
     .voucher-layout{
       display:grid;
-      grid-template-columns: 2fr 1fr;
-      gap:18px;
+      grid-template-columns: 1.6fr 1fr;
+      gap:12px;
       margin-top:10px;
     }
     .furikae-area{
@@ -105,7 +105,7 @@
     .vcard{
       padding:8px;
       font-size:13px;
-      width:200px;
+      width:190px;
       border:1px solid #ccc;
       border-radius:10px;
       background:#fff;
@@ -113,10 +113,11 @@
 
     /* 振替伝票だけ幅を広く */
     .vcard.furikae{
-      width:400px;
+      width:420px;
     }
 
     .vtitle{
+      height:28px;
       font-weight:bold;
       text-align:center;
       margin-bottom:8px;
@@ -141,7 +142,7 @@
     .dc-grid{
       display:grid;
       grid-template-columns:1fr 1fr;
-      gap:6px;
+      gap:5px;
     }
     .dc-col{
       border:1px solid #ccc;
@@ -176,7 +177,7 @@
       border-radius:10px;
       padding:12px;
       background:#fffdfd;
-      max-width:750px;
+      max-width:680px;
       margin-left:auto;
       margin-right:auto;
     }
@@ -253,7 +254,17 @@
       text-align:center;
     }
 
-    @media (max-width: 720px){
+    .inline-input{
+      width:120px;        /* ★ 横並び用に少し小さく */
+      margin-left:4px;
+    }
+
+    .inline-hint{
+      margin-left:6px;
+      display:inline-block;
+    }
+
+    @media (max-width: 650px){
       .voucher-layout{ grid-template-columns:1fr; }
       .right-area{ grid-template-rows:auto; }
     }
@@ -576,8 +587,8 @@ function renderSummary(tableRows, totals){
       // 入力欄（カンマ補助）
       const inputHtml = `
         <span class="blank-label">（${labelText}）</span>
-        <input id="${inputId}" class="ans-input" inputmode="numeric">
-        <div id="${inputId}_hint" class="correct-hint hidden"></div>
+        <input id="${inputId}" class="ans-input inline-input" inputmode="numeric">
+        <span id="${inputId}_hint" class="correct-hint inline-hint hidden"></span>
       `;
 
       if(need==="借") debitCell = inputHtml;

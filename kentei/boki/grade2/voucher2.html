@@ -83,20 +83,20 @@
     ========================== */
     .voucher-layout{
       display:grid;
-      grid-template-columns: 1.5fr 1fr;
-      gap:12px;
+      grid-template-columns: 1.35fr 1fr;
+      gap:6px;
       margin-top:10px;
     }
     .furikae-area{
       display:flex;
       flex-direction:column;
-      gap:12px;
+      gap:10px;
       align-items:center;
     }
     .right-area{
       display:grid;
       grid-template-rows: 1fr 1fr;
-      gap:18px;
+      gap:15px;
       align-items:center;
     }
 
@@ -120,7 +120,6 @@
       height:28px;
       font-weight:bold;
       text-align:center;
-      vertical-align:top;
       margin-bottom:8px;
       font-size:14px;
     }
@@ -202,11 +201,13 @@
       background:#ffebee;
       text-align:center;
     }
-    table.summary td:first-child{
-      width:32%;
+    table.summary td:first-child,
+    table.summary td:last-child{
+      width:34%;
       text-align:left;
     }
     table.summary td:nth-child(2){
+      width:32%
       text-align:center;
       font-weight:bold;
     }
@@ -258,6 +259,7 @@
     .inline-input{
       width:120px;        /* ★ 横並び用に少し小さく */
       margin-left:4px;
+      text-align:right;
     }
 
     .inline-hint{

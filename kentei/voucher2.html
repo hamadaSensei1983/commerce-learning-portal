@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>全商簿記2級 伝票集計トレーニング</title>
+
+  <!-- 共通CSS -->
+  <link rel="stylesheet" href="../../../css/common.css">
+
+  <style>
+    /* ==========================
+      画面全体
+    ========================== */
+    .card{
+      max-width:1100px;
+      margin:20px auto;
+      padding:20px;
+      background:white;
+      border-radius:10px;
+      box-shadow:0 3px 8px rgba(0,0,0,0.08);
+    }
+    .hidden{ display:none !important; }
+
+    #problemBar{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content:center;
+      flex-wrap:wrap;
+      margin:10px 0 12px;
+    }
+    #problemSelect{
+      padding:8px;
+      font-size:16px;
+      border-radius:8px;
+      border:2px solid var(--main-green);
+    }
+
+    /* ==========================
+      モード切替（上部）
+    ========================== */
+    .mode-switch{
+      display:flex;
+      justify-content:center;
+      gap:10px;
+      margin:10px 0 12px;
+      flex-wrap:wrap;
+    }
+    .mode-btn{
+      border:none;
+      border-radius:999px;
+      padding:8px 16px;
+      font-size:14px;
+      background:#e2f5ea;
+      color:#2e7d32;
+      cursor:pointer;
+      box-shadow:0 1px 3px rgba(0,0,0,0.07);
+      transition:all 0.15s ease;
+      min-width:120px;
+    }
+    .mode-btn:hover{
+      background:#d0efde;
+      box-shadow:0 2px 6px rgba(0,0,0,0.12);
+    }
+    .mode-btn.active{
+      background:#72b48a;
+      color:#fff;
+      box-shadow:0 3px 8px rgba(0,0,0,0.16);
+    }
+    #modeInfo{
+      text-align:center;
+      font-size:14px;
+      color:#555;
+      margin-bottom:8px;
+    }
+
+    /* ==========================
+      伝票レイアウト（先生の理想配置）
+      左：振替（縦）
+      右上：入金
+      右下：出金
+    ========================== */
+    .voucher-layout{
+      display:grid;
+      grid-template-columns: 2fr 1fr;
+      gap:18px;
+      margin-top:10px;
+    }
+    .furikae-area{
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      align-items:center;
+    }
+    .right-area{
+      display:grid;
+      grid-template-rows: 1fr 1fr;
+      gap:18px;
+      align-items:center;
+    }
+
+    /* 伝票カード共通 */
+    /* 共通（入金・出金はこれ） */
+    .vcard{
+      padding:8px;
+      font-size:13px;
+      width:190px;
+      border:1px solid #ccc;
+      border-radius:10px;
+      background:#fff;
+    }
+
+    /* 振替伝票だけ幅を広く */
+    .vcard.furikae{
+      width:420px;
+    }
+
+    .vtitle{
+      font-weight:bold;
+      text-align:center;
+      margin-bottom:8px;
+      font-size:14px;
+    }
+
+    /* 種別で色 */
+    .furikae{
+      border-left:6px solid #1976d2;
+      border-right:6px solid #1976d2;
+    }
+    .nyukin{
+      border-left:6px solid #2e7d32;
+      border-right:6px solid #2e7d32;
+    }
+    .shukkin{
+      border-left:6px solid #c62828;
+      border-right:6px solid #c62828;
+    }
+
+    /* 振替伝票は借方・貸方を左右に */
+    .dc-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:5px;
+    }
+    .dc-col{
+      border:1px solid #ccc;
+      border-radius:8px;
+      padding:6px;
+      font-size:14px;
+      text-align:center;
+      white-space:pre-line;
+    }
+    .dc-col b{
+      display:block;
+      text-align:center;
+      margin-bottom:6px;
+      background:#f7f7f7;
+      border-radius:6px;
+      padding:3px 0;
+    }
+
+    /* 入金/出金は相手勘定だけ見せる（現金側は非表示） */
+    .single-line{
+      font-size:14px;
+      line-height:1.6;
+      white-space:pre-line;
+    }
+
+    /* ==========================
+      仕訳集計表（回答）
+    ========================== */
+    .summary-wrap{
+      margin-top:18px;
+      border:2px solid #e53935;
+      border-radius:10px;
+      padding:12px;
+      background:#fffdfd;
+      max-width:750px;
+      margin-left:auto;
+      margin-right:auto;
+    }
+    .summary-title{
+      text-align:center;
+      font-weight:bold;
+      margin-bottom:10px;
+    }
+    table.summary{
+      width:100%;
+      border-collapse:collapse;
+      table-layout:fixed;
+      font-size:13px;
+    }
+    table.summary th, table.summary td{
+      border:1px solid #e53935;
+      padding:6px;
+      vertical-align:middle;
+    }
+    table.summary th{
+      background:#ffebee;
+      text-align:center;
+    }
+    table.summary td:first-child{
+      width:32%;
+      text-align:left;
+    }
+    table.summary td:nth-child(2){
+      text-align:center;
+      font-weight:bold;
+    }
+    .ans-cell{
+      text-align:right;
+      position:relative;
+      min-height:34px;
+    }
+    .ans-input{
+      width:100%;
+      box-sizing:border-box;
+      padding:6px;
+      text-align:right;
+      font-size:14px;
+      border:2px solid #aaa;
+      border-radius:6px;
+    }
+    /* 正解/不正解の入力色 */
+    .ok{
+      border-color:#2e7d32 !important;
+      background:#e8f5e9 !important;
+    }
+    .ng{
+      border-color:#c62828 !important;
+      background:#ffebee !important;
+    }
+    /* 正解値の赤表示 */
+    .correct-hint{
+      color:#b71c1c;
+      font-weight:bold;
+      font-size:13px;
+      margin-top:4px;
+    }
+    /* (ア)(イ)(ウ) ラベル */
+    .blank-label{
+      display:inline-block;
+      font-weight:bold;
+      margin-right:6px;
+      color:#222;
+    }
+
+    #result{
+      margin-top:12px;
+      font-weight:bold;
+      white-space:pre-line;
+      text-align:center;
+    }
+
+    @media (max-width: 720px){
+      .voucher-layout{ grid-template-columns:1fr; }
+      .right-area{ grid-template-rows:auto; }
+    }
+  </style>
+</head>
+
+<body>
+
+<header class="app-header">
+  <div class="header-left">
+    <img src="../../../images/logo.png" class="header-icon">
+    <div>
+      <h1 class="site-title">検定対策システム</h1>
+      <div class="exam-title">全商簿記2級 伝票集計トレーニング</div>
+    </div>
+  </div>
+</header>
+
+<!-- ローディング（common.cssのspinner利用） -->
+<div id="loadingScreen">
+  <div style="text-align:center">
+    <img src="../../../images/logo.png" style="width:90px;margin-bottom:20px">
+    <div class="spinner"></div>
+    <p style="margin-top:15px;font-weight:bold;">問題を読み込み中...</p>
+  </div>
+</div>
+
+<div class="card hidden" id="mainCard">
+
+  <!-- モード切替 -->
+  <div class="mode-switch">
+    <button id="btnPractice" class="mode-btn active" onclick="setMode('practice')">練習モード</button>
+    <button id="btnExam" class="mode-btn" onclick="setMode('exam')">検定モード</button>
+  </div>
+  <div id="modeInfo"></div>
+
+  <!-- 問題選択（練習モードのみ） -->
+  <div id="problemBar">
+    <label><b>問題：</b></label>
+    <select id="problemSelect"></select>
+    <button class="control-btn" style="width:auto" onclick="randomProblem()">ランダム出題</button>
+    <button class="main-btn" style="width:auto" onclick="start()">開始</button>
+  </div>
+
+  <div style="text-align:center; font-size:14px; color:#555;">
+    下記の伝票をもとに仕訳集計表の（ア）（イ）（ウ）の金額を答えなさい。
+  </div>
+
+  <!-- 伝票表示 -->
+  <div class="voucher-layout" style="margin-top:12px;">
+    <!-- 左：振替 -->
+    <div>
+      <div class="vtitle">振替伝票</div>
+      <div id="furikaeArea" class="furikae-area"></div>
+    </div>
+
+    <!-- 右：入金/出金 -->
+    <div class="right-area">
+      <div>
+        <div class="vtitle">入金伝票</div>
+        <div id="nyukinArea" class="furikae-area"></div>
+      </div>
+      <div>
+        <div class="vtitle">出金伝票</div>
+        <div id="shukkinArea" class="furikae-area"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 集計表 -->
+  <div class="summary-wrap">
+    <div class="summary-title">仕訳集計表</div>
+    <table class="summary">
+      <thead>
+        <tr>
+          <th>借方</th>
+          <th>勘定科目</th>
+          <th>貸方</th>
+        </tr>
+      </thead>
+      <tbody id="summaryBody"></tbody>
+    </table>
+
+    <div style="text-align:center;margin-top:12px;">
+      <button id="checkBtn" class="main-btn" style="width:auto" onclick="checkAnswer()">答え合わせ</button>
+      <button id="nextBtn" class="control-btn hidden" style="width:auto" onclick="nextQuestion()">次の問題</button>
+      <button id="retryBtn" class="main-btn hidden" style="width:auto" onclick="retryExam()">もう一度挑戦</button>
+    </div>
+
+    <div id="result"></div>
+  </div>
+</div>
+
+<!-- フッターリンク（必要に応じて調整） -->
+<a href="../index.html" class="portal-btn exam-btn">簿記トップ</a>
+<a href="../../../index.html" class="portal-btn portal-main">ポータルへ戻る</a>
+
+<script>
+/* =====================================================
+   伝票集計トレーニング
+   - CSV:
+     ../data/voucher2_question.csv
+     ../data/voucher2_table.csv
+   - 練習：table.csvの解答（借/貸）をそのまま使用（上からア/イ/ウ）
+   - 検定：同じ仕様（必要なら後でランダム化可能）
+===================================================== */
+
+let qRows = [];      // voucher2_question.csv
+let tRows = [];      // voucher2_table.csv
+let problemIds = [];
+
+let mode = "practice";
+let currentProblemId = null;
+
+let totals = {};     // {科目: {debit, credit}}
+let blanks = [];     // [{label:"ア", acct:"売掛金", side:"貸", correct:xxxxx, inputId:"ans_x"}...]
+
+/* ---------- CSVパーサ（クォート対応の簡易版） ---------- */
+function parseCSV(text){
+  text = text.replace(/^\uFEFF/, "");
+  const out = [];
+  let row = [];
+  let cur = "";
+  let inQ = false;
+
+  for(let i=0;i<text.length;i++){
+    const c = text[i];
+    if(c === '"'){ inQ = !inQ; continue; }
+    if(c === "," && !inQ){
+      row.push(cur); cur=""; continue;
+    }
+    if((c === "\n" || c === "\r") && !inQ){
+      if(c === "\r" && text[i+1] === "\n") i++;
+      row.push(cur);
+      if(row.join("").trim() !== "") out.push(row);
+      row = []; cur=""; continue;
+    }
+    cur += c;
+  }
+  row.push(cur);
+  if(row.join("").trim() !== "") out.push(row);
+  return out;
+}
+
+function toNumber(v){
+  const s = String(v||"").replace(/,/g,"").trim();
+  if(s==="") return 0;
+  const n = Number(s);
+  return isNaN(n) ? 0 : n;
+}
+
+/* ---------- モード切替 ---------- */
+function setMode(m){
+  mode = m;
+  document.getElementById("btnPractice").classList.remove("active");
+  document.getElementById("btnExam").classList.remove("active");
+  if(m==="practice") document.getElementById("btnPractice").classList.add("active");
+  else document.getElementById("btnExam").classList.add("active");
+
+  document.getElementById("modeInfo").textContent =
+    (m==="practice")
+      ? "練習モード：指定された（ア）（イ）（ウ）を解きます。"
+      : "検定モード：ランダムに問題を出題します（今は同仕様）。";
+
+  // 練習モードのみ問題選択を表示
+  document.getElementById("problemBar").style.display =
+    (m==="practice") ? "flex" : "none";
+
+  // 表示リセット
+  resetView();
+}
+
+/* ---------- 表示リセット ---------- */
+function resetView(){
+  document.getElementById("furikaeArea").innerHTML = "";
+  document.getElementById("nyukinArea").innerHTML = "";
+  document.getElementById("shukkinArea").innerHTML = "";
+  document.getElementById("summaryBody").innerHTML = "";
+  document.getElementById("result").textContent = "";
+  document.getElementById("nextBtn").classList.add("hidden");
+  document.getElementById("retryBtn").classList.add("hidden");
+  document.getElementById("checkBtn").disabled = false;
+}
+
+/* ---------- 問題選択UI ---------- */
+function setupProblemSelect(){
+  const sel = document.getElementById("problemSelect");
+  sel.innerHTML = "";
+  problemIds.forEach(id=>{
+    const opt = document.createElement("option");
+    opt.value = id;
+    opt.textContent = "問題 " + id;
+    sel.appendChild(opt);
+  });
+  sel.onchange = ()=>{ currentProblemId = sel.value; };
+  currentProblemId = problemIds[0] || null;
+}
+
+/* ---------- ランダム問題 ---------- */
+function randomProblem(){
+  const id = problemIds[Math.floor(Math.random()*problemIds.length)];
+  document.getElementById("problemSelect").value = id;
+  currentProblemId = id;
+  start();
+}
+
+/* ---------- 開始 ---------- */
+function start(){
+  resetView();
+
+  // 検定はランダムに問題ID決定
+  if(mode==="exam"){
+    currentProblemId = problemIds[Math.floor(Math.random()*problemIds.length)];
+  }else{
+    if(!currentProblemId){
+      alert("問題がありません。");
+      return;
+    }
+  }
+
+  // 伝票データ抽出・並び順ソート
+  const slips = qRows.filter(r=>r.problemId===currentProblemId)
+                     .sort((a,b)=>a.order-b.order);
+
+  // 集計表定義抽出・表示順ソート
+  const table = tRows.filter(r=>r.problemId===currentProblemId)
+                     .sort((a,b)=>a.order-b.order);
+
+  // 伝票表示
+  renderSlips(slips);
+
+  // 集計（借方・貸方）
+  totals = buildTotals(slips);
+
+  // 集計表描画（ア/イ/ウの付与）
+  renderSummary(table, totals);
+
+  document.getElementById("result").textContent =
+    `出題中：問題 ${currentProblemId}`;
+}
+
+/* ---------- 伝票表示（レイアウト） ---------- */
+function renderSlips(slips){
+  const fur = document.getElementById("furikaeArea");
+  const nyu = document.getElementById("nyukinArea");
+  const shu = document.getElementById("shukkinArea");
+
+  slips.forEach(s=>{
+    if(s.type==="振替"){
+      const card = document.createElement("div");
+      card.className = "vcard furikae";
+      card.innerHTML = `
+        <div class="dc-grid">
+          <div class="dc-col">${escapeHtml(s.acc1)} ${fmt(s.amount)}</div>
+          <div class="dc-col">${escapeHtml(s.acc2)} ${fmt(s.amount)}</div>
+        </div>
+      `;
+      fur.appendChild(card);
+    }else if(s.type==="入金"){
+      const other = (s.acc1==="現金") ? s.acc2 : s.acc1;
+      const card = document.createElement("div");
+      card.className = "vcard nyukin";
+      card.innerHTML = `
+        <div class="single-line">${escapeHtml(other)} ${fmt(s.amount)}</div>
+      `;
+      nyu.appendChild(card);
+    }else if(s.type==="出金"){
+      const other = (s.acc1==="現金") ? s.acc2 : s.acc1;
+      const card = document.createElement("div");
+      card.className = "vcard shukkin";
+      card.innerHTML = `
+        <div class="single-line">${escapeHtml(other)} ${fmt(s.amount)}</div>
+      `;
+      shu.appendChild(card);
+    }
+  });
+}
+
+/* ---------- 集計（借方・貸方） ---------- */
+function buildTotals(slips){
+  const map = {};
+  function ensure(a){
+    if(!map[a]) map[a] = {debit:0, credit:0};
+  }
+  slips.forEach(s=>{
+    ensure(s.acc1);
+    ensure(s.acc2);
+    map[s.acc1].debit += s.amount;
+    map[s.acc2].credit += s.amount;
+  });
+  return map;
+}
+
+/* ---------- 集計表描画（ア/イ/ウ付与） ---------- */
+function renderSummary(tableRows, totals){
+  const tbody = document.getElementById("summaryBody");
+  tbody.innerHTML = "";
+
+  blanks = [];
+  const labels = ["ア","イ","ウ"];
+  let idx = 0;
+
+  tableRows.forEach((r, i)=>{
+    const acct = r.account;
+    const need = r.answer; // "", "借", "貸"
+    const t = totals[acct] || {debit:0, credit:0};
+
+    let debitCell = "";
+    let creditCell = "";
+    let labelText = "";
+
+    if(need==="借" || need==="貸"){
+      labelText = labels[idx] || "";
+      idx++;
+
+      const inputId = `ans_${i}`;
+      const side = (need==="借") ? "debit" : "credit";
+      const correct = (need==="借") ? t.debit : t.credit;
+
+      // 入力欄（カンマ補助）
+      const inputHtml = `
+        <span class="blank-label">（${labelText}）</span>
+        <input id="${inputId}" class="ans-input" inputmode="numeric">
+        <div id="${inputId}_hint" class="correct-hint hidden"></div>
+      `;
+
+      if(need==="借") debitCell = inputHtml;
+      else creditCell = inputHtml;
+
+      blanks.push({ label:labelText, acct, side, correct, inputId });
+
+    }else{
+      // "" の場合は空欄（紙の形式に合わせる）
+      debitCell = "";
+      creditCell = "";
+    }
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td class="ans-cell">${debitCell}</td>
+      <td>${escapeHtml(acct)}</td>
+      <td class="ans-cell">${creditCell}</td>
+    `;    tbody.appendChild(tr);
+  });
+
+  // 入力欄にカンマ補助
+  blanks.forEach(b=>{
+    const inp = document.getElementById(b.inputId);
+    inp.addEventListener("input", ()=>{
+      let v = inp.value.replace(/,/g,"");
+      if(!isNaN(v) && v!==""){
+        inp.value = Number(v).toLocaleString();
+      }
+    });
+  });
+
+  // ===== 合計行を自動挿入 =====
+  let totalDebit = 0;
+  let totalCredit = 0;
+
+  Object.values(totals).forEach(t=>{
+    totalDebit  += t.debit;
+    totalCredit += t.credit;
+  });
+
+  const trTotal = document.createElement("tr");
+  trTotal.innerHTML = `
+    <td class="ans-cell" style="font-weight:bold;text-align:right;">
+      ${fmt(totalDebit)}
+    </td>
+    <td style="text-align:center;font-weight:bold;">
+      合　計
+    </td>
+    <td class="ans-cell" style="font-weight:bold;text-align:right;">
+      ${fmt(totalCredit)}
+    </td>
+  `;
+  tbody.appendChild(trTotal);
+
+}
+
+/* ---------- 答え合わせ ---------- */
+function checkAnswer(){
+  const res = document.getElementById("result");
+  let okAll = true;
+
+  blanks.forEach(b=>{
+    const inp = document.getElementById(b.inputId);
+    const hint = document.getElementById(b.inputId+"_hint");
+    const user = toNumber(inp.value);
+
+    // リセット
+    inp.classList.remove("ok","ng");
+    hint.classList.add("hidden");
+    hint.textContent = "";
+
+    if(user === b.correct){
+      inp.classList.add("ok");
+    }else{
+      okAll = false;
+      inp.classList.add("ng");
+      hint.textContent = "正解：" + fmt(b.correct);
+      hint.classList.remove("hidden");
+    }
+  });
+
+  document.getElementById("checkBtn").disabled = true;
+
+  if(okAll){
+    res.textContent = "〇 全て正解です！";
+    if(mode==="exam"){
+      document.getElementById("retryBtn").classList.remove("hidden");
+    }else{
+      document.getElementById("nextBtn").classList.remove("hidden");
+    }
+  }else{
+    res.textContent = "× 不正解です。赤字で正解を表示しています。";
+    document.getElementById("nextBtn").classList.remove("hidden");
+  }
+}
+
+/* ---------- 次の問題（練習：次はランダムに） ---------- */
+function nextQuestion(){
+  document.getElementById("checkBtn").disabled = false;
+  if(mode==="practice"){
+    randomProblem();
+  }else{
+    // 検定は再挑戦ボタンへ
+    retryExam();
+  }
+}
+
+/* ---------- 検定：再挑戦 ---------- */
+function retryExam(){
+  document.getElementById("checkBtn").disabled = false;
+  document.getElementById("retryBtn").classList.add("hidden");
+  start();
+}
+
+/* ---------- 表示用 ---------- */
+function fmt(n){
+  return n ? Number(n).toLocaleString() : "";
+}
+function escapeHtml(s){
+  return String(s||"")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;");
+}
+
+/* ---------- CSV読み込み（ローディング1秒付き） ---------- */
+(async function initAll(){
+  const loadStart = Date.now();
+  try{
+    const [qText, tText] = await Promise.all([
+      fetch("../data/voucher2_question.csv").then(r=>{
+        if(!r.ok) throw new Error("voucher2_question.csv が見つかりません");
+        return r.text();
+      }),
+      fetch("../data/voucher2_table.csv").then(r=>{
+        if(!r.ok) throw new Error("voucher2_table.csv が見つかりません");
+        return r.text();
+      })
+    ]);
+
+    const q = parseCSV(qText);
+    const t = parseCSV(tText);
+
+    // question rows
+    const qBody = q.slice(1).filter(r=>r.join("").trim()!=="");
+    qRows = qBody.map(r=>({
+      problemId: (r[0]||"").trim(),
+      type: (r[1]||"").trim(),
+      acc1: (r[2]||"").trim(),
+      acc2: (r[3]||"").trim(),
+      amount: toNumber(r[4]),
+      order: Number((r[5]||"0").trim())
+    }));
+
+    // table rows（"" は空欄として扱う）
+    const tBody = t.slice(1).filter(r=>r.join("").trim()!=="");
+    tRows = tBody.map(r=>({
+      problemId: (r[0]||"").trim(),
+      order: Number((r[1]||"0").trim()),
+      account: (r[2]||"").trim(),
+      answer: ((r[3]||"").trim() === '""') ? "" : (r[3]||"").trim()
+    }));
+
+    // 問題ID一覧
+    problemIds = [...new Set(qRows.map(x=>x.problemId))].sort();
+
+    setupProblemSelect();
+    setMode("practice"); // 初期
+
+    // 初期表示（練習の先頭問題）
+    start();
+
+  }catch(e){
+    console.error(e);
+    alert(e.message || e);
+  }finally{
+    const elapsed = Date.now() - loadStart;
+    const remain = 1000 - elapsed;
+    const show = ()=>{
+      document.getElementById("loadingScreen").style.display="none";
+      document.getElementById("mainCard").classList.remove("hidden");
+    };
+    if(remain>0) setTimeout(show, remain); else show();
+  }
+})();
+</script>
+
+</body>
+</html>

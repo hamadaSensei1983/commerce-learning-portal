@@ -69,6 +69,7 @@
     border-left:4px solid #66bb6a;
     white-space:pre-line;
     font-size:14px;
+    line-height:1.4;
   }
 
   /* 決算整理仕訳入力エリア */
@@ -310,7 +311,7 @@ let currentId = null;
 let baseAccounts = [];
 let extraAccounts = new Set();
 
-/* ---------- CSVパーサ（クォート対応：seisan3系の簡易） [1](https://chinzeigakuinedjp01-my.sharepoint.com/personal/hirotoshi_hamada_chinzeigakuinedjp01_onmicrosoft_com/_layouts/15/Doc.aspx?sourcedoc=%7BD13B18BC-CC06-4C89-9611-2570D08156AF%7D&file=seisan2_TB.csv&action=default&mobileredirect=true) */
+/* ---------- CSVパーサ（クォート対応） */
 function parseCSV(text){
   text = text.replace(/^\uFEFF/,"");
   const lines = text.split(/\r?\n/);
@@ -338,7 +339,7 @@ function num(v){
 function fmt(n){ return n ? n.toLocaleString() : ""; }
 
 function normalizeText(s){
-  // 先生のseiri.csvは改行/|\ が混ざることがあるので吸収 [2](https://chinzeigakuinedjp01-my.sharepoint.com/personal/hirotoshi_hamada_chinzeigakuinedjp01_onmicrosoft_com/_layouts/15/Doc.aspx?sourcedoc=%7B4FC9449D-2401-46C5-8DF5-87070208355D%7D&file=seisan2_seiri.csv&action=default&mobileredirect=true)
+  // 先生のseiri.csvは改行/|\ が混ざることがあるので吸収
   return String(s||"")
     .replace(/\\\r?\n/g,"\n")
     .replace(/\r?\n/g,"\n")

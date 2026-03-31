@@ -226,7 +226,7 @@
   .jrnl-row input{
     text-align:right;
   }
-  
+
   @media (max-width: 720px){
     .jrnl{ grid-template-columns:1fr; }
   }
@@ -319,18 +319,12 @@
 
 <script>
 /* =========================================================
-  seisan2.html（固定行数・TB合計表示・null安全版）
+  seisan2.html（仕訳欄復活・左右入力・正解行数固定・null安全）
   CSV:
    - ../data/seisan2_TB.csv
-     問題ID,勘定科目,分類,借方残高,貸方残高 
+     問題ID,勘定科目,分類,借方残高,貸方残高
    - ../data/seisan2_seiri.csv
-     問題ID,問題,勘定科目,正解仕訳 [1](https://chinzeigakuinedjp01-my.sharepoint.com/personal/hirotoshi_hamada_chinzeigakuinedjp01_onmicrosoft_com/Documents/Microsoft%20Copilot%20Chat%20%E3%83%95%E3%82%A1%E3%82%A4%E3%83%AB/seisan2.html)
-
-  仕様（今回反映）：
-   ✅ 付記事項は各ブロック内に表示（上部notesArea不要）
-   ✅ 仕訳入力行数は「正解仕訳の行数」で固定（＋/－なし）
-   ✅ 合計行に「残高試算表（TB）の合計」を表示（借方合計/貸方合計）
-      ※反映後は整理記入合計も表示
+     問題ID,問題,勘定科目,正解仕訳   ← 正解仕訳で初期行数を決める [2](https://chinzeigakuinedjp01-my.sharepoint.com/personal/hirotoshi_hamada_chinzeigakuinedjp01_onmicrosoft_com/_layouts/15/Doc.aspx?sourcedoc=%7BD13B18BC-CC06-4C89-9611-2570D08156AF%7D&file=seisan2_TB.csv&action=default&mobileredirect=true)
 ========================================================= */
 
 let TB = [];      // {id, acct, cls, debit, credit}
@@ -341,7 +335,7 @@ let currentId = null;
 let baseAccounts = [];
 let extraAccounts = new Set();
 
-/* ---------- CSVパーサ（クォート対応） ---------- */
+/* --- CSVパーサ（クォート対応） --- */
 function parseCSV(text){
   text = text.replace(/^\uFEFF/, "");
   const out = [];
@@ -380,7 +374,7 @@ function escapeHtml(s){
     .replaceAll(">","&gt;");
 }
 
-/* ---------- 付記事項本文：|を改行に ---------- */
+/* --- 文章整形（|を改行） --- */
 function normalizeText(s){
   return String(s||"")
     .replace(/\\\r?\n/g,"\n")
@@ -389,7 +383,7 @@ function normalizeText(s){
     .trim();
 }
 
-/* ---------- 候補：|区切り ---------- */
+/* --- 候補（|区切り／改行吸収） --- */
 function splitCandidates(s){
   return String(s||"")
     .replace(/\\\r?\n/g,"|")
@@ -400,10 +394,9 @@ function splitCandidates(s){
     .filter(Boolean);
 }
 
-/* ---------- 正解仕訳のパース（行数決定用） ----------
-   借方行|借方行;貸方行|貸方行  （行：科目:金額）[1](https://chinzeigakuinedjp01-my.sharepoint.com/personal/hirotoshi_hamada_chinzeigakuinedjp01_onmicrosoft_com/Documents/Microsoft%20Copilot%20Chat%20%E3%83%95%E3%82%A1%E3%82%A4%E3%83%AB/seisan2.html)
------------------------------------------------------ */
+/* --- 正解仕訳をパース（行数決定用） --- */
 function parseAnswerRaw(raw){
+  // journal2形式：借方行|借方行;貸方行|貸方行（行は 科目:金額）[2](https://chinzeigakuinedjp01-my.sharepoint.com/personal/hirotoshi_hamada_chinzeigakuinedjp01_onmicrosoft_com/_layouts/15/Doc.aspx?sourcedoc=%7BD13B18BC-CC06-4C89-9611-2570D08156AF%7D&file=seisan2_TB.csv&action=default&mobileredirect=true)
   raw = String(raw||"")
     .replace(/\\\r?\n/g,"|")
     .replace(/\r?\n/g,"|")
@@ -411,8 +404,8 @@ function parseAnswerRaw(raw){
     .trim();
 
   const parts = raw.split(";");
-  const dPart = (parts[0]||"").trim();
-  const cPart = (parts[1]||"").trim();
+  const dPart = (parts[0] || "").trim();
+  const cPart = (parts[1] || "").trim();
 
   function parseSide(str){
     if(!str) return [];
@@ -429,7 +422,7 @@ function parseAnswerRaw(raw){
   return { D: parseSide(dPart), C: parseSide(cPart) };
 }
 
-/* ---------- タブ切替（精算表/PL） ---------- */
+/* --- タブ切替 --- */
 function showTab(t){
   document.getElementById("area_seisan")?.classList.add("hidden");
   document.getElementById("area_pl")?.classList.add("hidden");
@@ -441,7 +434,7 @@ function showTab(t){
   if(t==="pl") document.getElementById("tabPL")?.classList.add("active");
 }
 
-/* ---------- 問題選択 ---------- */
+/* --- 問題選択 --- */
 function setupProblemSelect(){
   const sel = document.getElementById("problemSelect");
   if(!sel) return;
@@ -453,12 +446,11 @@ function setupProblemSelect(){
     opt.textContent = "問題 " + id;
     sel.appendChild(opt);
   });
-
   sel.onchange = ()=>{ currentId = sel.value; };
   currentId = problemIds[0] || null;
 }
 
-/* ---------- 開始 ---------- */
+/* --- 開始 --- */
 function start(){
   if(!currentId) return;
 
@@ -466,18 +458,21 @@ function start(){
   baseAccounts = tbRows.map(x=>x.acct);
   extraAccounts = new Set();
 
-  renderAdjInputs();       // ← 仕訳欄を描画（これが無いと出ません）
-  renderSeisanTable(null); // TB表示
-  renderPL();              // PL表示（任意）
+  renderAdjInputs();       // ← 仕訳欄生成（これが“復活”）
+  renderSeisanTable(null); // TB表示＋合計行（TB合計）
+  renderPL();
 
   const res = document.getElementById("result");
   if(res) res.textContent = "";
 }
 
-/* ---------- 決算整理仕訳入力（固定行数・左右） ---------- */
+/* =========================================================
+   決算整理仕訳入力（左右・行数固定）
+========================================================= */
 function renderAdjInputs(){
   const area = document.getElementById("adjInputArea");
   if(!area) return;
+
   area.innerHTML = "";
 
   const notes = SEIRI.filter(x=>x.id===currentId);
@@ -519,11 +514,12 @@ function renderAdjInputs(){
 function buildSideRows(noteIndex, side, candidates, rowCount){
   const box = document.getElementById(`${side==="D" ? "dBox" : "cBox"}_${noteIndex}`);
   if(!box) return;
+
   box.innerHTML = "";
 
-  const optHtml = (candidates||[]).map(a =>
-    `<option value="${escapeHtml(a)}">${escapeHtml(a)}</option>`
-  ).join("");
+  const optHtml = (candidates||[])
+    .map(a=>`<option value="${escapeHtml(a)}">${escapeHtml(a)}</option>`)
+    .join("");
 
   for(let r=0;r<rowCount;r++){
     const row = document.createElement("div");
@@ -538,14 +534,18 @@ function buildSideRows(noteIndex, side, candidates, rowCount){
     box.appendChild(row);
 
     const inp = row.querySelector("input");
-    inp.addEventListener("input", ()=>{
-      let v = inp.value.replace(/,/g,"");
-      if(!isNaN(v) && v!=="") inp.value = Number(v).toLocaleString();
-    });
+    if(inp){
+      inp.addEventListener("input", ()=>{
+        let v = inp.value.replace(/,/g,"");
+        if(!isNaN(v) && v!=="") inp.value = Number(v).toLocaleString();
+      });
+    }
   }
 }
 
-/* ---------- 精算表（TB＋追加行＋利益/合計行） ---------- */
+/* =========================================================
+   精算表（TB表示＋整理反映＋合計）
+========================================================= */
 function makeSeisanRow(acct, tbD, tbC, added){
   const tr = document.createElement("tr");
   if(added) tr.classList.add("added-row");
@@ -568,12 +568,19 @@ function makeSeisanRow(acct, tbD, tbC, added){
 function renderSeisanTable(adjMap){
   const tbody = document.getElementById("seisanBody");
   if(!tbody) return;
+
   tbody.innerHTML = "";
 
-  // TB行
+  // TB合計
+  let tbSumD = 0, tbSumC = 0;
+
   baseAccounts.forEach(acct=>{
     const r = TB.find(x=>x.id===currentId && x.acct===acct);
     if(!r) return;
+
+    tbSumD += r.debit;
+    tbSumC += r.credit;
+
     const tr = makeSeisanRow(acct, r.debit, r.credit, false);
     if(adjMap){
       const adj = adjMap[acct] || {d:0,c:0};
@@ -583,7 +590,7 @@ function renderSeisanTable(adjMap){
     tbody.appendChild(tr);
   });
 
-  // 追加行（adjMapがあるときのみ＝反映後）
+  // 追加科目行（反映後のみ）
   if(adjMap){
     [...extraAccounts].forEach(acct=>{
       const tr = makeSeisanRow(acct, 0, 0, true);
@@ -594,7 +601,7 @@ function renderSeisanTable(adjMap){
     });
   }
 
-  // 当期純利益（行だけ）
+  // 当期純利益（行のみ）
   const trProfit = document.createElement("tr");
   trProfit.className = "profit-row";
   trProfit.innerHTML = `
@@ -606,15 +613,7 @@ function renderSeisanTable(adjMap){
   `;
   tbody.appendChild(trProfit);
 
-  // 合計行（TB合計＋整理合計）
-  let tbSumD = 0, tbSumC = 0;
-  baseAccounts.forEach(acct=>{
-    const r = TB.find(x=>x.id===currentId && x.acct===acct);
-    if(!r) return;
-    tbSumD += r.debit;
-    tbSumC += r.credit;
-  });
-
+  // 整理合計（反映後のみ）
   let adjSumD = 0, adjSumC = 0;
   if(adjMap){
     Object.values(adjMap).forEach(v=>{
@@ -623,6 +622,7 @@ function renderSeisanTable(adjMap){
     });
   }
 
+  // 合計行（TB合計は常に表示）
   const trTotal = document.createElement("tr");
   trTotal.className = "total-row";
   trTotal.innerHTML = `
@@ -637,7 +637,7 @@ function renderSeisanTable(adjMap){
   tbody.appendChild(trTotal);
 }
 
-/* ---------- 反映：左右仕訳入力を整理記入列へ ---------- */
+/* 整理仕訳 → 整理記入へ反映 */
 function applyAdjustments(){
   if(!currentId) return;
 
@@ -678,13 +678,16 @@ function applyAdjustments(){
   renderSeisanTable(adjMap);
 
   document.getElementById("result").textContent =
-    "整理記入を精算表へ反映しました（新規科目行・当期純利益行・合計行を更新）。";
+    "整理記入を反映しました（TB合計＋整理合計を合計行に表示）。";
 }
 
-/* ---------- PL（元帳残高形式：費用/収益のみ、仕入→売上原価） ---------- */
+/* =========================================================
+   PL（元帳残高形式：費用/収益のみ、仕入→売上原価）
+========================================================= */
 function renderPL(){
   const pl = document.getElementById("plBody");
   if(!pl) return;
+
   pl.innerHTML = "";
 
   TB.filter(r=>r.id===currentId)
@@ -701,6 +704,10 @@ function renderPL(){
         </div>
       `;
     });
+}
+
+function checkStub(){
+  alert("次段階で、正解仕訳（CSV）と比較して採点を実装します。");
 }
 
 /* ---------- CSV読込 ---------- */
@@ -727,7 +734,7 @@ function renderPL(){
       credit: num(c[4])
     }));
 
-    // SEIRI（4列）[1](https://chinzeigakuinedjp01-my.sharepoint.com/personal/hirotoshi_hamada_chinzeigakuinedjp01_onmicrosoft_com/Documents/Microsoft%20Copilot%20Chat%20%E3%83%95%E3%82%A1%E3%82%A4%E3%83%AB/seisan2.html)
+    // SEIRI（4列）[2](https://chinzeigakuinedjp01-my.sharepoint.com/personal/hirotoshi_hamada_chinzeigakuinedjp01_onmicrosoft_com/_layouts/15/Doc.aspx?sourcedoc=%7BD13B18BC-CC06-4C89-9611-2570D08156AF%7D&file=seisan2_TB.csv&action=default&mobileredirect=true)
     const sRows = parseCSV(seiriText);
     SEIRI = sRows.slice(1).filter(r=>r.join("").trim()!=="").map(c=>({
       id: (c[0]||"").trim(),

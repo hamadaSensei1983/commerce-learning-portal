@@ -390,17 +390,13 @@
    - ../data/voucher2_question.csv
    - ../data/voucher2_table.csv
 
-  仕様：
-   - 伝票配置：左=振替（縦） / 右上=入金 / 右下=出金
-   - 振替：借方(勘定1)と貸方(勘定2)を左右に表示（「借方」「貸方」文字は表示しない）
-   - 入金・出金：現金の相手勘定だけ表示（ただし集計は現金も含める）
-   - 集計表：借方｜勘定科目｜貸方（科目は中央）
-   - 解答：table.csv の「借」「貸」行を上からア・イ・ウで付与
-   - 不正解時：正解値赤表示＋該当伝票を(ア/イ/ウ色で)ハイライト
+  モード仕様：
+   - 練習：table.csv の「借/貸」指定をそのまま使用し、上からア/イ/ウ付与
+   - 検定：全勘定（0でない借方/貸方）からランダムに3つ選び、ア/イ/ウ付与
 ===================================================== */
 
-let qRows = [];      // question csv rows
-let tRows = [];      // table csv rows
+let qRows = [];
+let tRows = [];
 let problemIds = [];
 
 let mode = "practice";
@@ -456,8 +452,16 @@ function escapeHtml(s){
     .replaceAll(">","&gt;");
 }
 
+function shuffle(a){
+  for(let i=a.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+
 /* ============================
-   モード切替
+   モード切替（開始ボタンは隠さない）
 ============================ */
 function setMode(m){
   mode = m;
@@ -470,17 +474,30 @@ function setMode(m){
   document.getElementById("modeInfo").textContent =
     (m==="practice")
       ? "練習モード：指定された（ア）（イ）（ウ）を解きます。"
-      : "検定モード：ランダムに問題を出題します。";
+      : "検定モード：問題をランダムに1問出題し、（ア）（イ）（ウ）もランダムに設定します。";
 
-  // 練習のみ問題選択表示
-  document.getElementById("problemBar").style.display =
-    (m==="practice") ? "flex" : "none";
+  // 問題選択UIは検定では無効化（開始は可能）
+  const bar = document.getElementById("problemBar");
+  const sel = document.getElementById("problemSelect");
+  const btns = bar ? bar.querySelectorAll("button") : [];
+  const randomBtn = btns[0] || null;
+  const startBtn  = btns[1] || null;
+
+  if(m==="exam"){
+    if(sel) sel.disabled = true;
+    if(randomBtn) randomBtn.style.display = "none";
+    if(startBtn) startBtn.textContent = "検定開始";
+  }else{
+    if(sel) sel.disabled = false;
+    if(randomBtn) randomBtn.style.display = "";
+    if(startBtn) startBtn.textContent = "開始";
+  }
 
   resetView();
 }
 
 /* ============================
-   画面リセット
+   表示リセット
 ============================ */
 function resetView(){
   clearSlipHighlights();
@@ -521,7 +538,7 @@ function randomProblem(){
 }
 
 /* ============================
-   開始
+   開始（練習/検定）
 ============================ */
 function start(){
   resetView();
@@ -548,14 +565,20 @@ function start(){
 
   renderSlips(slips);
   totals = buildTotals(slips);
-  renderSummary(table, totals);
 
-  document.getElementById("result").textContent = `出題中：問題 ${currentProblemId}`;
+  // ★ 練習＝固定、検定＝全勘定(0でない)からランダム
+  const answerPlan = buildAnswerPlan(table, totals, mode);
+
+  renderSummary(table, totals, answerPlan);
+
+  document.getElementById("result").textContent =
+    (mode==="exam")
+      ? `検定出題：問題 ${currentProblemId}`
+      : `出題中：問題 ${currentProblemId}`;
 }
 
 /* ============================
-   伝票描画（左：振替／右上：入金／右下：出金）
-   ★ area is not defined を起こさないよう append 先を明確に
+   伝票描画
 ============================ */
 function renderSlips(slips){
   const fur = document.getElementById("furikaeArea");
@@ -566,8 +589,8 @@ function renderSlips(slips){
     if(s.type==="振替"){
       const card = document.createElement("div");
       card.className = "vcard furikae";
-      card.dataset.debitAcc = s.acc1;   // 借方
-      card.dataset.creditAcc = s.acc2;  // 貸方
+      card.dataset.debitAcc = s.acc1;
+      card.dataset.creditAcc = s.acc2;
       card.dataset.amount = String(s.amount);
       card.dataset.type = s.type;
 
@@ -582,28 +605,26 @@ function renderSlips(slips){
     }else if(s.type==="入金"){
       const card = document.createElement("div");
       card.className = "vcard nyukin";
-      card.dataset.debitAcc = s.acc1;   // 原則：現金
-      card.dataset.creditAcc = s.acc2;  // 相手
+      card.dataset.debitAcc = s.acc1;
+      card.dataset.creditAcc = s.acc2;
       card.dataset.amount = String(s.amount);
       card.dataset.type = s.type;
 
       const other = (s.acc1==="現金") ? s.acc2 : s.acc1;
       card.innerHTML = `<div class="single-line">${escapeHtml(other)} ${fmt(s.amount)}</div>`;
-
-      nyu.appendChild(card); // ★ここが正しい append 先
+      nyu.appendChild(card);
 
     }else if(s.type==="出金"){
       const card = document.createElement("div");
       card.className = "vcard shukkin";
-      card.dataset.debitAcc = s.acc1;    // 相手
-      card.dataset.creditAcc = s.acc2;   // 原則：現金
+      card.dataset.debitAcc = s.acc1;
+      card.dataset.creditAcc = s.acc2;
       card.dataset.amount = String(s.amount);
       card.dataset.type = s.type;
 
       const other = (s.acc1==="現金") ? s.acc2 : s.acc1;
       card.innerHTML = `<div class="single-line">${escapeHtml(other)} ${fmt(s.amount)}</div>`;
-
-      shu.appendChild(card); // ★ここが正しい append 先
+      shu.appendChild(card);
     }
   });
 }
@@ -628,45 +649,92 @@ function buildTotals(slips){
 }
 
 /* ============================
-   仕訳集計表（借方｜科目｜貸方）
-   - 解答列が「借」「貸」の行に上からア・イ・ウ
-   - 合計行は自動挿入（借方合計｜合計｜貸方合計）
+   ア・イ・ウ割当プラン作成
+   - 練習：table.csvの借/貸指定（上からア/イ/ウ）
+   - 検定：全勘定（0でない借/貸セル）からランダム3つ
 ============================ */
-function renderSummary(tableRows, totals){
+function buildAnswerPlan(tableRows, totals, mode){
+  const labels = ["ア","イ","ウ"];
+
+  // 練習：table指定の「借/貸」だけを上から
+  if(mode==="practice"){
+    const candidates = tableRows
+      .filter(r => r.answer === "借" || r.answer === "貸")
+      .map(r => ({
+        acct: r.account,
+        side: (r.answer === "借") ? "debit" : "credit"
+      }));
+
+    const plan = [];
+    candidates.slice(0,3).forEach((c,i)=>{
+      plan.push({ label: labels[i], acct: c.acct, side: c.side });
+    });
+    return plan;
+  }
+
+  // 検定：tableに載っている全勘定について、0でない借方/貸方を候補にする
+  const candidates = [];
+  tableRows.forEach(r=>{
+    const acct = r.account;
+    const t = totals[acct] || {debit:0, credit:0};
+
+    if(t.debit > 0)  candidates.push({acct, side:"debit"});
+    if(t.credit > 0) candidates.push({acct, side:"credit"});
+  });
+
+  // 候補が少ない場合も安全に動く
+  shuffle(candidates);
+  const picked = candidates.slice(0,3);
+
+  const plan = [];
+  picked.forEach((c,i)=>{
+    plan.push({ label: labels[i], acct: c.acct, side: c.side });
+  });
+  return plan;
+}
+
+/* ============================
+   仕訳集計表描画（借方｜科目｜貸方）
+============================ */
+function renderSummary(tableRows, totals, answerPlan){
   const tbody = document.getElementById("summaryBody");
   tbody.innerHTML = "";
 
   blanks = [];
-  const labels = ["ア","イ","ウ"];
-  let idx = 0;
+  const planMap = new Map(); // acct|side -> label
+  answerPlan.forEach(p=>{
+    planMap.set(p.acct + "|" + p.side, p.label);
+  });
 
-  // 1) 通常行
   tableRows.forEach((r, i)=>{
     const acct = r.account;
-    const need = r.answer; // "", "借", "貸"
     const t = totals[acct] || {debit:0, credit:0};
 
     let debitCell = "";
     let creditCell = "";
 
-    if(need==="借" || need==="貸"){
-      const labelText = labels[idx] || "";
-      idx++;
-
-      const inputId = `ans_${i}`;
-      const side = (need==="借") ? "debit" : "credit";
-      const correct = (need==="借") ? t.debit : t.credit;
-
-      const inputHtml = `
-        <span class="blank-label">（${labelText}）</span>
+    const labelD = planMap.get(acct + "|debit");
+    if(labelD){
+      const inputId = `ans_${i}_D`;
+      const correct = t.debit;
+      debitCell = `
+        <span class="blank-label">（${labelD}）</span>
         <input id="${inputId}" class="ans-input inline-input" inputmode="numeric">
         <span id="${inputId}_hint" class="correct-hint inline-hint hidden"></span>
       `;
+      blanks.push({ label:labelD, acct, side:"debit", correct, inputId });
+    }
 
-      if(need==="借") debitCell = inputHtml;
-      else creditCell = inputHtml;
-
-      blanks.push({ label:labelText, acct, side, correct, inputId });
+    const labelC = planMap.get(acct + "|credit");
+    if(labelC){
+      const inputId = `ans_${i}_C`;
+      const correct = t.credit;
+      creditCell = `
+        <span class="blank-label">（${labelC}）</span>
+        <input id="${inputId}" class="ans-input inline-input" inputmode="numeric">
+        <span id="${inputId}_hint" class="correct-hint inline-hint hidden"></span>
+      `;
+      blanks.push({ label:labelC, acct, side:"credit", correct, inputId });
     }
 
     const tr = document.createElement("tr");
@@ -678,9 +746,8 @@ function renderSummary(tableRows, totals){
     tbody.appendChild(tr);
   });
 
-  // 2) 合計行（自動）
-  let totalDebit = 0;
-  let totalCredit = 0;
+  // 合計行（借方合計｜合計｜貸方合計）
+  let totalDebit = 0, totalCredit = 0;
   Object.values(totals).forEach(t=>{
     totalDebit += t.debit;
     totalCredit += t.credit;
@@ -694,7 +761,7 @@ function renderSummary(tableRows, totals){
   `;
   tbody.appendChild(trTotal);
 
-  // 3) 入力欄カンマ補助
+  // 入力欄カンマ補助
   blanks.forEach(b=>{
     const inp = document.getElementById(b.inputId);
     inp.addEventListener("input", ()=>{
@@ -707,7 +774,7 @@ function renderSummary(tableRows, totals){
 }
 
 /* ============================
-   正解表示＋ハイライト（ア/イ/ウ色）
+   ハイライト（不正解のア/イ/ウに対応する伝票を色付け）
 ============================ */
 function clearSlipHighlights(){
   document.querySelectorAll(".vcard").forEach(card=>{
@@ -724,7 +791,7 @@ function highlightContributors(blank){
   const clsSide = (label==="ア") ? "side-hl-a" : (label==="イ") ? "side-hl-i" : "side-hl-u";
 
   const targetAcct = blank.acct;
-  const needSide = blank.side; // debit / credit
+  const needSide = blank.side;
 
   document.querySelectorAll(".vcard").forEach(card=>{
     const dAcc = card.dataset.debitAcc || "";
@@ -735,7 +802,6 @@ function highlightContributors(blank){
 
     card.classList.add(clsCard);
 
-    // 振替のみ、左右どっちかも強調
     if(card.classList.contains("furikae")){
       if(needSide==="debit") card.querySelector(".dc-debit")?.classList.add(clsSide);
       else card.querySelector(".dc-credit")?.classList.add(clsSide);
@@ -758,7 +824,6 @@ function checkAnswer(){
     const hint = document.getElementById(b.inputId+"_hint");
     const user = toNumber(inp.value);
 
-    // リセット
     inp.classList.remove("ok","ng");
     hint.classList.add("hidden");
     hint.textContent = "";
@@ -784,8 +849,7 @@ function checkAnswer(){
       document.getElementById("nextBtn").classList.remove("hidden");
     }
   }else{
-    res.textContent = "× 不正解です。赤字の正解を確認し、色の付いた伝票を見直しましょう。";
-    // 不正解だった(ア/イ/ウ)だけ、その寄与伝票を色付け
+    res.textContent = "× 不正解です。赤字の正解と、色の付いた伝票を確認しましょう。";
     wrongBlanks.forEach(b => highlightContributors(b));
     document.getElementById("nextBtn").classList.remove("hidden");
   }
@@ -843,7 +907,7 @@ function retryExam(){
     const tBody = t.slice(1).filter(r=>r.join("").trim()!=="");
     tRows = tBody.map(r=>{
       const rawAns = (r[3]||"").trim();
-      const ans = (rawAns === '""') ? "" : rawAns; // "" を空欄扱い
+      const ans = (rawAns === '""') ? "" : rawAns;
       return {
         problemId: (r[0]||"").trim(),
         order: Number((r[1]||"0").trim()),

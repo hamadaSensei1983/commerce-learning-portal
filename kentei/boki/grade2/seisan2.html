@@ -380,6 +380,7 @@ function num(v){
   const n = Number(s);
   return isNaN(n) ? 0 : n;
 }
+
 function fmt(n){ return n ? Number(n).toLocaleString() : ""; }
 
 function escapeHtml(s){
@@ -525,11 +526,11 @@ function renderAdjInputs(){
       </div>
     `;
     block.appendChild(jrnl);
+    area.appendChild(block);
 
     buildSideRows(idx, "D", n.candidates, rowCount);
     buildSideRows(idx, "C", n.candidates, rowCount);
 
-    area.appendChild(block);
   });
 }
 

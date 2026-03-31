@@ -286,32 +286,33 @@
 
 <script>
 /* =========================================================
-  seisan2.html（第一段階）
-  - ../data/seisan2_TB.csv
-  - ../data/seisan2_seiri.csv
+  seisan2.html（安定版：TBに借方残高／貸方残高を持たせる設計）
+  CSV:
+   - ../data/seisan2_TB.csv
+     問題ID,勘定科目,分類,借方残高,貸方残高
+   - ../data/seisan2_seiri.csv
+     問題ID,問題,勘定科目,正解仕訳
 
-  実装範囲（今回）：
-   ✅ 決算整理事項の表示（|改行対応）
-   ✅ 決算整理仕訳入力欄（付記事項ごと、行追加/削除あり）
-   ✅ 精算表（8桁）のTB表示
-   ✅ 整理仕訳で新たに登場した勘定科目をTB下部に自動追加
-   ✅ 当期純利益行＋合計行を下部に自動追加（行の追加のみ）
+  実装範囲：
+   ✅ 決算整理事項表示（|改行対応）
+   ✅ 決算整理仕訳入力（付記事項ごと）
+   ✅ 精算表（8桁：TB/整理/PL/BS 借貸）
+   ✅ TBに無い科目を自動追加
+   ✅ 当期純利益行・合計行を自動追加（行のみ）
+   ✅ PL表示（分類＝費用/収益、仕入→売上原価）
 
-  次段階：
-   - 正解採点（正解仕訳との比較）
-   - PL/BS列への配賦と当期純利益の自動計算
+  ※ 金額の最終計算・採点は次段階
 ========================================================= */
 
-let TB = [];      // {id, acct, cls, amt}
+let TB = [];      // {id, acct, cls, debit, credit}
 let SEIRI = [];   // {id, q, candidates[], answerRaw}
 let problemIds = [];
 let currentId = null;
 
-// 表示用：TB科目（元データ順）と追加科目
 let baseAccounts = [];
 let extraAccounts = new Set();
 
-/* ---------- CSVパーサ（クォート対応） */
+/* ---------- CSVパーサ（簡易・安定版） ---------- */
 function parseCSV(text){
   text = text.replace(/^\uFEFF/,"");
   const lines = text.split(/\r?\n/);
@@ -338,27 +339,30 @@ function num(v){
 }
 function fmt(n){ return n ? n.toLocaleString() : ""; }
 
-function normalizeText(s){
-  // 先生のseiri.csvは改行/|\ が混ざることがあるので吸収
+function escapeHtml(s){
   return String(s||"")
-    .replace(/\\\r?\n/g,"\n")
-    .replace(/\r?\n/g,"\n")
-    .replace(/\|/g,"\n")
-    .trim();
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;");
 }
 
-function splitCandidates(s){
-  // 候補：改行・全角｜・半角| を全部吸収 [2](https://chinzeigakuinedjp01-my.sharepoint.com/personal/hirotoshi_hamada_chinzeigakuinedjp01_onmicrosoft_com/_layouts/15/Doc.aspx?sourcedoc=%7B4FC9449D-2401-46C5-8DF5-87070208355D%7D&file=seisan2_seiri.csv&action=default&mobileredirect=true)
+/* ---------- 文字整形 ---------- */
+function normalizeText(s){
   return String(s||"")
-    .replace(/\\\r?\n/g,"|")
-    .replace(/\r?\n/g,"|")
-    .replace(/｜/g,"|")
-    .split("|")
+    .replace(/\|/g,"\n")
+    .replace(/\r?\n/g,"\n")
+    .trim();
+}
+function splitCandidates(s){
+  return String(s||"")
+    .replace(/\|/g,"\n")
+    .replace(/\r?\n/g,"\n")
+    .split("\n")
     .map(x=>x.trim())
     .filter(Boolean);
 }
 
-/* ---------- タブ */
+/* ---------- タブ切替 ---------- */
 function showTab(t){
   document.getElementById("area_seisan").classList.add("hidden");
   document.getElementById("area_pl").classList.add("hidden");
@@ -370,7 +374,7 @@ function showTab(t){
   if(t==="pl") document.getElementById("tabPL").classList.add("active");
 }
 
-/* ---------- 初期化：問題セレクト */
+/* ---------- 問題選択 ---------- */
 function setupProblemSelect(){
   const sel = document.getElementById("problemSelect");
   sel.innerHTML = "";
@@ -384,70 +388,60 @@ function setupProblemSelect(){
   currentId = problemIds[0] || null;
 }
 
-/* ---------- 開始：描画一式 */
+/* ---------- 開始 ---------- */
 function start(){
   if(!currentId) return;
 
-  // baseAccounts 初期化（TBの並びを保持）
   const tbRows = TB.filter(x=>x.id===currentId);
   baseAccounts = tbRows.map(x=>x.acct);
   extraAccounts = new Set();
 
-  // 付記事項表示
   renderNotes();
-
-  // 決算整理仕訳入力欄（付記事項を見ながら）
   renderAdjInputs();
-
-  // 精算表（TB部分）
   renderSeisanTable();
-
-  // PL（元帳残高形式：今回はTBの費用/収益だけ表示、仕入→売上原価）
   renderPL();
 
   document.getElementById("result").textContent = "";
 }
 
-/* ---------- 付記事項 */
+/* ---------- 決算整理事項 ---------- */
 function renderNotes(){
   const notes = SEIRI.filter(x=>x.id===currentId);
-  const abc = "abcdefghijklmnopqrstuvwxyz";
+  const abc="abcdefghijklmnopqrstuvwxyz";
   const text = notes.map((n,i)=>`${abc[i]}. ${normalizeText(n.q)}`).join("\n\n");
   document.getElementById("notesArea").textContent = text || "（付記事項なし）";
 }
 
-/* ---------- 決算整理仕訳入力欄（付記事項ごと） */
+/* ---------- 決算整理仕訳入力 ---------- */
 function renderAdjInputs(){
   const area = document.getElementById("adjInputArea");
   area.innerHTML = "";
 
   const notes = SEIRI.filter(x=>x.id===currentId);
-  const abc = "abcdefghijklmnopqrstuvwxyz";
+  const abc="abcdefghijklmnopqrstuvwxyz";
 
   notes.forEach((n, idx)=>{
     const block = document.createElement("div");
-    block.className = "note-block";
-    block.dataset.noteIndex = String(idx);
+    block.className="note-block";
 
     const q = document.createElement("div");
-    q.className = "note-q";
+    q.className="note-q";
     q.textContent = `${abc[idx]}. ${normalizeText(n.q)}`;
     block.appendChild(q);
 
     const grid = document.createElement("div");
-    grid.className = "adj-grid";
-    grid.id = `adjGrid_${idx}`;
+    grid.className="adj-grid";
+    grid.id=`adjGrid_${idx}`;
     block.appendChild(grid);
 
-    // 初期2行（必要なら増やせる）
     addAdjRow(idx, n.candidates);
     addAdjRow(idx, n.candidates);
 
     const btns = document.createElement("div");
-    btns.className = "mini-btns";
+    btns.className="mini-btns";
     btns.innerHTML = `
-      <button class="control-btn mini-btn" type="button" onclick="addAdjRow(${idx})">＋行</button>
-      <button class="control-btn mini-btn" type="button" onclick="removeAdjRow(${idx})">－行</button>
+      <button class="control-btn mini-btn" onclick="addAdjRow(${idx})">＋行</button>
+      <button class="control-btn mini-btn" onclick="removeAdjRow(${idx})">－行</button>
     `;
     block.appendChild(btns);
 
@@ -455,7 +449,6 @@ function renderAdjInputs(){
   });
 }
 
-/* 行追加/削除 */
 function addAdjRow(noteIndex, candidatesOpt){
   const note = SEIRI.filter(x=>x.id===currentId)[noteIndex];
   const candidates = candidatesOpt || (note ? note.candidates : []);
@@ -463,11 +456,7 @@ function addAdjRow(noteIndex, candidatesOpt){
   const rowCount = grid.querySelectorAll(".adj-row").length;
 
   const row = document.createElement("div");
-  row.className = "adj-row";
-  row.dataset.row = String(rowCount);
-
-  // 借/貸、勘定、金額
-  const optHtml = candidates.map(a=>`<option value="${escapeHtml(a)}">${escapeHtml(a)}</option>`).join("");
+  row.className="adj-row";
   row.innerHTML = `
     <select id="side_${noteIndex}_${rowCount}">
       <option value="D">借方</option>
@@ -475,130 +464,91 @@ function addAdjRow(noteIndex, candidatesOpt){
     </select>
     <select id="acct_${noteIndex}_${rowCount}">
       <option value=""></option>
-      ${optHtml}
+      ${candidates.map(a=>`<option value="${escapeHtml(a)}">${escapeHtml(a)}</option>`).join("")}
     </select>
-    <input id="amt_${noteIndex}_${rowCount}" class="money" inputmode="numeric">
-    <span style="color:#666;font-size:12px;">（行）</span>
+    <input id="amt_${noteIndex}_${rowCount}" class="money">
+    <span style="font-size:12px;color:#666;">（行）</span>
   `;
-
   grid.appendChild(row);
 
-  // カンマ補助
   const amt = row.querySelector("input");
-  amt.addEventListener("input", ()=>{
+  amt.addEventListener("input",()=>{
     let v = amt.value.replace(/,/g,"");
-    if(!isNaN(v) && v!==""){
-      amt.value = Number(v).toLocaleString();
-    }
+    if(!isNaN(v) && v!=="") amt.value = Number(v).toLocaleString();
   });
 }
 
 function removeAdjRow(noteIndex){
   const grid = document.getElementById(`adjGrid_${noteIndex}`);
   const rows = grid.querySelectorAll(".adj-row");
-  if(rows.length <= 1) return; // 最低1行残す
+  if(rows.length<=1) return;
   rows[rows.length-1].remove();
 }
 
-/* ---------- 精算表（TB表示＋行追加） */
+/* ---------- 精算表 ---------- */
 function renderSeisanTable(){
   const tbody = document.getElementById("seisanBody");
-  tbody.innerHTML = "";
+  tbody.innerHTML="";
 
-  // TB行
-  baseAccounts.forEach((acct, i)=>{
-    const row = TB.find(x=>x.id===currentId && x.acct===acct);
-    const cls = row.cls;
-    const amt = row.amt;
-
-    const isDebit = (cls==="資産" || cls==="費用");
-    const tbD = isDebit ? amt : 0;
-    const tbC = isDebit ? 0 : amt;
-
-    tbody.appendChild(makeSeisanRow(acct, tbD, tbC, false));
+  baseAccounts.forEach(acct=>{
+    const r = TB.find(x=>x.id===currentId && x.acct===acct);
+    tbody.appendChild(makeSeisanRow(acct, r.debit, r.credit, false));
   });
-
-  // 追加行（今は空：反映ボタンで増える）
-  // 当期純利益＆合計行も、反映時に再構築する
 }
 
-/* 1行生成 */
-function makeSeisanRow(acct, tbD, tbC, isAdded){
+function makeSeisanRow(acct, tbD, tbC, added){
   const tr = document.createElement("tr");
-  if(isAdded) tr.classList.add("added-row");
+  if(added) tr.classList.add("added-row");
   tr.dataset.acct = acct;
 
   tr.innerHTML = `
     <td>${escapeHtml(acct)}</td>
     <td>${fmt(tbD)}</td>
     <td>${fmt(tbC)}</td>
-
     <td class="adjD"></td>
     <td class="adjC"></td>
-
     <td class="plD"></td>
     <td class="plC"></td>
-
     <td class="bsD"></td>
     <td class="bsC"></td>
   `;
   return tr;
 }
 
-/* ---------- 反映：入力した決算整理仕訳を精算表へ（新科目行追加含む） */
+/* ---------- 整理仕訳を精算表へ反映 ---------- */
 function applyAdjustments(){
   if(!currentId) return;
 
-  // 1) 入力仕訳を集計（科目別に整理借方/貸方）
-  const adjMap = {}; // acct -> {d,c}
-  const ensure = (a)=>{ if(!adjMap[a]) adjMap[a]={d:0,c:0}; };
+  const adjMap = {};
+  const ensure = a=>{ if(!adjMap[a]) adjMap[a]={d:0,c:0}; };
 
   const notes = SEIRI.filter(x=>x.id===currentId);
-
   notes.forEach((n, idx)=>{
     const grid = document.getElementById(`adjGrid_${idx}`);
-    const rows = grid.querySelectorAll(".adj-row");
-
-    rows.forEach((r, rIdx)=>{
-      const side = document.getElementById(`side_${idx}_${rIdx}`)?.value;
-      const acct = document.getElementById(`acct_${idx}_${rIdx}`)?.value?.trim();
-      const amt  = num(document.getElementById(`amt_${idx}_${rIdx}`)?.value);
-
+    grid.querySelectorAll(".adj-row").forEach((r,rIdx)=>{
+      const side = document.getElementById(`side_${idx}_${rIdx}`).value;
+      const acct = document.getElementById(`acct_${idx}_${rIdx}`).value.trim();
+      const amt  = num(document.getElementById(`amt_${idx}_${rIdx}`).value);
       if(!acct || amt<=0) return;
       ensure(acct);
-
-      // 新規科目判定：TBに無いなら extra に追加
-      if(!baseAccounts.includes(acct)){
-        extraAccounts.add(acct);
-      }
-
+      if(!baseAccounts.includes(acct)) extraAccounts.add(acct);
       if(side==="D") adjMap[acct].d += amt;
       else adjMap[acct].c += amt;
     });
   });
 
-  // 2) 精算表を再構築（TB行 + 新規行 + 当期純利益 + 合計行）
   const tbody = document.getElementById("seisanBody");
-  tbody.innerHTML = "";
+  tbody.innerHTML="";
 
-  // TB行を再描画し、整理記入列だけ埋める
   baseAccounts.forEach(acct=>{
-    const row = TB.find(x=>x.id===currentId && x.acct===acct);
-    const cls = row.cls;
-    const amt = row.amt;
-
-    const isDebit = (cls==="資産" || cls==="費用");
-    const tbD = isDebit ? amt : 0;
-    const tbC = isDebit ? 0 : amt;
-
-    const tr = makeSeisanRow(acct, tbD, tbC, false);
+    const r = TB.find(x=>x.id===currentId && x.acct===acct);
+    const tr = makeSeisanRow(acct, r.debit, r.credit, false);
     const adj = adjMap[acct] || {d:0,c:0};
     tr.querySelector(".adjD").textContent = fmt(adj.d);
     tr.querySelector(".adjC").textContent = fmt(adj.c);
     tbody.appendChild(tr);
   });
 
-  // 新規追加行（TBに無いが整理仕訳で出た科目）
   [...extraAccounts].forEach(acct=>{
     const tr = makeSeisanRow(acct, 0, 0, true);
     const adj = adjMap[acct] || {d:0,c:0};
@@ -607,24 +557,20 @@ function applyAdjustments(){
     tbody.appendChild(tr);
   });
 
-  // 当期純利益（行だけ追加：次段階で自動計算）
-  const trProfit = document.createElement("tr");
-  trProfit.className = "profit-row";
-  trProfit.innerHTML = `
+  const trProfit=document.createElement("tr");
+  trProfit.className="profit-row";
+  trProfit.innerHTML=`
     <td>当期純利益</td>
     <td></td><td></td>
     <td></td><td></td>
-    <td class="plD"></td>
-    <td class="plC"></td>
-    <td class="bsD"></td>
-    <td class="bsC"></td>
+    <td></td><td></td>
+    <td></td><td></td>
   `;
   tbody.appendChild(trProfit);
 
-  // 合計行（行だけ追加：次段階で合計算出）
-  const trTotal = document.createElement("tr");
-  trTotal.className = "total-row";
-  trTotal.innerHTML = `
+  const trTotal=document.createElement("tr");
+  trTotal.className="total-row";
+  trTotal.innerHTML=`
     <td style="text-align:right;">合計</td>
     <td></td><td></td>
     <td></td><td></td>
@@ -633,91 +579,66 @@ function applyAdjustments(){
   `;
   tbody.appendChild(trTotal);
 
-  document.getElementById("result").textContent =
-    "整理記入を精算表へ反映しました（新規科目行・当期純利益行・合計行を追加）。";
+  document.getElementById("result").textContent="整理記入を精算表に反映しました。";
 }
 
-/* ---------- PL（元帳残高形式：今回はTBの費用/収益のみ、仕入→売上原価の置換） */
+/* ---------- PL（元帳残高形式） ---------- */
 function renderPL(){
-  const pl = document.getElementById("plBody");
-  pl.innerHTML = "";
+  const pl=document.getElementById("plBody");
+  pl.innerHTML="";
 
-  const tbRows = TB.filter(x=>x.id===currentId);
-  tbRows
-    .filter(r=>r.cls==="費用" || r.cls==="収益")
+  TB.filter(r=>r.id===currentId)
+    .filter(r=>r.cls==="費用"||r.cls==="収益")
     .forEach(r=>{
-      const name = (r.acct==="仕入") ? "売上原価" : r.acct;
-      pl.innerHTML += `
+      const name=(r.acct==="仕入")?"売上原価":r.acct;
+      const amt=(r.cls==="費用")?r.debit:r.credit;
+      if(amt===0) return;
+      pl.innerHTML+=`
         <div class="pl-item">
           <span>${escapeHtml(name)}</span>
-          <span>${fmt(r.amt)}</span>
+          <span>${fmt(amt)}</span>
         </div>
       `;
     });
 }
 
-/* ---------- 採点（今回は枠のみ） */
-function checkStub(){
-  alert("次段階で、正解仕訳（seiri.csvの正解仕訳）と比較して採点を実装します。");
-}
-
-/* ---------- HTMLエスケープ */
-function escapeHtml(s){
-  return String(s||"")
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;");
-}
-
-/* ---------- CSV読み込み（ローディング1秒） */
+/* ---------- CSV読込 ---------- */
 (async function initAll(){
-  const startTime = Date.now();
   try{
     const [tbText, seiriText] = await Promise.all([
-      fetch("../data/seisan2_TB.csv").then(r=>{
-        if(!r.ok) throw new Error("seisan2_TB.csv が見つかりません");
-        return r.text();
-      }),
-      fetch("../data/seisan2_seiri.csv").then(r=>{
-        if(!r.ok) throw new Error("seisan2_seiri.csv が見つかりません");
-        return r.text();
-      })
+      fetch("../data/seisan2_TB.csv").then(r=>r.text()),
+      fetch("../data/seisan2_seiri.csv").then(r=>r.text())
     ]);
 
-    // TB
-    const tbRows = parseCSV(tbText);
-    TB = tbRows.slice(1).filter(r=>r.join("").trim()!=="").map(c=>({
-      id: (c[0]||"").trim(),
-      acct: (c[1]||"").trim(),
-      cls: (c[2]||"").trim(),   // 資産/負債/資本/費用/収益 [1](https://chinzeigakuinedjp01-my.sharepoint.com/personal/hirotoshi_hamada_chinzeigakuinedjp01_onmicrosoft_com/_layouts/15/Doc.aspx?sourcedoc=%7BD13B18BC-CC06-4C89-9611-2570D08156AF%7D&file=seisan2_TB.csv&action=default&mobileredirect=true)
-      amt: num(c[3])
-    }));
+    TB = parseCSV(tbText).slice(1)
+      .filter(r=>r.join("").trim()!=="")
+      .map(c=>({
+        id:(c[0]||"").trim(),
+        acct:(c[1]||"").trim(),
+        cls:(c[2]||"").trim(),
+        debit:num(c[3]),
+        credit:num(c[4])
+      }));
 
-    // SEIRI
-    const sRows = parseCSV(seiriText);
-    SEIRI = sRows.slice(1).filter(r=>r.join("").trim()!=="").map(c=>({
-      id: (c[0]||"").trim(),
-      q: (c[1]||"").trim(),                 // 付記事項本文（|改行対応）[2](https://chinzeigakuinedjp01-my.sharepoint.com/personal/hirotoshi_hamada_chinzeigakuinedjp01_onmicrosoft_com/_layouts/15/Doc.aspx?sourcedoc=%7B4FC9449D-2401-46C5-8DF5-87070208355D%7D&file=seisan2_seiri.csv&action=default&mobileredirect=true)
-      candidates: splitCandidates(c[2]||""),// 候補（|区切り）
-      answerRaw: (c[3]||"").trim()          // 正解仕訳（次段階で採点）
-    }));
+    SEIRI = parseCSV(seiriText).slice(1)
+      .filter(r=>r.join("").trim()!=="")
+      .map(c=>({
+        id:(c[0]||"").trim(),
+        q:(c[1]||"").trim(),
+        candidates:splitCandidates(c[2]||""),
+        answerRaw:(c[3]||"").trim()
+      }));
 
-    problemIds = [...new Set(TB.map(x=>x.id))].sort();
-
+    problemIds=[...new Set(TB.map(x=>x.id))];
     setupProblemSelect();
     start();
 
   }catch(e){
     console.error(e);
-    alert("CSV読み込みエラー：" + (e.message || e));
+    alert("CSV読み込みエラー："+e.message);
   }finally{
-    const elapsed = Date.now() - startTime;
-    const remain = 1000 - elapsed;
-    const show = ()=>{
-      document.getElementById("loadingScreen").style.display="none";
-      document.getElementById("mainCard").classList.remove("hidden");
-    };
-    if(remain>0) setTimeout(show, remain); else show();
+    document.getElementById("loadingScreen").style.display="none";
+    document.getElementById("mainCard").classList.remove("hidden");
   }
 })();
 </script>

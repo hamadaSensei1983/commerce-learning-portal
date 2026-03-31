@@ -267,6 +267,23 @@
       display:inline-block;
     }
 
+    /* ===== (ア)(イ)(ウ) の色 ===== */
+    :root{
+      --a-color:#ff8f00; /* オレンジ */
+      --i-color:#1976d2; /* 青 */
+      --u-color:#6a1b9a; /* 紫 */
+    }
+
+    /* 伝票全体の強調（カード枠） */
+    .hl-a{ box-shadow:0 0 0 3px var(--a-color) inset, 0 6px 14px rgba(0,0,0,0.12); }
+    .hl-i{ box-shadow:0 0 0 3px var(--i-color) inset, 0 6px 14px rgba(0,0,0,0.12); }
+    .hl-u{ box-shadow:0 0 0 3px var(--u-color) inset, 0 6px 14px rgba(0,0,0,0.12); }
+
+    /* 振替の左右（借方/貸方）どちらが該当かも分かるように部分強調 */
+    .side-hl-a{ background:rgba(255,143,0,0.16); border-color:var(--a-color) !important; }
+    .side-hl-i{ background:rgba(25,118,210,0.14); border-color:var(--i-color) !important; }
+    .side-hl-u{ background:rgba(106,27,154,0.14); border-color:var(--u-color) !important; }
+
     @media (max-width: 650px){
       .voucher-layout{ grid-template-columns:1fr; }
       .right-area{ grid-template-rows:auto; }
@@ -517,31 +534,43 @@ function renderSlips(slips){
 
   slips.forEach(s=>{
     if(s.type==="振替"){
+      // 振替のカード生成部分（例）
       const card = document.createElement("div");
       card.className = "vcard furikae";
+      card.dataset.acc1 = s.acc1;         // 借方科目
+      card.dataset.acc2 = s.acc2;         // 貸方科目
+      card.dataset.amount = String(s.amount);
+      card.dataset.type = s.type;
+
       card.innerHTML = `
         <div class="dc-grid">
-          <div class="dc-col">${escapeHtml(s.acc1)} ${fmt(s.amount)}</div>
-          <div class="dc-col">${escapeHtml(s.acc2)} ${fmt(s.amount)}</div>
+          <div class="dc-col dc-debit"><span class="dc-item" data-side="debit">${escapeHtml(s.acc1)} ${fmt(s.amount)}</span></div>
+          <div class="dc-col dc-credit"><span class="dc-item" data-side="credit">${escapeHtml(s.acc2)} ${fmt(s.amount)}</span></div>
         </div>
       `;
       fur.appendChild(card);
     }else if(s.type==="入金"){
-      const other = (s.acc1==="現金") ? s.acc2 : s.acc1;
       const card = document.createElement("div");
-      card.className = "vcard nyukin";
-      card.innerHTML = `
-        <div class="single-line">${escapeHtml(other)} ${fmt(s.amount)}</div>
-      `;
-      nyu.appendChild(card);
+      card.className = "vcard nyukin"; // or shukkin
+      card.dataset.acc1 = s.acc1;
+      card.dataset.acc2 = s.acc2;
+      card.dataset.amount = String(s.amount);
+      card.dataset.type = s.type;
+
+      const other = (s.acc1==="現金") ? s.acc2 : s.acc1;
+      card.innerHTML = `<div class="single-line">${escapeHtml(other)} ${fmt(s.amount)}</div>`;
+      area.appendChild(card);
     }else if(s.type==="出金"){
-      const other = (s.acc1==="現金") ? s.acc2 : s.acc1;
       const card = document.createElement("div");
-      card.className = "vcard shukkin";
-      card.innerHTML = `
-        <div class="single-line">${escapeHtml(other)} ${fmt(s.amount)}</div>
-      `;
-      shu.appendChild(card);
+      card.className = "vcard shukkin"; // or shukkin
+      card.dataset.acc1 = s.acc1;
+      card.dataset.acc2 = s.acc2;
+      card.dataset.amount = String(s.amount);
+      card.dataset.type = s.type;
+
+      const other = (s.acc1==="現金") ? s.acc2 : s.acc1;
+      card.innerHTML = `<div class="single-line">${escapeHtml(other)} ${fmt(s.amount)}</div>`;
+      area.appendChild(card);
     }
   });
 }
@@ -649,8 +678,48 @@ function renderSummary(tableRows, totals){
 
 }
 
+function clearSlipHighlights(){
+  document.querySelectorAll(".vcard").forEach(card=>{
+    card.classList.remove("hl-a","hl-i","hl-u");
+    card.querySelectorAll(".dc-col").forEach(col=>{
+      col.classList.remove("side-hl-a","side-hl-i","side-hl-u");
+    });
+  });
+}
+
+function highlightContributors(blank){
+  // blank.label は "ア"/"イ"/"ウ"
+  const label = blank.label;
+  const clsCard = (label==="ア") ? "hl-a" : (label==="イ") ? "hl-i" : "hl-u";
+  const clsSide = (label==="ア") ? "side-hl-a" : (label==="イ") ? "side-hl-i" : "side-hl-u";
+
+  const targetAcct = blank.acct;
+  const needSide = blank.side; // "debit" or "credit"
+
+  document.querySelectorAll(".vcard").forEach(card=>{
+    const a1 = card.dataset.acc1 || "";
+    const a2 = card.dataset.acc2 || "";
+
+    const hit = (needSide==="debit" && a1===targetAcct) || (needSide==="credit" && a2===targetAcct);
+    if(!hit) return;
+
+    // カード全体を色で強調
+    card.classList.add(clsCard);
+
+    // 振替カードなら、左右どっちが該当かも強調
+    if(card.classList.contains("furikae")){
+      if(needSide==="debit"){
+        card.querySelector(".dc-debit")?.classList.add(clsSide);
+      }else{
+        card.querySelector(".dc-credit")?.classList.add(clsSide);
+      }
+    }
+  });
+}
+
 /* ---------- 答え合わせ ---------- */
 function checkAnswer(){
+  clearSlipHighlights();
   const res = document.getElementById("result");
   let okAll = true;
 
@@ -658,6 +727,11 @@ function checkAnswer(){
     const inp = document.getElementById(b.inputId);
     const hint = document.getElementById(b.inputId+"_hint");
     const user = toNumber(inp.value);
+    const wrongBlanks = [];
+
+    if(user !== b.correct){
+      wrongBlanks.push(b);
+    }
 
     // リセット
     inp.classList.remove("ok","ng");
@@ -673,6 +747,8 @@ function checkAnswer(){
       hint.classList.remove("hidden");
     }
   });
+
+  wrongBlanks.forEach(b => highlightContributors(b));
 
   document.getElementById("checkBtn").disabled = true;
 
@@ -692,6 +768,7 @@ function checkAnswer(){
 /* ---------- 次の問題（練習：次はランダムに） ---------- */
 function nextQuestion(){
   document.getElementById("checkBtn").disabled = false;
+  clearSlipHighlights();
   if(mode==="practice"){
     randomProblem();
   }else{

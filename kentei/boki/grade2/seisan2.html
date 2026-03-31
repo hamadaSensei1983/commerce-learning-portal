@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>全商簿記2級 精算表・損益計算書</title>
+<link rel="stylesheet" href="../../../css/common.css">
+
+<style>
+  .card{
+    max-width:1100px;
+    margin:20px auto;
+    padding:20px;
+    background:#fff;
+    border-radius:10px;
+    box-shadow:0 3px 8px rgba(0,0,0,0.08);
+  }
+  .hidden{ display:none; }
+
+  /* 上部タブ */
+  .tab-row{
+    display:flex;
+    justify-content:center;
+    gap:10px;
+    margin-bottom:10px;
+  }
+  .tab-btn{
+    border:none;
+    border-radius:999px;
+    padding:8px 16px;
+    font-size:14px;
+    background:#e2f5ea;
+    color:#2e7d32;
+    cursor:pointer;
+  }
+  .tab-btn.active{
+    background:#72b48a;
+    color:#fff;
+  }
+
+  /* 操作バー */
+  #controlBar{
+    text-align:center;
+    margin-bottom:10px;
+  }
+
+  /* 付記事項 */
+  #notesArea{
+    margin:10px 0;
+    padding:10px;
+    background:#f7f7f7;
+    border-left:4px solid #66bb6a;
+    white-space:pre-line;
+    font-size:14px;
+  }
+
+  /* 精算表 */
+  table.seisan{
+    width:100%;
+    border-collapse:collapse;
+    font-size:14px;
+    table-layout:fixed;
+  }
+  table.seisan th, table.seisan td{
+    border:1px solid #e53935;
+    padding:6px;
+    text-align:right;
+  }
+  table.seisan th{
+    background:#ffebee;
+    text-align:center;
+  }
+  table.seisan td:first-child{
+    text-align:left;
+    width:18%;
+  }
+  .money{
+    width:100%;
+    text-align:right;
+    box-sizing:border-box;
+  }
+
+  /* PL 表示 */
+  .pl-wrap{
+    max-width:700px;
+    margin:0 auto;
+    border:2px solid #e53935;
+    border-radius:10px;
+    padding:12px;
+    background:#fffdfd;
+  }
+  .pl-title{
+    text-align:center;
+    font-weight:bold;
+    margin-bottom:10px;
+  }
+  .pl-item{
+    display:flex;
+    justify-content:space-between;
+    padding:4px 0;
+    border-bottom:1px dotted #ccc;
+  }
+</style>
+</head>
+
+<body>
+
+<header class="app-header">
+  <div class="header-left">
+    <img src="../../../images/logo.png" class="header-icon">
+    <div>
+      <h1 class="site-title">検定対策システム</h1>
+      <div class="exam-title">全商簿記2級 精算表・損益計算書</div>
+    </div>
+  </div>
+</header>
+
+<div id="loadingScreen">
+  <div style="text-align:center">
+    <img src="../../../images/logo.png" style="width:80px"><br>
+    <div class="spinner"></div>
+    <p>読み込み中...</p>
+  </div>
+</div>
+
+<div class="card hidden" id="mainCard">
+
+  <div class="tab-row">
+    <button class="tab-btn active" id="tabSeisan" onclick="showTab('seisan')">精算表</button>
+    <button class="tab-btn" id="tabPL" onclick="showTab('pl')">損益計算書</button>
+  </div>
+
+  <div id="controlBar">
+    <select id="problemSelect"></select>
+    <button class="control-btn" style="width:auto" onclick="start()">開始</button>
+    <button class="control-btn" style="width:auto" onclick="check()">答え合わせ</button>
+  </div>
+
+  <div id="notesArea"></div>
+
+  <!-- 精算表 -->
+  <div id="area_seisan">
+    <table class="seisan">
+      <thead>
+        <tr>
+          <th rowspan="2">勘定科目</th>
+          <th colspan="2">残高試算表</th>
+          <th colspan="2">整理記入</th>
+          <th colspan="2">修正後残高試算表</th>
+        </tr>
+        <tr>
+          <th>借方</th><th>貸方</th>
+          <th>借方</th><th>貸方</th>
+          <th>借方</th><th>貸方</th>
+        </tr>
+      </thead>
+      <tbody id="seisanBody"></tbody>
+    </table>
+  </div>
+
+  <!-- 損益計算書 -->
+  <div id="area_pl" class="hidden">
+    <div class="pl-wrap">
+      <div class="pl-title">損益計算書</div>
+      <div id="plBody"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ===============================
+   seisan2.js（最小サンプル）
+   CSV:
+    - seisan2_TB.csv
+    - seisan2_seiri.csv
+================================ */
+
+let TB = [];
+let SEIRI = [];
+let problems = [];
+let currentId = null;
+
+/* CSVパーサ */
+function parseCSV(text){
+  text = text.replace(/^\uFEFF/,"");
+  const rows = [];
+  let cur="", row=[], inQ=false;
+  for(const c of text){
+    if(c === '"'){ inQ=!inQ; continue; }
+    if(c === "," && !inQ){ row.push(cur); cur=""; continue; }
+    if((c === "\n" || c === "\r") && !inQ){
+      if(row.length){ row.push(cur); rows.push(row); }
+      row=[]; cur=""; continue;
+    }
+    cur+=c;
+  }
+  row.push(cur);
+  if(row.length) rows.push(row);
+  return rows;
+}
+function num(v){ return Number(String(v||"").replace(/,/g,""))||0; }
+function fmt(n){ return n ? n.toLocaleString() : ""; }
+
+/* タブ切替 */
+function showTab(t){
+  document.getElementById("area_seisan").classList.add("hidden");
+  document.getElementById("area_pl").classList.add("hidden");
+  document.getElementById("tabSeisan").classList.remove("active");
+  document.getElementById("tabPL").classList.remove("active");
+
+  document.getElementById("area_"+t).classList.remove("hidden");
+  document.getElementById("tab"+t.toUpperCase()).classList.add("active");
+}
+
+/* 問題開始 */
+function start(){
+  render();
+}
+
+/* 描画 */
+function render(){
+  const tb = TB.filter(x=>x.id===currentId);
+  const notes = SEIRI.filter(x=>x.id===currentId);
+
+  /* 付記事項 */
+  const abc="abcdefghijklmnopqrstuvwxyz";
+  notesArea.textContent = notes.map((n,i)=>`${abc[i]}. ${n.q}`).join("\n");
+
+  /* 精算表 */
+  seisanBody.innerHTML="";
+  tb.forEach((r,i)=>{
+    const isDebit = (r.cls==="資産"||r.cls==="費用");
+    seisanBody.innerHTML += `
+      <tr>
+        <td>${r.acct}</td>
+        <td>${isDebit?fmt(r.amt):""}</td>
+        <td>${!isDebit?fmt(r.amt):""}</td>
+        <td><input class="money" id="adjD_${i}"></td>
+        <td><input class="money" id="adjC_${i}"></td>
+        <td></td><td></td>
+      </tr>
+    `;
+  });
+
+  /* PL */
+  plBody.innerHTML="";
+  tb.filter(r=>r.cls==="費用"||r.cls==="収益").forEach(r=>{
+    const name = (r.acct==="仕入")?"売上原価":r.acct;
+    plBody.innerHTML += `
+      <div class="pl-item">
+        <span>${name}</span>
+        <span>${fmt(r.amt)}</span>
+      </div>
+    `;
+  });
+}
+
+/* 採点（今回はダミー） */
+function check(){
+  alert("※ サンプル：採点処理は省略しています");
+}
+
+/* 初期化 */
+(async function(){
+  const [tbText, seiriText] = await Promise.all([
+    fetch("../data/seisan2_TB.csv").then(r=>r.text()),
+    fetch("../data/seisan2_seiri.csv").then(r=>r.text())
+  ]);
+
+  TB = parseCSV(tbText).slice(1).map(r=>({
+    id:r[0], acct:r[1], cls:r[2], amt:num(r[3])
+  }));
+  SEIRI = parseCSV(seiriText).slice(1).map(r=>({
+    id:r[0], q:r[1]
+  }));
+
+  problems = [...new Set(TB.map(x=>x.id))];
+  const sel = problemSelect;
+  problems.forEach(id=>{
+    const o=document.createElement("option");
+    o.value=id; o.textContent="問題 "+id;
+    sel.appendChild(o);
+  });
+  currentId = problems[0];
+
+  loadingScreen.style.display="none";
+  mainCard.classList.remove("hidden");
+})();
+</script>
+</body>
+</html>

@@ -198,29 +198,44 @@
     padding:10px;
   }
 
-  /* 借方・貸方の見出しを小さくして高さを詰める */
-  .jrnl-title{
-    font-size:12px;     /* 小さく */
-    padding:2px 0;      /* 高さを詰める */
-    margin-bottom:6px;  /* 余白を減らす */
-    line-height:1.1;
-  }
+/* ===== 決算整理仕訳（左右入力）ここを修正 ===== */
 
-  /* 1行の高さを詰める */
-  .jrnl-row{
-    grid-template-columns: 1fr 110px; /* 金額欄を少し細く */
-    gap:6px;
-    margin:4px 0;
-  }
+/* 1行を「科目＋金額」で横並びにする */
+.jrnl-row{
+  display:grid;                      /* ★これが無いと縦積みになる */
+  grid-template-columns: 1fr 95px;   /* ★科目を広く、金額を狭く */
+  gap:6px;
+  margin:3px 0;                      /* 行間も少し詰める */
+}
 
-  /* 入力部品も少し小さく */
-  .jrnl-row select,
-  .jrnl-row input{
-    padding:4px;
-    font-size:13px;
-    height:30px;        /* 行高を固定で詰める */
-    box-sizing:border-box;
-  }
+/* セレクト（科目）は横幅いっぱい使う */
+.jrnl-row select{
+  width:100%;
+  min-width:0;                       /* ★Grid内で縮められるように */
+}
+
+/* 金額は狭め＋右寄せ */
+.jrnl-row input{
+  width:95px;                        /* ★固定で狭く */
+  text-align:right;
+}
+
+/* 入力部品を少しコンパクトに（任意） */
+.jrnl-row select,
+.jrnl-row input{
+  padding:3px 4px;
+  font-size:12.5px;
+  height:28px;
+  box-sizing:border-box;
+}
+
+/* 借方/貸方の見出しもさらに詰めたい場合 */
+.jrnl-title{
+  font-size:11px;
+  padding:1px 0;
+  margin-bottom:4px;
+  line-height:1.0;
+}
 
   /* 金額は右寄せ維持 */
   .jrnl-row input{

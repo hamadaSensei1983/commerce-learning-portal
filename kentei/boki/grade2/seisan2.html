@@ -286,7 +286,7 @@
 
 <script>
 /* =========================================================
-  seisan2.html（安定版：TBに借方残高／貸方残高を持たせる設計）
+  seisan2.html（第一段階：null安全版）
   CSV:
    - ../data/seisan2_TB.csv
      問題ID,勘定科目,分類,借方残高,貸方残高
@@ -295,13 +295,11 @@
 
   実装範囲：
    ✅ 決算整理事項表示（|改行対応）
-   ✅ 決算整理仕訳入力（付記事項ごと）
-   ✅ 精算表（8桁：TB/整理/PL/BS 借貸）
-   ✅ TBに無い科目を自動追加
-   ✅ 当期純利益行・合計行を自動追加（行のみ）
-   ✅ PL表示（分類＝費用/収益、仕入→売上原価）
-
-  ※ 金額の最終計算・採点は次段階
+   ✅ 決算整理仕訳入力（付記事項ごと、行追加/削除）
+   ✅ 精算表（8桁枠）のTB表示
+   ✅ 整理仕訳で新たに登場した勘定科目をTB下部に自動追加
+   ✅ 当期純利益行＋合計行を下部に自動追加（行のみ）
+   ✅ PL表示（分類＝費用/収益のみ、仕入→売上原価）
 ========================================================= */
 
 let TB = [];      // {id, acct, cls, debit, credit}
@@ -312,71 +310,96 @@ let currentId = null;
 let baseAccounts = [];
 let extraAccounts = new Set();
 
-/* ---------- CSVパーサ（簡易・安定版） ---------- */
+/* ---------- CSVパーサ（簡易・クォート対応） ---------- */
 function parseCSV(text){
-  text = text.replace(/^\uFEFF/,"");
-  const lines = text.split(/\r?\n/);
-  const data = [];
-  for(const line of lines){
-    if(!line.trim()) continue;
-    let cols=[], cur="", q=false;
-    for(const c of line){
-      if(c === '"'){ q=!q; continue; }
-      if(c === "," && !q){ cols.push(cur); cur=""; }
-      else cur += c;
+  text = text.replace(/^\uFEFF/, "");
+  const out = [];
+  let row = [];
+  let cur = "";
+  let inQ = false;
+
+  for(let i=0; i<text.length; i++){
+    const c = text[i];
+
+    if(c === '"'){ inQ = !inQ; continue; }
+
+    if(c === "," && !inQ){
+      row.push(cur); cur = ""; continue;
     }
-    cols.push(cur);
-    data.push(cols);
+
+    if((c === "\n" || c === "\r") && !inQ){
+      if(c === "\r" && text[i+1] === "\n") i++;
+      row.push(cur);
+      if(row.join("").trim() !== "") out.push(row);
+      row = []; cur = "";
+      continue;
+    }
+
+    cur += c;
   }
-  return data;
+
+  row.push(cur);
+  if(row.join("").trim() !== "") out.push(row);
+  return out;
 }
 
 function num(v){
   const s = String(v||"").replace(/,/g,"").trim();
   if(s==="") return 0;
   const n = Number(s);
-  return isNaN(n)?0:n;
+  return isNaN(n) ? 0 : n;
 }
-function fmt(n){ return n ? n.toLocaleString() : ""; }
+function fmt(n){ return n ? Number(n).toLocaleString() : ""; }
 
 function escapeHtml(s){
-  return String(s||"")
+  return String(s || "")
     .replaceAll("&","&amp;")
     .replaceAll("<","&lt;")
     .replaceAll(">","&gt;");
 }
 
-/* ---------- 文字整形 ---------- */
+/* ---------- 文字整形（| を改行として扱う） ---------- */
 function normalizeText(s){
   return String(s||"")
-    .replace(/\|/g,"\n")
+    .replace(/\\\r?\n/g,"\n")
     .replace(/\r?\n/g,"\n")
+    .replace(/\|/g,"\n")
     .trim();
 }
+
 function splitCandidates(s){
   return String(s||"")
-    .replace(/\|/g,"\n")
-    .replace(/\r?\n/g,"\n")
-    .split("\n")
+    .replace(/\\\r?\n/g,"|")
+    .replace(/\r?\n/g,"|")
+    .replace(/｜/g,"|")
+    .split("|")
     .map(x=>x.trim())
     .filter(Boolean);
 }
 
-/* ---------- タブ切替 ---------- */
+/* ---------- タブ切替（精算表/PL） ---------- */
 function showTab(t){
-  document.getElementById("area_seisan").classList.add("hidden");
-  document.getElementById("area_pl").classList.add("hidden");
-  document.getElementById("tabSeisan").classList.remove("active");
-  document.getElementById("tabPL").classList.remove("active");
+  const areaSeisan = document.getElementById("area_seisan");
+  const areaPL = document.getElementById("area_pl");
+  const tabSeisan = document.getElementById("tabSeisan");
+  const tabPL = document.getElementById("tabPL");
 
-  document.getElementById("area_"+t).classList.remove("hidden");
-  if(t==="seisan") document.getElementById("tabSeisan").classList.add("active");
-  if(t==="pl") document.getElementById("tabPL").classList.add("active");
+  if(areaSeisan) areaSeisan.classList.add("hidden");
+  if(areaPL) areaPL.classList.add("hidden");
+  if(tabSeisan) tabSeisan.classList.remove("active");
+  if(tabPL) tabPL.classList.remove("active");
+
+  const target = document.getElementById("area_"+t);
+  if(target) target.classList.remove("hidden");
+  if(t==="seisan" && tabSeisan) tabSeisan.classList.add("active");
+  if(t==="pl" && tabPL) tabPL.classList.add("active");
 }
 
 /* ---------- 問題選択 ---------- */
 function setupProblemSelect(){
   const sel = document.getElementById("problemSelect");
+  if(!sel) return;
+
   sel.innerHTML = "";
   problemIds.forEach(id=>{
     const opt = document.createElement("option");
@@ -384,11 +407,12 @@ function setupProblemSelect(){
     opt.textContent = "問題 " + id;
     sel.appendChild(opt);
   });
+
   sel.onchange = ()=>{ currentId = sel.value; };
   currentId = problemIds[0] || null;
 }
 
-/* ---------- 開始 ---------- */
+/* ---------- 開始（描画一式） ---------- */
 function start(){
   if(!currentId) return;
 
@@ -401,20 +425,24 @@ function start(){
   renderSeisanTable();
   renderPL();
 
-  document.getElementById("result").textContent = "";
+  const res = document.getElementById("result");
+  if(res) res.textContent = "";
 }
 
-/* ---------- 決算整理事項 ---------- */
+/* ---------- 決算整理事項表示 ---------- */
 function renderNotes(){
   const notes = SEIRI.filter(x=>x.id===currentId);
   const abc="abcdefghijklmnopqrstuvwxyz";
   const text = notes.map((n,i)=>`${abc[i]}. ${normalizeText(n.q)}`).join("\n\n");
-  document.getElementById("notesArea").textContent = text || "（付記事項なし）";
+  const area = document.getElementById("notesArea");
+  if(area) area.textContent = text || "（付記事項なし）";
 }
 
-/* ---------- 決算整理仕訳入力 ---------- */
+/* ---------- 決算整理仕訳入力欄（付記事項ごと） ---------- */
 function renderAdjInputs(){
   const area = document.getElementById("adjInputArea");
+  if(!area) return;
+
   area.innerHTML = "";
 
   const notes = SEIRI.filter(x=>x.id===currentId);
@@ -422,26 +450,27 @@ function renderAdjInputs(){
 
   notes.forEach((n, idx)=>{
     const block = document.createElement("div");
-    block.className="note-block";
+    block.className = "note-block";
 
     const q = document.createElement("div");
-    q.className="note-q";
+    q.className = "note-q";
     q.textContent = `${abc[idx]}. ${normalizeText(n.q)}`;
     block.appendChild(q);
 
     const grid = document.createElement("div");
-    grid.className="adj-grid";
-    grid.id=`adjGrid_${idx}`;
+    grid.className = "adj-grid";
+    grid.id = `adjGrid_${idx}`;
     block.appendChild(grid);
 
+    // 初期2行（必要なら増やせる）
     addAdjRow(idx, n.candidates);
     addAdjRow(idx, n.candidates);
 
     const btns = document.createElement("div");
-    btns.className="mini-btns";
+    btns.className = "mini-btns";
     btns.innerHTML = `
-      <button class="control-btn mini-btn" onclick="addAdjRow(${idx})">＋行</button>
-      <button class="control-btn mini-btn" onclick="removeAdjRow(${idx})">－行</button>
+      <button class="control-btn mini-btn" type="button" onclick="addAdjRow(${idx})">＋行</button>
+      <button class="control-btn mini-btn" type="button" onclick="removeAdjRow(${idx})">－行</button>
     `;
     block.appendChild(btns);
 
@@ -449,14 +478,25 @@ function renderAdjInputs(){
   });
 }
 
+/* 行追加 */
 function addAdjRow(noteIndex, candidatesOpt){
-  const note = SEIRI.filter(x=>x.id===currentId)[noteIndex];
+  const noteList = SEIRI.filter(x=>x.id===currentId);
+  const note = noteList[noteIndex];
+
   const candidates = candidatesOpt || (note ? note.candidates : []);
+
   const grid = document.getElementById(`adjGrid_${noteIndex}`);
+  if(!grid) return;
+
   const rowCount = grid.querySelectorAll(".adj-row").length;
 
   const row = document.createElement("div");
-  row.className="adj-row";
+  row.className = "adj-row";
+
+  const optHtml = candidates
+    .map(a=>`<option value="${escapeHtml(a)}">${escapeHtml(a)}</option>`)
+    .join("");
+
   row.innerHTML = `
     <select id="side_${noteIndex}_${rowCount}">
       <option value="D">借方</option>
@@ -464,34 +504,41 @@ function addAdjRow(noteIndex, candidatesOpt){
     </select>
     <select id="acct_${noteIndex}_${rowCount}">
       <option value=""></option>
-      ${candidates.map(a=>`<option value="${escapeHtml(a)}">${escapeHtml(a)}</option>`).join("")}
+      ${optHtml}
     </select>
-    <input id="amt_${noteIndex}_${rowCount}" class="money">
+    <input id="amt_${noteIndex}_${rowCount}" class="money" inputmode="numeric">
     <span style="font-size:12px;color:#666;">（行）</span>
   `;
   grid.appendChild(row);
 
   const amt = row.querySelector("input");
-  amt.addEventListener("input",()=>{
-    let v = amt.value.replace(/,/g,"");
-    if(!isNaN(v) && v!=="") amt.value = Number(v).toLocaleString();
-  });
+  if(amt){
+    amt.addEventListener("input",()=>{
+      let v = amt.value.replace(/,/g,"");
+      if(!isNaN(v) && v!=="") amt.value = Number(v).toLocaleString();
+    });
+  }
 }
 
+/* 行削除（null安全） */
 function removeAdjRow(noteIndex){
   const grid = document.getElementById(`adjGrid_${noteIndex}`);
+  if(!grid) return;
+
   const rows = grid.querySelectorAll(".adj-row");
-  if(rows.length<=1) return;
+  if(rows.length <= 1) return;
   rows[rows.length-1].remove();
 }
 
-/* ---------- 精算表 ---------- */
+/* ---------- 精算表（TB表示） ---------- */
 function renderSeisanTable(){
   const tbody = document.getElementById("seisanBody");
-  tbody.innerHTML="";
+  if(!tbody) return;
+  tbody.innerHTML = "";
 
   baseAccounts.forEach(acct=>{
     const r = TB.find(x=>x.id===currentId && x.acct===acct);
+    if(!r) return;
     tbody.appendChild(makeSeisanRow(acct, r.debit, r.credit, false));
   });
 }
@@ -515,33 +562,51 @@ function makeSeisanRow(acct, tbD, tbC, added){
   return tr;
 }
 
-/* ---------- 整理仕訳を精算表へ反映 ---------- */
+/* ---------- 反映：整理仕訳入力 → 精算表へ（新科目追加＋利益/合計行） ---------- */
 function applyAdjustments(){
   if(!currentId) return;
 
-  const adjMap = {};
+  const adjMap = {}; // acct -> {d,c}
   const ensure = a=>{ if(!adjMap[a]) adjMap[a]={d:0,c:0}; };
 
   const notes = SEIRI.filter(x=>x.id===currentId);
-  notes.forEach((n, idx)=>{
+
+  // forEach の中で null を弾く
+  for(let idx=0; idx<notes.length; idx++){
     const grid = document.getElementById(`adjGrid_${idx}`);
-    grid.querySelectorAll(".adj-row").forEach((r,rIdx)=>{
-      const side = document.getElementById(`side_${idx}_${rIdx}`).value;
-      const acct = document.getElementById(`acct_${idx}_${rIdx}`).value.trim();
-      const amt  = num(document.getElementById(`amt_${idx}_${rIdx}`).value);
+    if(!grid) continue;
+
+    const rows = grid.querySelectorAll(".adj-row");
+    rows.forEach((rowEl, rIdx)=>{
+      const sideEl = document.getElementById(`side_${idx}_${rIdx}`);
+      const acctEl = document.getElementById(`acct_${idx}_${rIdx}`);
+      const amtEl  = document.getElementById(`amt_${idx}_${rIdx}`);
+
+      if(!sideEl || !acctEl || !amtEl) return;
+
+      const side = sideEl.value;
+      const acct = (acctEl.value || "").trim();
+      const amt  = num(amtEl.value);
+
       if(!acct || amt<=0) return;
+
       ensure(acct);
       if(!baseAccounts.includes(acct)) extraAccounts.add(acct);
+
       if(side==="D") adjMap[acct].d += amt;
       else adjMap[acct].c += amt;
     });
-  });
+  }
 
   const tbody = document.getElementById("seisanBody");
-  tbody.innerHTML="";
+  if(!tbody) return;
+  tbody.innerHTML = "";
 
+  // TB行
   baseAccounts.forEach(acct=>{
     const r = TB.find(x=>x.id===currentId && x.acct===acct);
+    if(!r) return;
+
     const tr = makeSeisanRow(acct, r.debit, r.credit, false);
     const adj = adjMap[acct] || {d:0,c:0};
     tr.querySelector(".adjD").textContent = fmt(adj.d);
@@ -549,6 +614,7 @@ function applyAdjustments(){
     tbody.appendChild(tr);
   });
 
+  // 新規科目行
   [...extraAccounts].forEach(acct=>{
     const tr = makeSeisanRow(acct, 0, 0, true);
     const adj = adjMap[acct] || {d:0,c:0};
@@ -557,9 +623,10 @@ function applyAdjustments(){
     tbody.appendChild(tr);
   });
 
-  const trProfit=document.createElement("tr");
-  trProfit.className="profit-row";
-  trProfit.innerHTML=`
+  // 当期純利益行（行のみ）
+  const trProfit = document.createElement("tr");
+  trProfit.className = "profit-row";
+  trProfit.innerHTML = `
     <td>当期純利益</td>
     <td></td><td></td>
     <td></td><td></td>
@@ -568,9 +635,10 @@ function applyAdjustments(){
   `;
   tbody.appendChild(trProfit);
 
-  const trTotal=document.createElement("tr");
-  trTotal.className="total-row";
-  trTotal.innerHTML=`
+  // 合計行（行のみ）
+  const trTotal = document.createElement("tr");
+  trTotal.className = "total-row";
+  trTotal.innerHTML = `
     <td style="text-align:right;">合計</td>
     <td></td><td></td>
     <td></td><td></td>
@@ -579,21 +647,24 @@ function applyAdjustments(){
   `;
   tbody.appendChild(trTotal);
 
-  document.getElementById("result").textContent="整理記入を精算表に反映しました。";
+  const res = document.getElementById("result");
+  if(res) res.textContent = "整理記入を精算表に反映しました（新規科目／当期純利益／合計行を追加）。";
 }
 
-/* ---------- PL（元帳残高形式） ---------- */
+/* ---------- PL（分類＝費用/収益のみ） ---------- */
 function renderPL(){
-  const pl=document.getElementById("plBody");
-  pl.innerHTML="";
+  const pl = document.getElementById("plBody");
+  if(!pl) return;
+  pl.innerHTML = "";
 
   TB.filter(r=>r.id===currentId)
-    .filter(r=>r.cls==="費用"||r.cls==="収益")
+    .filter(r=>r.cls==="費用" || r.cls==="収益")
     .forEach(r=>{
-      const name=(r.acct==="仕入")?"売上原価":r.acct;
-      const amt=(r.cls==="費用")?r.debit:r.credit;
+      const name = (r.acct==="仕入") ? "売上原価" : r.acct;
+      const amt = (r.cls==="費用") ? r.debit : r.credit;
       if(amt===0) return;
-      pl.innerHTML+=`
+
+      pl.innerHTML += `
         <div class="pl-item">
           <span>${escapeHtml(name)}</span>
           <span>${fmt(amt)}</span>
@@ -602,43 +673,60 @@ function renderPL(){
     });
 }
 
-/* ---------- CSV読込 ---------- */
+/* ---------- 採点（枠） ---------- */
+function checkStub(){
+  alert("次段階で、正解仕訳と比較して採点を実装します。");
+}
+
+/* ---------- CSV読込（ローディング解除） ---------- */
 (async function initAll(){
   try{
     const [tbText, seiriText] = await Promise.all([
-      fetch("../data/seisan2_TB.csv").then(r=>r.text()),
-      fetch("../data/seisan2_seiri.csv").then(r=>r.text())
+      fetch("../data/seisan2_TB.csv").then(r=>{
+        if(!r.ok) throw new Error("seisan2_TB.csv が見つかりません");
+        return r.text();
+      }),
+      fetch("../data/seisan2_seiri.csv").then(r=>{
+        if(!r.ok) throw new Error("seisan2_seiri.csv が見つかりません");
+        return r.text();
+      })
     ]);
 
-    TB = parseCSV(tbText).slice(1)
+    // TB（5列）
+    const tbRows = parseCSV(tbText);
+    TB = tbRows.slice(1)
       .filter(r=>r.join("").trim()!=="")
       .map(c=>({
-        id:(c[0]||"").trim(),
-        acct:(c[1]||"").trim(),
-        cls:(c[2]||"").trim(),
-        debit:num(c[3]),
-        credit:num(c[4])
+        id: (c[0]||"").trim(),
+        acct: (c[1]||"").trim(),
+        cls: (c[2]||"").trim(),
+        debit: num(c[3]),
+        credit: num(c[4])
       }));
 
-    SEIRI = parseCSV(seiriText).slice(1)
+    // SEIRI（4列）
+    const sRows = parseCSV(seiriText);
+    SEIRI = sRows.slice(1)
       .filter(r=>r.join("").trim()!=="")
       .map(c=>({
-        id:(c[0]||"").trim(),
-        q:(c[1]||"").trim(),
-        candidates:splitCandidates(c[2]||""),
-        answerRaw:(c[3]||"").trim()
+        id: (c[0]||"").trim(),
+        q: (c[1]||"").trim(),
+        candidates: splitCandidates(c[2]||""),
+        answerRaw: (c[3]||"").trim()
       }));
 
-    problemIds=[...new Set(TB.map(x=>x.id))];
+    problemIds = [...new Set(TB.map(x=>x.id))].sort();
     setupProblemSelect();
     start();
 
   }catch(e){
     console.error(e);
-    alert("CSV読み込みエラー："+e.message);
+    alert("CSV読み込みエラー：" + (e.message || e));
   }finally{
-    document.getElementById("loadingScreen").style.display="none";
-    document.getElementById("mainCard").classList.remove("hidden");
+    const loading = document.getElementById("loadingScreen");
+    const card = document.getElementById("mainCard");
+    if(loading) loading.style.display="none";
+    if(card) card.classList.remove("hidden");
   }
 })();
 </script>

@@ -197,27 +197,36 @@
     border-radius:10px;
     padding:10px;
   }
+
+  /* 借方・貸方の見出しを小さくして高さを詰める */
   .jrnl-title{
-    font-weight:bold;
-    text-align:center;
-    padding:4px 0;
-    background:#f7f7f7;
-    border-radius:8px;
-    margin-bottom:8px;
+    font-size:12px;     /* 小さく */
+    padding:2px 0;      /* 高さを詰める */
+    margin-bottom:6px;  /* 余白を減らす */
+    line-height:1.1;
   }
+
+  /* 1行の高さを詰める */
   .jrnl-row{
-    display:grid;
-    grid-template-columns: 1fr 120px;
-    gap:8px;
-    margin:6px 0;
+    grid-template-columns: 1fr 110px; /* 金額欄を少し細く */
+    gap:6px;
+    margin:4px 0;
   }
-  .jrnl-row select, .jrnl-row input{
-    padding:6px;
-    font-size:14px;
+
+  /* 入力部品も少し小さく */
+  .jrnl-row select,
+  .jrnl-row input{
+    padding:4px;
+    font-size:13px;
+    height:30px;        /* 行高を固定で詰める */
+    box-sizing:border-box;
   }
+
+  /* 金額は右寄せ維持 */
   .jrnl-row input{
     text-align:right;
   }
+  
   @media (max-width: 720px){
     .jrnl{ grid-template-columns:1fr; }
   }
@@ -457,11 +466,12 @@ function start(){
   baseAccounts = tbRows.map(x=>x.acct);
   extraAccounts = new Set();
 
-  renderAdjInputs();       // 付記事項＋左右仕訳（固定行数）
-  renderSeisanTable(null); // TB表示＋合計行（整理合計は空）
-  renderPL();
+  renderAdjInputs();       // ← 仕訳欄を描画（これが無いと出ません）
+  renderSeisanTable(null); // TB表示
+  renderPL();              // PL表示（任意）
 
-  document.getElementById("result")?.textContent && (document.getElementById("result").textContent="");
+  const res = document.getElementById("result");
+  if(res) res.textContent = "";
 }
 
 /* ---------- 決算整理仕訳入力（固定行数・左右） ---------- */

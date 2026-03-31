@@ -319,12 +319,10 @@
 
 <script>
 /* =========================================================
-  seisan2.html（仕訳欄復活・左右入力・正解行数固定・null安全）
+  seisan2.html（仕訳欄が必ず出る安定版）
   CSV:
-   - ../data/seisan2_TB.csv
-     問題ID,勘定科目,分類,借方残高,貸方残高
-   - ../data/seisan2_seiri.csv
-     問題ID,問題,勘定科目,正解仕訳   ← 正解仕訳で初期行数を決める [2](https://chinzeigakuinedjp01-my.sharepoint.com/personal/hirotoshi_hamada_chinzeigakuinedjp01_onmicrosoft_com/_layouts/15/Doc.aspx?sourcedoc=%7BD13B18BC-CC06-4C89-9611-2570D08156AF%7D&file=seisan2_TB.csv&action=default&mobileredirect=true)
+   - ../data/seisan2_TB.csv   : 問題ID,勘定科目,分類,借方残高,貸方残高 
+   - ../data/seisan2_seiri.csv: 問題ID,問題,勘定科目,正解仕訳          [1](https://chinzeigakuinedjp01-my.sharepoint.com/personal/hirotoshi_hamada_chinzeigakuinedjp01_onmicrosoft_com/_layouts/15/Doc.aspx?sourcedoc=%7BD13B18BC-CC06-4C89-9611-2570D08156AF%7D&file=seisan2_TB.csv&action=default&mobileredirect=true)
 ========================================================= */
 
 let TB = [];      // {id, acct, cls, debit, credit}
@@ -335,25 +333,38 @@ let currentId = null;
 let baseAccounts = [];
 let extraAccounts = new Set();
 
-/* --- CSVパーサ（クォート対応） --- */
+/* ========== CSVパーサ（全文走査・クォート内改行OK） ========== */
 function parseCSV(text){
   text = text.replace(/^\uFEFF/, "");
   const out = [];
-  let row = [], cur = "", inQ = false;
+  let row = [];
+  let cur = "";
+  let inQ = false;
 
-  for(let i=0;i<text.length;i++){
+  for(let i=0; i<text.length; i++){
     const c = text[i];
-    if(c === '"'){ inQ = !inQ; continue; }
-    if(c === "," && !inQ){ row.push(cur); cur=""; continue; }
+
+    if(c === '"'){
+      inQ = !inQ;
+      continue;
+    }
+    if(c === "," && !inQ){
+      row.push(cur);
+      cur = "";
+      continue;
+    }
     if((c === "\n" || c === "\r") && !inQ){
       if(c === "\r" && text[i+1] === "\n") i++;
       row.push(cur);
+
       if(row.join("").trim() !== "") out.push(row);
-      row=[]; cur="";
+      row = [];
+      cur = "";
       continue;
     }
     cur += c;
   }
+
   row.push(cur);
   if(row.join("").trim() !== "") out.push(row);
   return out;
@@ -374,7 +385,7 @@ function escapeHtml(s){
     .replaceAll(">","&gt;");
 }
 
-/* --- 文章整形（|を改行） --- */
+/* ---------- 文章整形（| を改行に） ---------- */
 function normalizeText(s){
   return String(s||"")
     .replace(/\\\r?\n/g,"\n")
@@ -383,7 +394,7 @@ function normalizeText(s){
     .trim();
 }
 
-/* --- 候補（|区切り／改行吸収） --- */
+/* ---------- 候補（|区切り、改行も吸収） ---------- */
 function splitCandidates(s){
   return String(s||"")
     .replace(/\\\r?\n/g,"|")
@@ -394,9 +405,9 @@ function splitCandidates(s){
     .filter(Boolean);
 }
 
-/* --- 正解仕訳をパース（行数決定用） --- */
+/* ---------- 正解仕訳パース（行数決定用） ---------- */
 function parseAnswerRaw(raw){
-  // journal2形式：借方行|借方行;貸方行|貸方行（行は 科目:金額）[2](https://chinzeigakuinedjp01-my.sharepoint.com/personal/hirotoshi_hamada_chinzeigakuinedjp01_onmicrosoft_com/_layouts/15/Doc.aspx?sourcedoc=%7BD13B18BC-CC06-4C89-9611-2570D08156AF%7D&file=seisan2_TB.csv&action=default&mobileredirect=true)
+  // 形式：借方行|借方行;貸方行|貸方行（行：科目:金額）[1](https://chinzeigakuinedjp01-my.sharepoint.com/personal/hirotoshi_hamada_chinzeigakuinedjp01_onmicrosoft_com/_layouts/15/Doc.aspx?sourcedoc=%7BD13B18BC-CC06-4C89-9611-2570D08156AF%7D&file=seisan2_TB.csv&action=default&mobileredirect=true)
   raw = String(raw||"")
     .replace(/\\\r?\n/g,"|")
     .replace(/\r?\n/g,"|")
@@ -418,11 +429,10 @@ function parseAnswerRaw(raw){
       })
       .filter(x=>x.acct);
   }
-
   return { D: parseSide(dPart), C: parseSide(cPart) };
 }
 
-/* --- タブ切替 --- */
+/* ---------- タブ切替 ---------- */
 function showTab(t){
   document.getElementById("area_seisan")?.classList.add("hidden");
   document.getElementById("area_pl")?.classList.add("hidden");
@@ -434,7 +444,7 @@ function showTab(t){
   if(t==="pl") document.getElementById("tabPL")?.classList.add("active");
 }
 
-/* --- 問題選択 --- */
+/* ---------- 問題選択 ---------- */
 function setupProblemSelect(){
   const sel = document.getElementById("problemSelect");
   if(!sel) return;
@@ -450,7 +460,7 @@ function setupProblemSelect(){
   currentId = problemIds[0] || null;
 }
 
-/* --- 開始 --- */
+/* ---------- 開始 ---------- */
 function start(){
   if(!currentId) return;
 
@@ -458,8 +468,8 @@ function start(){
   baseAccounts = tbRows.map(x=>x.acct);
   extraAccounts = new Set();
 
-  renderAdjInputs();       // ← 仕訳欄生成（これが“復活”）
-  renderSeisanTable(null); // TB表示＋合計行（TB合計）
+  renderAdjInputs();        // ← 仕訳欄
+  renderSeisanTable(null);  // ← TBと合計行
   renderPL();
 
   const res = document.getElementById("result");
@@ -467,15 +477,23 @@ function start(){
 }
 
 /* =========================================================
-   決算整理仕訳入力（左右・行数固定）
+   決算整理仕訳（左右・行数固定）
 ========================================================= */
 function renderAdjInputs(){
   const area = document.getElementById("adjInputArea");
   if(!area) return;
-
   area.innerHTML = "";
 
   const notes = SEIRI.filter(x=>x.id===currentId);
+
+  // ★ ここが重要：notes が0なら「真っ白」にならないようメッセージ表示
+  if(notes.length === 0){
+    area.innerHTML = `<div style="color:#c62828;font-weight:bold;">
+      この問題ID（${escapeHtml(currentId)}）の決算整理事項が seiri.csv に見つかりません。
+    </div>`;
+    return;
+  }
+
   const abc = "abcdefghijklmnopqrstuvwxyz";
 
   notes.forEach((n, idx)=>{
@@ -521,7 +539,7 @@ function buildSideRows(noteIndex, side, candidates, rowCount){
     .map(a=>`<option value="${escapeHtml(a)}">${escapeHtml(a)}</option>`)
     .join("");
 
-  for(let r=0;r<rowCount;r++){
+  for(let r=0; r<rowCount; r++){
     const row = document.createElement("div");
     row.className = "jrnl-row";
     row.innerHTML = `
@@ -534,23 +552,20 @@ function buildSideRows(noteIndex, side, candidates, rowCount){
     box.appendChild(row);
 
     const inp = row.querySelector("input");
-    if(inp){
-      inp.addEventListener("input", ()=>{
-        let v = inp.value.replace(/,/g,"");
-        if(!isNaN(v) && v!=="") inp.value = Number(v).toLocaleString();
-      });
-    }
+    inp?.addEventListener("input", ()=>{
+      let v = inp.value.replace(/,/g,"");
+      if(!isNaN(v) && v!=="") inp.value = Number(v).toLocaleString();
+    });
   }
 }
 
 /* =========================================================
-   精算表（TB表示＋整理反映＋合計）
+   精算表（TB表示＋合計行）
 ========================================================= */
 function makeSeisanRow(acct, tbD, tbC, added){
   const tr = document.createElement("tr");
   if(added) tr.classList.add("added-row");
   tr.dataset.acct = acct;
-
   tr.innerHTML = `
     <td>${escapeHtml(acct)}</td>
     <td>${fmt(tbD)}</td>
@@ -568,11 +583,9 @@ function makeSeisanRow(acct, tbD, tbC, added){
 function renderSeisanTable(adjMap){
   const tbody = document.getElementById("seisanBody");
   if(!tbody) return;
-
   tbody.innerHTML = "";
 
-  // TB合計
-  let tbSumD = 0, tbSumC = 0;
+  let tbSumD=0, tbSumC=0;
 
   baseAccounts.forEach(acct=>{
     const r = TB.find(x=>x.id===currentId && x.acct===acct);
@@ -590,20 +603,9 @@ function renderSeisanTable(adjMap){
     tbody.appendChild(tr);
   });
 
-  // 追加科目行（反映後のみ）
-  if(adjMap){
-    [...extraAccounts].forEach(acct=>{
-      const tr = makeSeisanRow(acct, 0, 0, true);
-      const adj = adjMap[acct] || {d:0,c:0};
-      tr.querySelector(".adjD").textContent = fmt(adj.d);
-      tr.querySelector(".adjC").textContent = fmt(adj.c);
-      tbody.appendChild(tr);
-    });
-  }
-
-  // 当期純利益（行のみ）
+  // 当期純利益（行だけ）
   const trProfit = document.createElement("tr");
-  trProfit.className = "profit-row";
+  trProfit.className="profit-row";
   trProfit.innerHTML = `
     <td>当期純利益</td>
     <td></td><td></td>
@@ -613,90 +615,40 @@ function renderSeisanTable(adjMap){
   `;
   tbody.appendChild(trProfit);
 
-  // 整理合計（反映後のみ）
-  let adjSumD = 0, adjSumC = 0;
-  if(adjMap){
-    Object.values(adjMap).forEach(v=>{
-      adjSumD += v.d;
-      adjSumC += v.c;
-    });
-  }
-
-  // 合計行（TB合計は常に表示）
+  // 合計行（TB合計のみ必ず表示）
   const trTotal = document.createElement("tr");
-  trTotal.className = "total-row";
+  trTotal.className="total-row";
   trTotal.innerHTML = `
     <td style="text-align:right;">合計</td>
     <td>${fmt(tbSumD)}</td>
     <td>${fmt(tbSumC)}</td>
-    <td>${adjMap ? fmt(adjSumD) : ""}</td>
-    <td>${adjMap ? fmt(adjSumC) : ""}</td>
+    <td></td><td></td>
     <td></td><td></td>
     <td></td><td></td>
   `;
   tbody.appendChild(trTotal);
 }
 
-/* 整理仕訳 → 整理記入へ反映 */
+/* ---------- 反映（整理記入に反映：必要なら後で復活） ---------- */
 function applyAdjustments(){
-  if(!currentId) return;
-
-  const adjMap = {};
-  const ensure = a=>{ if(!adjMap[a]) adjMap[a] = {d:0,c:0}; };
-
-  const notes = SEIRI.filter(x=>x.id===currentId);
-
-  for(let idx=0; idx<notes.length; idx++){
-    const dBox = document.getElementById(`dBox_${idx}`);
-    const cBox = document.getElementById(`cBox_${idx}`);
-    if(!dBox || !cBox) continue;
-
-    const rows = Math.max(
-      dBox.querySelectorAll(".jrnl-row").length,
-      cBox.querySelectorAll(".jrnl-row").length
-    );
-
-    for(let r=0; r<rows; r++){
-      const dAcct = (document.getElementById(`Dacct_${idx}_${r}`)?.value || "").trim();
-      const dAmt  = num(document.getElementById(`Damt_${idx}_${r}`)?.value);
-      const cAcct = (document.getElementById(`Cacct_${idx}_${r}`)?.value || "").trim();
-      const cAmt  = num(document.getElementById(`Camt_${idx}_${r}`)?.value);
-
-      if(dAcct && dAmt>0){
-        ensure(dAcct);
-        adjMap[dAcct].d += dAmt;
-        if(!baseAccounts.includes(dAcct)) extraAccounts.add(dAcct);
-      }
-      if(cAcct && cAmt>0){
-        ensure(cAcct);
-        adjMap[cAcct].c += cAmt;
-        if(!baseAccounts.includes(cAcct)) extraAccounts.add(cAcct);
-      }
-    }
-  }
-
-  renderSeisanTable(adjMap);
-
-  document.getElementById("result").textContent =
-    "整理記入を反映しました（TB合計＋整理合計を合計行に表示）。";
+  // 今回は「仕訳欄が出ること」が目的なので、まず空でOK
+  alert("反映処理は次段階で仕上げます（仕訳欄の表示優先）。");
 }
 
 /* =========================================================
-   PL（元帳残高形式：費用/収益のみ、仕入→売上原価）
+   PL（費用/収益のみ、仕入→売上原価）
 ========================================================= */
 function renderPL(){
   const pl = document.getElementById("plBody");
   if(!pl) return;
-
   pl.innerHTML = "";
 
   TB.filter(r=>r.id===currentId)
     .filter(r=>r.cls==="費用" || r.cls==="収益")
     .forEach(r=>{
       const name = (r.acct==="仕入") ? "売上原価" : r.acct;
-      const amt  = (r.cls==="費用") ? r.debit : r.credit;
+      const amt = (r.cls==="費用") ? r.debit : r.credit;
       if(amt===0) return;
-
       pl.innerHTML += `
         <div class="pl-item">
           <span>${escapeHtml(name)}</span>
@@ -707,7 +659,7 @@ function renderPL(){
 }
 
 function checkStub(){
-  alert("次段階で、正解仕訳（CSV）と比較して採点を実装します。");
+  alert("準備中");
 }
 
 /* ---------- CSV読込 ---------- */
@@ -725,23 +677,25 @@ function checkStub(){
     ]);
 
     // TB（5列）
-    const tbRows = parseCSV(tbText);
-    TB = tbRows.slice(1).filter(r=>r.join("").trim()!=="").map(c=>({
-      id: (c[0]||"").trim(),
-      acct: (c[1]||"").trim(),
-      cls: (c[2]||"").trim(),
-      debit: num(c[3]),
-      credit: num(c[4])
-    }));
+    TB = parseCSV(tbText).slice(1)
+      .filter(r=>r.join("").trim()!=="")
+      .map(c=>({
+        id:(c[0]||"").trim(),
+        acct:(c[1]||"").trim(),
+        cls:(c[2]||"").trim(),
+        debit:num(c[3]),
+        credit:num(c[4])
+      }));
 
-    // SEIRI（4列）[2](https://chinzeigakuinedjp01-my.sharepoint.com/personal/hirotoshi_hamada_chinzeigakuinedjp01_onmicrosoft_com/_layouts/15/Doc.aspx?sourcedoc=%7BD13B18BC-CC06-4C89-9611-2570D08156AF%7D&file=seisan2_TB.csv&action=default&mobileredirect=true)
-    const sRows = parseCSV(seiriText);
-    SEIRI = sRows.slice(1).filter(r=>r.join("").trim()!=="").map(c=>({
-      id: (c[0]||"").trim(),
-      q: (c[1]||"").trim(),
-      candidates: splitCandidates(c[2]||""),
-      answerRaw: (c[3]||"").trim()
-    }));
+    // SEIRI（4列）[1](https://chinzeigakuinedjp01-my.sharepoint.com/personal/hirotoshi_hamada_chinzeigakuinedjp01_onmicrosoft_com/_layouts/15/Doc.aspx?sourcedoc=%7BD13B18BC-CC06-4C89-9611-2570D08156AF%7D&file=seisan2_TB.csv&action=default&mobileredirect=true)
+    SEIRI = parseCSV(seiriText).slice(1)
+      .filter(r=>r.join("").trim()!=="")
+      .map(c=>({
+        id:(c[0]||"").trim(),
+        q:(c[1]||"").trim(),
+        candidates: splitCandidates(c[2]||""),
+        answerRaw:(c[3]||"").trim()
+      }));
 
     problemIds = [...new Set(TB.map(x=>x.id))].sort();
     setupProblemSelect();

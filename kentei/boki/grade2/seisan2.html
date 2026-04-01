@@ -244,6 +244,16 @@
     text-align:right;
   }
 
+  /* 付記事項ブロックの採点表示（答えは出さず枠だけ） */
+  .note-block.ok{
+    border:2px solid #2e7d32 !important;
+    background:#e8f5e9;
+  }
+  .note-block.ng{
+    border:2px solid #c62828 !important;
+    background:#ffebee;
+  }
+
   @media (max-width: 720px){
     .jrnl{ grid-template-columns:1fr; }
   }
@@ -293,6 +303,11 @@
     <!-- JSで付記事項ごとの入力欄を生成 -->
   </div>
 
+  <div style="text-align:center;margin:10px 0 6px;">
+    <button class="main-btn" id="gradeAdjBtn" style="width:auto" onclick="gradeAdjustments()">仕訳採点</button>
+    <button class="control-btn" id="giveUpBtn" style="width:auto" onclick="giveUp()">ギブアップ（解答表示）</button>
+  </div>
+
   <div class="section-title">精算表（8桁）</div>
   <div id="area_seisan">
     <table class="seisan8">
@@ -340,10 +355,10 @@
 
 <script>
 /* =========================================================
-  seisan2.html（仕訳欄が必ず出る安定版）
+  seisan2.html 2段階採点（Phase1:整理仕訳 → Phase2:PL入力）
   CSV:
-   - ../data/seisan2_TB.csv   : 問題ID,勘定科目,分類,借方残高,貸方残高 
-   - ../data/seisan2_seiri.csv: 問題ID,問題,勘定科目,正解仕訳          [1](https://chinzeigakuinedjp01-my.sharepoint.com/personal/hirotoshi_hamada_chinzeigakuinedjp01_onmicrosoft_com/_layouts/15/Doc.aspx?sourcedoc=%7BD13B18BC-CC06-4C89-9611-2570D08156AF%7D&file=seisan2_TB.csv&action=default&mobileredirect=true)
+   - ../data/seisan2_TB.csv   (問題ID,勘定科目,分類,借方残高,貸方残高) 
+   - ../data/seisan2_seiri.csv(問題ID,問題,勘定科目,正解仕訳)          [1](https://chinzeigakuinedjp01-my.sharepoint.com/personal/hirotoshi_hamada_chinzeigakuinedjp01_onmicrosoft_com/_layouts/15/Doc.aspx?sourcedoc=%7BD13B18BC-CC06-4C89-9611-2570D08156AF%7D&file=seisan2_TB.csv&action=default&mobileredirect=true)
 ========================================================= */
 
 let TB = [];      // {id, acct, cls, debit, credit}
@@ -353,39 +368,27 @@ let currentId = null;
 
 let baseAccounts = [];
 let extraAccounts = new Set();
+let phase = 1; // 1:整理仕訳採点  2:PL入力フェーズ
 
-/* ========== CSVパーサ（全文走査・クォート内改行OK） ========== */
+/* ---------- CSV（クォート内改行対応の全文走査） ---------- */
 function parseCSV(text){
   text = text.replace(/^\uFEFF/, "");
   const out = [];
-  let row = [];
-  let cur = "";
-  let inQ = false;
+  let row = [], cur = "", inQ = false;
 
-  for(let i=0; i<text.length; i++){
+  for(let i=0;i<text.length;i++){
     const c = text[i];
-
-    if(c === '"'){
-      inQ = !inQ;
-      continue;
-    }
-    if(c === "," && !inQ){
-      row.push(cur);
-      cur = "";
-      continue;
-    }
+    if(c === '"'){ inQ = !inQ; continue; }
+    if(c === "," && !inQ){ row.push(cur); cur=""; continue; }
     if((c === "\n" || c === "\r") && !inQ){
       if(c === "\r" && text[i+1] === "\n") i++;
       row.push(cur);
-
       if(row.join("").trim() !== "") out.push(row);
-      row = [];
-      cur = "";
+      row=[]; cur="";
       continue;
     }
     cur += c;
   }
-
   row.push(cur);
   if(row.join("").trim() !== "") out.push(row);
   return out;
@@ -395,9 +398,8 @@ function num(v){
   const s = String(v||"").replace(/,/g,"").trim();
   if(s==="") return 0;
   const n = Number(s);
-  return isNaN(n) ? 0 : n;
+  return isNaN(n)?0:n;
 }
-
 function fmt(n){ return n ? Number(n).toLocaleString() : ""; }
 
 function escapeHtml(s){
@@ -407,7 +409,7 @@ function escapeHtml(s){
     .replaceAll(">","&gt;");
 }
 
-/* ---------- 文章整形（| を改行に） ---------- */
+/* ---------- テキスト整形（|を改行） ---------- */
 function normalizeText(s){
   return String(s||"")
     .replace(/\\\r?\n/g,"\n")
@@ -416,7 +418,7 @@ function normalizeText(s){
     .trim();
 }
 
-/* ---------- 候補（|区切り、改行も吸収） ---------- */
+/* ---------- 候補分割（|区切り） ---------- */
 function splitCandidates(s){
   return String(s||"")
     .replace(/\\\r?\n/g,"|")
@@ -427,9 +429,8 @@ function splitCandidates(s){
     .filter(Boolean);
 }
 
-/* ---------- 正解仕訳パース（行数決定用） ---------- */
+/* ---------- 正解仕訳パース（行数決定/採点用） ---------- */
 function parseAnswerRaw(raw){
-  // 形式：借方行|借方行;貸方行|貸方行（行：科目:金額）[1](https://chinzeigakuinedjp01-my.sharepoint.com/personal/hirotoshi_hamada_chinzeigakuinedjp01_onmicrosoft_com/_layouts/15/Doc.aspx?sourcedoc=%7BD13B18BC-CC06-4C89-9611-2570D08156AF%7D&file=seisan2_TB.csv&action=default&mobileredirect=true)
   raw = String(raw||"")
     .replace(/\\\r?\n/g,"|")
     .replace(/\r?\n/g,"|")
@@ -437,8 +438,8 @@ function parseAnswerRaw(raw){
     .trim();
 
   const parts = raw.split(";");
-  const dPart = (parts[0] || "").trim();
-  const cPart = (parts[1] || "").trim();
+  const dPart = (parts[0]||"").trim();
+  const cPart = (parts[1]||"").trim();
 
   function parseSide(str){
     if(!str) return [];
@@ -447,9 +448,9 @@ function parseAnswerRaw(raw){
       .filter(Boolean)
       .map(line=>{
         const [a,m] = line.split(":").map(z=>z.trim());
-        return { acct:a, amt:num(m) };
+        return {acct:a, amt:num(m)};
       })
-      .filter(x=>x.acct);
+      .filter(x=>x.acct && x.amt>=0);
   }
   return { D: parseSide(dPart), C: parseSide(cPart) };
 }
@@ -470,16 +471,22 @@ function showTab(t){
 function setupProblemSelect(){
   const sel = document.getElementById("problemSelect");
   if(!sel) return;
-
   sel.innerHTML = "";
   problemIds.forEach(id=>{
-    const opt = document.createElement("option");
-    opt.value = id;
-    opt.textContent = "問題 " + id;
+    const opt=document.createElement("option");
+    opt.value=id;
+    opt.textContent="問題 "+id;
     sel.appendChild(opt);
   });
-  sel.onchange = ()=>{ currentId = sel.value; };
+  sel.onchange=()=>{ currentId = sel.value; resetPhase(); start(); };
   currentId = problemIds[0] || null;
+}
+
+/* ---------- フェーズ初期化 ---------- */
+function resetPhase(){
+  phase = 1;
+  document.getElementById("gradeAdjBtn")?.removeAttribute("disabled");
+  document.getElementById("giveUpBtn")?.removeAttribute("disabled");
 }
 
 /* ---------- 開始 ---------- */
@@ -490,16 +497,19 @@ function start(){
   baseAccounts = tbRows.map(x=>x.acct);
   extraAccounts = new Set();
 
-  renderAdjInputs();        // ← 仕訳欄
-  renderSeisanTable(null);  // ← TBと合計行
-  renderPL();
+  renderAdjInputs();        // 仕訳入力（固定行）
+  renderSeisanTable(null);  // TB表示＋TB合計（整理合計は空）
+  renderPL();               // PL表示（元帳残高形式：現状はTBのみ）
+
+  // 付記事項ブロックのOK/NGを消す
+  document.querySelectorAll(".note-block").forEach(b=>b.classList.remove("ok","ng"));
 
   const res = document.getElementById("result");
   if(res) res.textContent = "";
 }
 
 /* =========================================================
-   決算整理仕訳（左右・行数固定）
+   仕訳入力 UI（左右、行数は正解行数で固定）
 ========================================================= */
 function renderAdjInputs(){
   const area = document.getElementById("adjInputArea");
@@ -507,23 +517,16 @@ function renderAdjInputs(){
   area.innerHTML = "";
 
   const notes = SEIRI.filter(x=>x.id===currentId);
-
-  // ★ ここが重要：notes が0なら「真っ白」にならないようメッセージ表示
-  if(notes.length === 0){
-    area.innerHTML = `<div style="color:#c62828;font-weight:bold;">
-      この問題ID（${escapeHtml(currentId)}）の決算整理事項が seiri.csv に見つかりません。
-    </div>`;
-    return;
-  }
-
   const abc = "abcdefghijklmnopqrstuvwxyz";
 
   notes.forEach((n, idx)=>{
-    const parsed = parseAnswerRaw(n.answerRaw);
-    const rowCount = Math.max(parsed.D.length, parsed.C.length, 1);
+    const correct = parseAnswerRaw(n.answerRaw);
+    const rowCount = Math.max(correct.D.length, correct.C.length, 1);
 
     const block = document.createElement("div");
     block.className = "note-block";
+    block.dataset.noteIndex = String(idx);
+    block.dataset.rows = String(rowCount);
 
     const q = document.createElement("div");
     q.className = "note-q";
@@ -535,26 +538,25 @@ function renderAdjInputs(){
     jrnl.innerHTML = `
       <div class="jrnl-side">
         <div class="jrnl-title">借方</div>
-        <div id="dBox_${idx}"></div>
+        <div class="jrnl-box" id="dBox_${idx}"></div>
       </div>
       <div class="jrnl-side">
         <div class="jrnl-title">貸方</div>
-        <div id="cBox_${idx}"></div>
+        <div class="jrnl-box" id="cBox_${idx}"></div>
       </div>
     `;
     block.appendChild(jrnl);
-    area.appendChild(block);
+
+    area.appendChild(block); // ★ DOMに追加してから行生成
 
     buildSideRows(idx, "D", n.candidates, rowCount);
     buildSideRows(idx, "C", n.candidates, rowCount);
-
   });
 }
 
 function buildSideRows(noteIndex, side, candidates, rowCount){
   const box = document.getElementById(`${side==="D" ? "dBox" : "cBox"}_${noteIndex}`);
   if(!box) return;
-
   box.innerHTML = "";
 
   const optHtml = (candidates||[])
@@ -564,6 +566,7 @@ function buildSideRows(noteIndex, side, candidates, rowCount){
   for(let r=0; r<rowCount; r++){
     const row = document.createElement("div");
     row.className = "jrnl-row";
+    row.style.display = "grid"; // 念のため（縦積み防止）
     row.innerHTML = `
       <select id="${side}acct_${noteIndex}_${r}">
         <option value=""></option>
@@ -582,12 +585,168 @@ function buildSideRows(noteIndex, side, candidates, rowCount){
 }
 
 /* =========================================================
-   精算表（TB表示＋合計行）
+   Phase1 採点（仕訳）：答えは出さず、NGを赤枠
+   全部OKなら：整理記入に反映→整理合計表示→PL入力欄出現
+========================================================= */
+function gradeAdjustments(){
+  if(phase !== 1) return;
+
+  const notes = SEIRI.filter(x=>x.id===currentId);
+  let allOk = true;
+
+  notes.forEach((n, idx)=>{
+    const correct = parseAnswerRaw(n.answerRaw);
+    const rowCount = Math.max(correct.D.length, correct.C.length, 1);
+
+    const user = collectUser(idx, rowCount);
+
+    const okD = equalMulti(user.D, correct.D);
+    const okC = equalMulti(user.C, correct.C);
+    const ok = okD && okC;
+
+    markBlock(idx, ok);
+    if(!ok) allOk = false;
+  });
+
+  const res = document.getElementById("result");
+  if(!res) return;
+
+  if(!allOk){
+    res.textContent = "× 仕訳に誤りがあります。赤枠の箇所を見直して、もう一度「仕訳採点」を押してください。";
+    return;
+  }
+
+  // 全部OK → 整理記入へ反映＋次フェーズへ
+  const adjMap = buildAdjMapFromInputs();     // 整理記入の集計
+  renderSeisanTable(adjMap);                 // 整理記入欄＋整理合計を表示
+  lockAdjustmentInputs();                    // 仕訳入力をロック（理解固め）
+  showPLInputFields();                       // PL入力欄（費用/収益＋当期純利益）出現
+
+  phase = 2;
+  document.getElementById("gradeAdjBtn")?.setAttribute("disabled","disabled");
+  document.getElementById("giveUpBtn")?.setAttribute("disabled","disabled");
+
+  res.textContent = "〇 仕訳は全て正解です。整理記入に反映しました。次は損益計算書欄（費用・収益・当期純利益）を入力してください。";
+}
+
+/* ギブアップ：正解仕訳を入力欄にセットしてPhase2へ */
+function giveUp(){
+  if(phase !== 1) return;
+
+  const notes = SEIRI.filter(x=>x.id===currentId);
+  notes.forEach((n, idx)=>{
+    const correct = parseAnswerRaw(n.answerRaw);
+    const rowCount = Math.max(correct.D.length, correct.C.length, 1);
+
+    // 借方
+    for(let r=0; r<rowCount; r++){
+      const d = correct.D[r];
+      const selA = document.getElementById(`Dacct_${idx}_${r}`);
+      const inpM = document.getElementById(`Damt_${idx}_${r}`);
+      if(selA) selA.value = d ? d.acct : "";
+      if(inpM) inpM.value = d ? fmt(d.amt) : "";
+    }
+    // 貸方
+    for(let r=0; r<rowCount; r++){
+      const c = correct.C[r];
+      const selA = document.getElementById(`Cacct_${idx}_${r}`);
+      const inpM = document.getElementById(`Camt_${idx}_${r}`);
+      if(selA) selA.value = c ? c.acct : "";
+      if(inpM) inpM.value = c ? fmt(c.amt) : "";
+    }
+  });
+
+  // そのまま採点→全正解扱いで次へ
+  gradeAdjustments();
+}
+
+/* --- ユーザー入力収集（1付記事項分） --- */
+function collectUser(noteIndex, rowCount){
+  const D=[], C=[];
+  for(let r=0; r<rowCount; r++){
+    const da = (document.getElementById(`Dacct_${noteIndex}_${r}`)?.value || "").trim();
+    const dm = num(document.getElementById(`Damt_${noteIndex}_${r}`)?.value);
+    const ca = (document.getElementById(`Cacct_${noteIndex}_${r}`)?.value || "").trim();
+    const cm = num(document.getElementById(`Camt_${noteIndex}_${r}`)?.value);
+
+    if(da && dm>0) D.push({acct:da, amt:dm});
+    if(ca && cm>0) C.push({acct:ca, amt:cm});
+  }
+  return {D,C};
+}
+
+/* --- マルチセット比較（順不同＋個数一致） --- */
+function ms(list){
+  const m = new Map();
+  list.forEach(x=>{
+    const k = x.acct+"|"+x.amt;
+    m.set(k,(m.get(k)||0)+1);
+  });
+  return m;
+}
+function equalMulti(a,b){
+  const A=ms(a), B=ms(b);
+  if(A.size!==B.size) return false;
+  for(const [k,v] of A) if(B.get(k)!==v) return false;
+  return true;
+}
+
+/* --- ブロックの枠色（OK/NG） --- */
+function markBlock(noteIndex, ok){
+  const blocks = document.querySelectorAll(".note-block");
+  const b = blocks[noteIndex];
+  if(!b) return;
+  b.classList.remove("ok","ng");
+  b.classList.add(ok ? "ok" : "ng");
+}
+
+/* --- 仕訳入力欄をロック --- */
+function lockAdjustmentInputs(){
+  document.querySelectorAll("#adjInputArea select, #adjInputArea input").forEach(el=>{
+    el.disabled = true;
+  });
+}
+
+/* --- 入力から整理記入の集計を作る（正解時のみ呼ばれる） --- */
+function buildAdjMapFromInputs(){
+  const adjMap = {};
+  const ensure = a=>{ if(!adjMap[a]) adjMap[a]={d:0,c:0}; };
+
+  const notes = SEIRI.filter(x=>x.id===currentId);
+  notes.forEach((n, idx)=>{
+    const correct = parseAnswerRaw(n.answerRaw);
+    const rowCount = Math.max(correct.D.length, correct.C.length, 1);
+
+    for(let r=0; r<rowCount; r++){
+      const da = (document.getElementById(`Dacct_${idx}_${r}`)?.value || "").trim();
+      const dm = num(document.getElementById(`Damt_${idx}_${r}`)?.value);
+      const ca = (document.getElementById(`Cacct_${idx}_${r}`)?.value || "").trim();
+      const cm = num(document.getElementById(`Camt_${idx}_${r}`)?.value);
+
+      if(da && dm>0){
+        ensure(da);
+        adjMap[da].d += dm;
+        if(!baseAccounts.includes(da)) extraAccounts.add(da);
+      }
+      if(ca && cm>0){
+        ensure(ca);
+        adjMap[ca].c += cm;
+        if(!baseAccounts.includes(ca)) extraAccounts.add(ca);
+      }
+    }
+  });
+
+  return adjMap;
+}
+
+/* =========================================================
+   精算表（TB＋整理記入＋合計行）
 ========================================================= */
 function makeSeisanRow(acct, tbD, tbC, added){
   const tr = document.createElement("tr");
   if(added) tr.classList.add("added-row");
   tr.dataset.acct = acct;
+
   tr.innerHTML = `
     <td>${escapeHtml(acct)}</td>
     <td>${fmt(tbD)}</td>
@@ -608,6 +767,7 @@ function renderSeisanTable(adjMap){
   tbody.innerHTML = "";
 
   let tbSumD=0, tbSumC=0;
+  let adjSumD=0, adjSumC=0;
 
   baseAccounts.forEach(acct=>{
     const r = TB.find(x=>x.id===currentId && x.acct===acct);
@@ -621,44 +781,102 @@ function renderSeisanTable(adjMap){
       const adj = adjMap[acct] || {d:0,c:0};
       tr.querySelector(".adjD").textContent = fmt(adj.d);
       tr.querySelector(".adjC").textContent = fmt(adj.c);
+      adjSumD += adj.d;
+      adjSumC += adj.c;
     }
     tbody.appendChild(tr);
   });
 
-  // 当期純利益（行だけ）
+  if(adjMap){
+    [...extraAccounts].forEach(acct=>{
+      const tr = makeSeisanRow(acct, 0, 0, true);
+      const adj = adjMap[acct] || {d:0,c:0};
+      tr.querySelector(".adjD").textContent = fmt(adj.d);
+      tr.querySelector(".adjC").textContent = fmt(adj.c);
+      adjSumD += adj.d;
+      adjSumC += adj.c;
+      tbody.appendChild(tr);
+    });
+  }
+
+  // 当期純利益行（Phase2でPL入力欄を出す）
   const trProfit = document.createElement("tr");
   trProfit.className="profit-row";
+  trProfit.dataset.rowtype="profit";
   trProfit.innerHTML = `
     <td>当期純利益</td>
     <td></td><td></td>
     <td></td><td></td>
-    <td></td><td></td>
+    <td class="plD"></td>
+    <td class="plC"></td>
     <td></td><td></td>
   `;
   tbody.appendChild(trProfit);
 
-  // 合計行（TB合計のみ必ず表示）
+  // 合計行（TB合計＋整理合計）
   const trTotal = document.createElement("tr");
   trTotal.className="total-row";
   trTotal.innerHTML = `
     <td style="text-align:right;">合計</td>
     <td>${fmt(tbSumD)}</td>
     <td>${fmt(tbSumC)}</td>
-    <td></td><td></td>
+    <td>${adjMap ? fmt(adjSumD) : ""}</td>
+    <td>${adjMap ? fmt(adjSumC) : ""}</td>
     <td></td><td></td>
     <td></td><td></td>
   `;
   tbody.appendChild(trTotal);
 }
 
-/* ---------- 反映（整理記入に反映：必要なら後で復活） ---------- */
-function applyAdjustments(){
-  // 今回は「仕訳欄が出ること」が目的なので、まず空でOK
-  alert("反映処理は次段階で仕上げます（仕訳欄の表示優先）。");
+/* =========================================================
+   Phase2：PL入力欄を出現（費用=PL借方、収益=PL貸方、当期純利益行）
+========================================================= */
+function showPLInputFields(){
+  // 精算表の各行（TBの分類を使う）
+  const tbody = document.getElementById("seisanBody");
+  if(!tbody) return;
+
+  // 各TRを回して、費用/収益だけinputを出す
+  tbody.querySelectorAll("tr").forEach(tr=>{
+    const acct = tr.dataset.acct;
+    const isProfitRow = tr.dataset.rowtype === "profit";
+    if(isProfitRow){
+      tr.querySelector(".plD").innerHTML = `<input class="money" id="plProfitD" inputmode="numeric">`;
+      tr.querySelector(".plC").innerHTML = `<input class="money" id="plProfitC" inputmode="numeric">`;
+      attachComma("plProfitD"); attachComma("plProfitC");
+      return;
+    }
+    if(!acct) return;
+
+    const r = TB.find(x=>x.id===currentId && x.acct===acct);
+    if(!r) return;
+
+    if(r.cls==="費用"){
+      tr.querySelector(".plD").innerHTML = `<input class="money" id="plD_${escapeId(acct)}" inputmode="numeric">`;
+      attachComma(`plD_${escapeId(acct)}`);
+    }
+    if(r.cls==="収益"){
+      tr.querySelector(".plC").innerHTML = `<input class="money" id="plC_${escapeId(acct)}" inputmode="numeric">`;
+      attachComma(`plC_${escapeId(acct)}`);
+    }
+  });
+}
+
+function escapeId(s){
+  return String(s).replace(/[^a-zA-Z0-9_\-]/g,"_");
+}
+
+function attachComma(id){
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.addEventListener("input", ()=>{
+    let v = el.value.replace(/,/g,"");
+    if(!isNaN(v) && v!=="") el.value = Number(v).toLocaleString();
+  });
 }
 
 /* =========================================================
-   PL（費用/収益のみ、仕入→売上原価）
+   PL表示（元帳残高形式：現状はTBのみ／次段階で反映後に更新）
 ========================================================= */
 function renderPL(){
   const pl = document.getElementById("plBody");
@@ -669,7 +887,7 @@ function renderPL(){
     .filter(r=>r.cls==="費用" || r.cls==="収益")
     .forEach(r=>{
       const name = (r.acct==="仕入") ? "売上原価" : r.acct;
-      const amt = (r.cls==="費用") ? r.debit : r.credit;
+      const amt  = (r.cls==="費用") ? r.debit : r.credit;
       if(amt===0) return;
       pl.innerHTML += `
         <div class="pl-item">
@@ -681,7 +899,7 @@ function renderPL(){
 }
 
 function checkStub(){
-  alert("準備中");
+  alert("次段階：Phase2（PL入力）の採点を実装します。");
 }
 
 /* ---------- CSV読込 ---------- */

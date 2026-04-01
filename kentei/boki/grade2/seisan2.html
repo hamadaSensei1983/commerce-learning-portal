@@ -356,10 +356,7 @@
 <script>
 /* =========================================================
   seisan2.html 2段階採点 + seisan2_map.csv（../data/固定）
-  CSV:
-   - ../data/seisan2_TB.csv   (問題ID,勘定科目,分類,借方残高,貸方残高)
-   - ../data/seisan2_seiri.csv(問題ID,問題,勘定科目,正解仕訳)          [1](https://chinzeigakuinedjp01-my.sharepoint.com/personal/hirotoshi_hamada_chinzeigakuinedjp01_onmicrosoft_com/_layouts/15/Doc.aspx?sourcedoc=%7BD13B18BC-CC06-4C89-9611-2570D08156AF%7D&file=seisan2_TB.csv&action=default&mobileredirect=true)
-   - ../data/seisan2_map.csv  (勘定科目,分類[,表示名])
+  Phase1合格後に PL + BS を同時に入力させる版
 ========================================================= */
 
 let TB = [];
@@ -641,14 +638,16 @@ function gradeAdjustments(){
   const adjMap = buildAdjMapFromInputs();
   renderSeisanTable(adjMap);
   lockAdjustmentInputs();
-  showPLInputFields();
+
+  // ★PLとBSを同時に入力できるよう、両方の入力欄を出す
+  showOutputInputFields();
 
   phase = 2;
   document.getElementById("gradeAdjBtn")?.setAttribute("disabled","disabled");
   document.getElementById("giveUpBtn")?.setAttribute("disabled","disabled");
   setPhase2CheckVisible(true);
 
-  res.textContent = "〇 仕訳は全て正解です。整理記入に反映しました。次は損益計算書欄（費用・収益・当期純利益）を入力してください。";
+  res.textContent = "〇 仕訳は全て正解です。整理記入に反映しました。次はPLとBSを同時に入力し、当期純利益が一致するか確認しましょう。";
 
   warnUnknownExtraAccounts();
 }
@@ -746,7 +745,7 @@ function buildAdjMapFromInputs(){
     }
   });
 
-  // 新規科目の分類補完
+  // 新規科目分類補完（map）
   [...extraAccounts].forEach(a=>{
     if(!acctClass[a]){
       const m = MAP.find(x=>x.acct===a);
@@ -814,6 +813,7 @@ function renderSeisanTable(adjMap){
     });
   }
 
+  // 当期純利益行（PLとBSの両方に入力欄を出す）
   const trProfit=document.createElement("tr");
   trProfit.className="profit-row";
   trProfit.dataset.rowtype="profit";
@@ -822,7 +822,7 @@ function renderSeisanTable(adjMap){
     <td></td><td></td>
     <td></td><td></td>
     <td class="plD"></td><td class="plC"></td>
-    <td></td><td></td>
+    <td class="bsD"></td><td class="bsC"></td>
   `;
   tbody.appendChild(trProfit);
 
@@ -841,28 +841,47 @@ function renderSeisanTable(adjMap){
 }
 
 /* =========================================================
-   Phase2：PL入力欄（TB＋新規科目も分類が分かれば出す）
+   Phase2：PL+BS入力欄を同時に出す（TB+新規科目）
 ========================================================= */
-function showPLInputFields(){
+function showOutputInputFields(){
   const tbody=document.getElementById("seisanBody");
   if(!tbody) return;
 
   tbody.querySelectorAll("tr").forEach(tr=>{
     const acct = tr.dataset.acct;
     const isProfit = tr.dataset.rowtype==="profit";
+
     if(isProfit){
       tr.querySelector(".plD").innerHTML = `<input class="money" id="plProfitD" inputmode="numeric">`;
       tr.querySelector(".plC").innerHTML = `<input class="money" id="plProfitC" inputmode="numeric">`;
+      tr.querySelector(".bsD").innerHTML = `<input class="money" id="bsProfitD" inputmode="numeric">`;
+      tr.querySelector(".bsC").innerHTML = `<input class="money" id="bsProfitC" inputmode="numeric">`;
       return;
     }
+
     if(!acct) return;
 
     const cls = acctClass[acct];
+
+    // PL
     if(cls==="費用"){
       tr.querySelector(".plD").innerHTML = `<input class="money" id="plD_${escapeId(acct)}" inputmode="numeric">`;
     }
     if(cls==="収益"){
       tr.querySelector(".plC").innerHTML = `<input class="money" id="plC_${escapeId(acct)}" inputmode="numeric">`;
+    }
+
+    // BS
+    if(cls==="資産"){
+      tr.querySelector(".bsD").innerHTML = `<input class="money" id="bsD_${escapeId(acct)}" inputmode="numeric">`;
+    }
+    if(cls==="負債" || cls==="資本"){
+      tr.querySelector(".bsC").innerHTML = `<input class="money" id="bsC_${escapeId(acct)}" inputmode="numeric">`;
+    }
+
+    // 控除資産等が map にあれば、とりあえずBS貸方に出す（運用が安定）
+    if(cls==="控除資産" || cls==="資産控除"){
+      tr.querySelector(".bsC").innerHTML = `<input class="money" id="bsC_${escapeId(acct)}" inputmode="numeric">`;
     }
   });
 }
@@ -875,7 +894,7 @@ function warnUnknownExtraAccounts(){
   const unknown = [...extraAccounts].filter(a=>!acctClass[a]);
   if(unknown.length===0) return;
   document.getElementById("result").textContent +=
-    `\n※注意：分類が不明な新規科目があり、PL入力欄を表示できません：${unknown.join("、")}\n（seisan2_map.csv に分類を追加してください）`;
+    `\n※注意：分類が不明な新規科目があり、PL/BS入力欄を表示できません：${unknown.join("、")}\n（seisan2_map.csv に分類を追加してください）`;
 }
 
 /* =========================================================
@@ -896,7 +915,7 @@ function renderPL(){
 }
 
 function checkStub(){
-  alert("次段階：Phase2（PL入力）の採点を実装します。");
+  alert("次段階：Phase2（PL/BS入力）の採点を実装します（当期純利益の一致チェックもここで）。");
 }
 
 /* =========================================================
@@ -912,7 +931,7 @@ document.addEventListener("input", (e)=>{
 });
 
 /* =========================================================
-   CSV読込（../data 固定）
+   CSV読込（../data固定）
 ========================================================= */
 (async function initAll(){
   try{
@@ -926,13 +945,11 @@ document.addEventListener("input", (e)=>{
         return r.text();
       }),
       fetch("../data/seisan2_map.csv").then(r=>{
-        // mapはある前提。無い場合も動かしたいなら catch で空文字にしてください。
         if(!r.ok) throw new Error("seisan2_map.csv が見つかりません");
         return r.text();
       })
     ]);
 
-    // TB
     TB = parseCSV(tbText).slice(1)
       .filter(r=>r.join("").trim()!=="")
       .map(c=>({
@@ -943,7 +960,6 @@ document.addEventListener("input", (e)=>{
         credit:num(c[4])
       }));
 
-    // SEIRI [1](https://chinzeigakuinedjp01-my.sharepoint.com/personal/hirotoshi_hamada_chinzeigakuinedjp01_onmicrosoft_com/_layouts/15/Doc.aspx?sourcedoc=%7BD13B18BC-CC06-4C89-9611-2570D08156AF%7D&file=seisan2_TB.csv&action=default&mobileredirect=true)
     SEIRI = parseCSV(seiriText).slice(1)
       .filter(r=>r.join("").trim()!=="")
       .map(c=>({
@@ -953,7 +969,6 @@ document.addEventListener("input", (e)=>{
         answerRaw:(c[3]||"").trim()
       }));
 
-    // MAP（勘定科目,分類[,表示名]）
     MAP = parseCSV(mapText).slice(1)
       .filter(r=>r.join("").trim()!=="")
       .map(c=>({

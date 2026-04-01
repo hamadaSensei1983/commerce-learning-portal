@@ -279,11 +279,6 @@
   background:#fffdfd;
 }
 
-@media (max-width: 720px){
-  .balance-grid{
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
   .bal-item{
     display:flex;
     justify-content:space-between;
@@ -318,7 +313,7 @@
   table.pl-table td.name{ text-align:left; width:35%; }
 
   @media (max-width: 720px){
-    .balance-grid{ grid-template-columns: 1fr; }
+    .balance-grid{ grid-template-columns:2, 1fr; }
   }
 
   @media (max-width: 720px){
@@ -502,10 +497,12 @@ function num(v){
 function fmt(n){ return n ? Number(n).toLocaleString() : ""; }
 
 function escapeHtml(s){
-  return String(s||"")
+  return String(s ?? "")
     .replaceAll("&","&amp;")
     .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;");
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
 }
 
 function normalizeText(s){

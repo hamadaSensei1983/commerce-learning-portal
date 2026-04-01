@@ -355,21 +355,26 @@
 
 <script>
 /* =========================================================
-  seisan2.html 2段階採点（改善版）
-  - カンマ補助：イベント委任（後から生成された入力も100%対応）
-  - ギブアップ：confirm
-  - 下部「反映」ボタン：常時非表示（自動反映するため）
-  - 下部「答え合わせ」：Phase1合格後のみ表示
+  seisan2.html 2段階採点 + seisan2_map.csv（../data/固定）
+  CSV:
+   - ../data/seisan2_TB.csv   (問題ID,勘定科目,分類,借方残高,貸方残高)
+   - ../data/seisan2_seiri.csv(問題ID,問題,勘定科目,正解仕訳)          [1](https://chinzeigakuinedjp01-my.sharepoint.com/personal/hirotoshi_hamada_chinzeigakuinedjp01_onmicrosoft_com/_layouts/15/Doc.aspx?sourcedoc=%7BD13B18BC-CC06-4C89-9611-2570D08156AF%7D&file=seisan2_TB.csv&action=default&mobileredirect=true)
+   - ../data/seisan2_map.csv  (勘定科目,分類[,表示名])
 ========================================================= */
 
 let TB = [];
 let SEIRI = [];
+let MAP = []; // {acct, cls, label?}
+
 let problemIds = [];
 let currentId = null;
 
 let baseAccounts = [];
 let extraAccounts = new Set();
-let phase = 1; // 1=整理仕訳 2=PL入力
+let phase = 1;
+
+let acctClass = {}; // acct -> 分類
+let acctLabel = {}; // acct -> 表示名（任意）
 
 /* ---------- CSV（クォート内改行OK） ---------- */
 function parseCSV(text){
@@ -453,14 +458,10 @@ function parseAnswerRaw(raw){
 }
 
 /* =========================================================
-   UI制御：下部ボタン表示順の制御
+   UI制御（下部ボタン）
 ========================================================= */
-function getApplyBtn(){
-  return document.querySelector("button[onclick*='applyAdjustments']");
-}
-function getPhase2CheckBtn(){
-  return document.querySelector("button[onclick*='checkStub']");
-}
+function getApplyBtn(){ return document.querySelector("button[onclick*='applyAdjustments']"); }
+function getPhase2CheckBtn(){ return document.querySelector("button[onclick*='checkStub']"); }
 function setPhase2CheckVisible(visible){
   const b = getPhase2CheckBtn();
   if(!b) return;
@@ -503,7 +504,7 @@ function resetPhase(){
   phase = 1;
   document.getElementById("gradeAdjBtn")?.removeAttribute("disabled");
   document.getElementById("giveUpBtn")?.removeAttribute("disabled");
-  setPhase2CheckVisible(false);   // ★ Phase2答え合わせは隠す
+  setPhase2CheckVisible(false);
   document.querySelectorAll(".note-block").forEach(b=>b.classList.remove("ok","ng"));
 }
 
@@ -515,6 +516,8 @@ function start(){
   baseAccounts = tbRows.map(x=>x.acct);
   extraAccounts = new Set();
 
+  buildAcctDictionaries();
+
   renderAdjInputs();
   renderSeisanTable(null);
   renderPL();
@@ -522,8 +525,27 @@ function start(){
   document.getElementById("result").textContent = "";
 }
 
+/* TB＋mapから分類辞書作成 */
+function buildAcctDictionaries(){
+  acctClass = {};
+  acctLabel = {};
+
+  TB.filter(r=>r.id===currentId).forEach(r=>{
+    acctClass[r.acct] = r.cls;
+    acctLabel[r.acct] = r.acct;
+  });
+
+  MAP.forEach(m=>{
+    if(!acctClass[m.acct]) acctClass[m.acct] = m.cls;
+    if(m.label) acctLabel[m.acct] = m.label;
+  });
+
+  // 表示名置換：仕入→売上原価
+  acctLabel["仕入"] = "売上原価";
+}
+
 /* =========================================================
-   Phase1：決算整理仕訳入力（左右・正解行数固定）
+   Phase1：仕訳入力（左右・正解行数固定）
 ========================================================= */
 function renderAdjInputs(){
   const area = document.getElementById("adjInputArea");
@@ -540,7 +562,6 @@ function renderAdjInputs(){
     const block = document.createElement("div");
     block.className="note-block";
     block.dataset.noteIndex=String(idx);
-    block.dataset.rows=String(rowCount);
 
     const q = document.createElement("div");
     q.className="note-q";
@@ -561,7 +582,7 @@ function renderAdjInputs(){
     `;
     block.appendChild(jrnl);
 
-    area.appendChild(block); // ★DOMに入れてから行生成
+    area.appendChild(block);
 
     buildSideRows(idx,"D", n.candidates, rowCount);
     buildSideRows(idx,"C", n.candidates, rowCount);
@@ -580,7 +601,7 @@ function buildSideRows(noteIndex, side, candidates, rowCount){
   for(let r=0;r<rowCount;r++){
     const row = document.createElement("div");
     row.className="jrnl-row";
-    row.style.display="grid"; // 念のため
+    row.style.display="grid";
     row.innerHTML = `
       <select id="${side}acct_${noteIndex}_${r}">
         <option value=""></option>
@@ -593,7 +614,7 @@ function buildSideRows(noteIndex, side, candidates, rowCount){
 }
 
 /* =========================================================
-   Phase1：採点（答えは出さない／赤枠だけ）
+   Phase1：採点（答えは出さず枠のみ）
 ========================================================= */
 function gradeAdjustments(){
   if(phase!==1) return;
@@ -617,7 +638,6 @@ function gradeAdjustments(){
     return;
   }
 
-  // 全問正解 → 整理記入へ反映＋合計表示＋Phase2解放
   const adjMap = buildAdjMapFromInputs();
   renderSeisanTable(adjMap);
   lockAdjustmentInputs();
@@ -626,12 +646,13 @@ function gradeAdjustments(){
   phase = 2;
   document.getElementById("gradeAdjBtn")?.setAttribute("disabled","disabled");
   document.getElementById("giveUpBtn")?.setAttribute("disabled","disabled");
-  setPhase2CheckVisible(true); // ★ Phase2答え合わせを表示
+  setPhase2CheckVisible(true);
 
   res.textContent = "〇 仕訳は全て正解です。整理記入に反映しました。次は損益計算書欄（費用・収益・当期純利益）を入力してください。";
+
+  warnUnknownExtraAccounts();
 }
 
-/* ギブアップ（確認してから） */
 function giveUp(){
   if(phase!==1) return;
   const ok = confirm("ギブアップすると、決算整理仕訳に正解を入力して次のフェーズへ進みます。\nよろしいですか？");
@@ -661,21 +682,19 @@ function giveUp(){
   gradeAdjustments();
 }
 
-/* 収集 */
 function collectUser(noteIndex,rowCount){
   const D=[], C=[];
   for(let r=0;r<rowCount;r++){
-    const da = (document.getElementById(`Dacct_${noteIndex}_${r}`)?.value||"").trim();
-    const dm = num(document.getElementById(`Damt_${noteIndex}_${r}`)?.value);
-    const ca = (document.getElementById(`Cacct_${noteIndex}_${r}`)?.value||"").trim();
-    const cm = num(document.getElementById(`Camt_${noteIndex}_${r}`)?.value);
+    const da=(document.getElementById(`Dacct_${noteIndex}_${r}`)?.value||"").trim();
+    const dm=num(document.getElementById(`Damt_${noteIndex}_${r}`)?.value);
+    const ca=(document.getElementById(`Cacct_${noteIndex}_${r}`)?.value||"").trim();
+    const cm=num(document.getElementById(`Camt_${noteIndex}_${r}`)?.value);
     if(da && dm>0) D.push({acct:da, amt:dm});
     if(ca && cm>0) C.push({acct:ca, amt:cm});
   }
   return {D,C};
 }
 
-/* マルチセット比較 */
 function ms(list){
   const m=new Map();
   list.forEach(x=>{
@@ -690,34 +709,31 @@ function equalMulti(a,b){
   for(const [k,v] of A) if(B.get(k)!==v) return false;
   return true;
 }
-
 function markBlock(noteIndex, ok){
-  const blocks = document.querySelectorAll(".note-block");
-  const b = blocks[noteIndex];
+  const blocks=document.querySelectorAll(".note-block");
+  const b=blocks[noteIndex];
   if(!b) return;
   b.classList.remove("ok","ng");
   b.classList.add(ok ? "ok":"ng");
 }
-
 function lockAdjustmentInputs(){
   document.querySelectorAll("#adjInputArea select, #adjInputArea input").forEach(el=>el.disabled=true);
 }
 
-/* 整理記入集計（正解時のみ） */
 function buildAdjMapFromInputs(){
   const adjMap={};
   const ensure=a=>{ if(!adjMap[a]) adjMap[a]={d:0,c:0}; };
 
   const notes = SEIRI.filter(x=>x.id===currentId);
   notes.forEach((n, idx)=>{
-    const correct = parseAnswerRaw(n.answerRaw);
-    const rowCount = Math.max(correct.D.length, correct.C.length, 1);
+    const correct=parseAnswerRaw(n.answerRaw);
+    const rowCount=Math.max(correct.D.length, correct.C.length, 1);
 
     for(let r=0;r<rowCount;r++){
-      const da = (document.getElementById(`Dacct_${idx}_${r}`)?.value||"").trim();
-      const dm = num(document.getElementById(`Damt_${idx}_${r}`)?.value);
-      const ca = (document.getElementById(`Cacct_${idx}_${r}`)?.value||"").trim();
-      const cm = num(document.getElementById(`Camt_${idx}_${r}`)?.value);
+      const da=(document.getElementById(`Dacct_${idx}_${r}`)?.value||"").trim();
+      const dm=num(document.getElementById(`Damt_${idx}_${r}`)?.value);
+      const ca=(document.getElementById(`Cacct_${idx}_${r}`)?.value||"").trim();
+      const cm=num(document.getElementById(`Camt_${idx}_${r}`)?.value);
 
       if(da && dm>0){
         ensure(da); adjMap[da].d += dm;
@@ -730,13 +746,22 @@ function buildAdjMapFromInputs(){
     }
   });
 
+  // 新規科目の分類補完
+  [...extraAccounts].forEach(a=>{
+    if(!acctClass[a]){
+      const m = MAP.find(x=>x.acct===a);
+      if(m) acctClass[a]=m.cls;
+    }
+    if(!acctLabel[a]) acctLabel[a]=a;
+  });
+
   return adjMap;
 }
 
 /* =========================================================
-   精算表（TB＋整理記入＋合計）
+   精算表
 ========================================================= */
-function makeSeisanRow(acct, tbD, tbC, added){
+function makeSeisanRow(acct,tbD,tbC,added){
   const tr=document.createElement("tr");
   if(added) tr.classList.add("added-row");
   tr.dataset.acct=acct;
@@ -789,7 +814,6 @@ function renderSeisanTable(adjMap){
     });
   }
 
-  // 当期純利益行（Phase2で入力欄を出す）
   const trProfit=document.createElement("tr");
   trProfit.className="profit-row";
   trProfit.dataset.rowtype="profit";
@@ -817,7 +841,7 @@ function renderSeisanTable(adjMap){
 }
 
 /* =========================================================
-   Phase2：PL入力欄を出す（費用/収益＋当期純利益）
+   Phase2：PL入力欄（TB＋新規科目も分類が分かれば出す）
 ========================================================= */
 function showPLInputFields(){
   const tbody=document.getElementById("seisanBody");
@@ -826,7 +850,6 @@ function showPLInputFields(){
   tbody.querySelectorAll("tr").forEach(tr=>{
     const acct = tr.dataset.acct;
     const isProfit = tr.dataset.rowtype==="profit";
-
     if(isProfit){
       tr.querySelector(".plD").innerHTML = `<input class="money" id="plProfitD" inputmode="numeric">`;
       tr.querySelector(".plC").innerHTML = `<input class="money" id="plProfitC" inputmode="numeric">`;
@@ -834,13 +857,11 @@ function showPLInputFields(){
     }
     if(!acct) return;
 
-    const r = TB.find(x=>x.id===currentId && x.acct===acct);
-    if(!r) return;
-
-    if(r.cls==="費用"){
+    const cls = acctClass[acct];
+    if(cls==="費用"){
       tr.querySelector(".plD").innerHTML = `<input class="money" id="plD_${escapeId(acct)}" inputmode="numeric">`;
     }
-    if(r.cls==="収益"){
+    if(cls==="収益"){
       tr.querySelector(".plC").innerHTML = `<input class="money" id="plC_${escapeId(acct)}" inputmode="numeric">`;
     }
   });
@@ -850,8 +871,15 @@ function escapeId(s){
   return String(s).replace(/[^a-zA-Z0-9_\-]/g,"_");
 }
 
+function warnUnknownExtraAccounts(){
+  const unknown = [...extraAccounts].filter(a=>!acctClass[a]);
+  if(unknown.length===0) return;
+  document.getElementById("result").textContent +=
+    `\n※注意：分類が不明な新規科目があり、PL入力欄を表示できません：${unknown.join("、")}\n（seisan2_map.csv に分類を追加してください）`;
+}
+
 /* =========================================================
-   PL表示（元帳残高形式）
+   PL（元帳残高形式）
 ========================================================= */
 function renderPL(){
   const pl=document.getElementById("plBody");
@@ -860,7 +888,7 @@ function renderPL(){
   TB.filter(r=>r.id===currentId)
     .filter(r=>r.cls==="費用" || r.cls==="収益")
     .forEach(r=>{
-      const name = (r.acct==="仕入") ? "売上原価" : r.acct;
+      const name = acctLabel[r.acct] || ((r.acct==="仕入") ? "売上原価" : r.acct);
       const amt  = (r.cls==="費用") ? r.debit : r.credit;
       if(amt===0) return;
       pl.innerHTML += `<div class="pl-item"><span>${escapeHtml(name)}</span><span>${fmt(amt)}</span></div>`;
@@ -872,24 +900,23 @@ function checkStub(){
 }
 
 /* =========================================================
-   ★カンマ補助：イベント委任（ここが“抜け”を完全に消す）
+   カンマ補助：イベント委任
 ========================================================= */
 document.addEventListener("input", (e)=>{
-  const t = e.target;
+  const t=e.target;
   if(!t || !t.classList) return;
   if(!t.classList.contains("money")) return;
-
-  const raw = t.value.replace(/,/g,"");
-  if(raw === "") return;
-  if(isNaN(raw)) return;
-
+  const raw=t.value.replace(/,/g,"");
+  if(raw==="" || isNaN(raw)) return;
   t.value = Number(raw).toLocaleString();
 });
 
-/* ---------- CSV読込 ---------- */
+/* =========================================================
+   CSV読込（../data 固定）
+========================================================= */
 (async function initAll(){
   try{
-    const [tbText, seiriText] = await Promise.all([
+    const [tbText, seiriText, mapText] = await Promise.all([
       fetch("../data/seisan2_TB.csv").then(r=>{
         if(!r.ok) throw new Error("seisan2_TB.csv が見つかりません");
         return r.text();
@@ -897,10 +924,15 @@ document.addEventListener("input", (e)=>{
       fetch("../data/seisan2_seiri.csv").then(r=>{
         if(!r.ok) throw new Error("seisan2_seiri.csv が見つかりません");
         return r.text();
+      }),
+      fetch("../data/seisan2_map.csv").then(r=>{
+        // mapはある前提。無い場合も動かしたいなら catch で空文字にしてください。
+        if(!r.ok) throw new Error("seisan2_map.csv が見つかりません");
+        return r.text();
       })
     ]);
 
-    // TB（5列）
+    // TB
     TB = parseCSV(tbText).slice(1)
       .filter(r=>r.join("").trim()!=="")
       .map(c=>({
@@ -911,7 +943,7 @@ document.addEventListener("input", (e)=>{
         credit:num(c[4])
       }));
 
-    // SEIRI（4列）[2](https://chinzeigakuinedjp01-my.sharepoint.com/personal/hirotoshi_hamada_chinzeigakuinedjp01_onmicrosoft_com/_layouts/15/Doc.aspx?sourcedoc=%7BD13B18BC-CC06-4C89-9611-2570D08156AF%7D&file=seisan2_TB.csv&action=default&mobileredirect=true)
+    // SEIRI [1](https://chinzeigakuinedjp01-my.sharepoint.com/personal/hirotoshi_hamada_chinzeigakuinedjp01_onmicrosoft_com/_layouts/15/Doc.aspx?sourcedoc=%7BD13B18BC-CC06-4C89-9611-2570D08156AF%7D&file=seisan2_TB.csv&action=default&mobileredirect=true)
     SEIRI = parseCSV(seiriText).slice(1)
       .filter(r=>r.join("").trim()!=="")
       .map(c=>({
@@ -921,11 +953,21 @@ document.addEventListener("input", (e)=>{
         answerRaw:(c[3]||"").trim()
       }));
 
+    // MAP（勘定科目,分類[,表示名]）
+    MAP = parseCSV(mapText).slice(1)
+      .filter(r=>r.join("").trim()!=="")
+      .map(c=>({
+        acct:(c[0]||"").trim(),
+        cls:(c[1]||"").trim(),
+        label:(c[2]||"").trim()
+      }));
+
     problemIds = [...new Set(TB.map(x=>x.id))].sort();
     setupProblemSelect();
+
+    hideApplyBtnAlways();
+    setPhase2CheckVisible(false);
     resetPhase();
-    hideApplyBtnAlways();        // ★反映ボタンは不要なので隠す
-    setPhase2CheckVisible(false);// ★Phase2答え合わせは最初隠す
     start();
 
   }catch(e){

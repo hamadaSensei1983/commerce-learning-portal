@@ -602,9 +602,18 @@ function setupProblemSelect(){
 
 function resetPhase(){
   phase = 1;
+
   document.getElementById("gradeAdjBtn")?.removeAttribute("disabled");
   document.getElementById("giveUpBtn")?.removeAttribute("disabled");
   setPhase2CheckVisible(false);
+
+  // ★ 画面を初期化
+  document.getElementById("adjInputArea").innerHTML = "";
+  document.getElementById("seisanBody").innerHTML = "";
+  document.getElementById("plBalanceList").innerHTML = "";
+  document.getElementById("plWorksheetArea")?.classList.add("hidden");
+  document.getElementById("result").textContent = "";
+
   document.querySelectorAll(".note-block").forEach(b=>b.classList.remove("ok","ng"));
 }
 
@@ -763,6 +772,13 @@ function gradeAdjustments(){
   res.textContent = "〇 仕訳は全て正解です。整理記入に反映しました。次はPLとBSを同時に入力し、当期純利益が一致するか確認しましょう。";
 
   warnUnknownExtraAccounts();
+
+  // ★ いまPLを選んでいたら、自動でPLタブを表示
+  const plTabActive = document.getElementById("tabPL")?.classList.contains("active");
+  if(plTabActive){
+    showTab("pl");
+  }
+
 }
 
 function giveUp(){
@@ -1068,28 +1084,30 @@ function renderPLBalanceList(){
   if(!area) return;
   area.innerHTML = "";
 
-  const allAccts = [...new Set([
-    ...baseAccounts,
-    ...[...extraAccounts]
-  ])];
+  // ① TBの順序をそのまま使う
+  const ordered = TB
+    .filter(r => r.id === currentId)
+    .map(r => r.acct);
 
-  const rows = allAccts
-    .map(acct => {
-      // Phase2（正解後）は整理後、Phase1はTB残高
-      const net = (phase>=2 && currentAdjMap) ? adjustedNetForPL(acct)
-                 : (TB.find(r=>r.id===currentId && r.acct===acct)?.debit ?? 0) - (TB.find(r=>r.id===currentId && r.acct===acct)?.credit ?? 0);
-      const amt = Math.abs(net);
-      return { acct, amt };
-    })
-    .filter(x => x.amt !== 0)
-    .sort((a,b)=> a.acct.localeCompare(b.acct, "ja"));
+  // ② 新規科目は後ろに追加
+  [...extraAccounts].forEach(a=>{
+    if(!ordered.includes(a)) ordered.push(a);
+  });
 
-  rows.forEach(x=>{
+  ordered.forEach(acct=>{
+    const net = (phase>=2 && currentAdjMap)
+      ? adjustedNetForPL(acct)
+      : ((TB.find(r=>r.id===currentId && r.acct===acct)?.debit ?? 0)
+        - (TB.find(r=>r.id===currentId && r.acct===acct)?.credit ?? 0));
+
+    const amt = Math.abs(net);
+    if(amt === 0) return;
+
     const div = document.createElement("div");
     div.className = "bal-item";
     div.innerHTML =
-      `<span class="bal-name">${escapeHtml(displayNamePL(x.acct))}</span>` +
-      `<span class="bal-amt">${fmt(x.amt)}</span>`;
+      `<span class="bal-name">${escapeHtml(displayNamePL(acct))}</span>` +
+      `<span class="bal-amt">${fmt(amt)}</span>`;
     area.appendChild(div);
   });
 }
@@ -1458,7 +1476,6 @@ document.addEventListener("input", (e)=>{
     hideApplyBtnAlways();
     setPhase2CheckVisible(false);
     resetPhase();
-    start();
 
   }catch(e){
     console.error(e);

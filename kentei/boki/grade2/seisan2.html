@@ -16,24 +16,20 @@
   }
   .hidden{ display:none !important; }
 
-  /* 上部タブ（今回は精算表＋PLだけ） */
+  /* 上部タブ：常に2列 */
   .tab-row{
-    display:flex;
-    justify-content:center;
+    display:grid;
+    grid-template-columns: 1fr 1fr;
     gap:10px;
-    margin-bottom:10px;
-    flex-wrap:wrap;
+    max-width:600px;
+    margin:0 auto 10px;
   }
+
   .tab-btn{
-    border:none;
-    border-radius:999px;
-    padding:8px 16px;
-    font-size:14px;
-    background:#e2f5ea;
-    color:#2e7d32;
-    cursor:pointer;
-    min-width:140px;
+    width:100%;
+    text-align:center;
   }
+
   .tab-btn.active{
     background:#72b48a;
     color:#fff;
@@ -271,17 +267,23 @@
   }
 
     /* ===== 残高一覧（例：現金 368,000 / 当座預金 2,540,000 みたいな2列表示） ===== */
+.balance-grid{
+  display:grid;
+  grid-template-columns: repeat(4, 1fr); /* ★4列 */
+  gap:6px 18px;
+  max-width:1100px;
+  margin:0 auto;
+  border:2px solid #ffd0d0;
+  border-radius:10px;
+  padding:12px;
+  background:#fffdfd;
+}
+
+@media (max-width: 720px){
   .balance-grid{
-    display:grid;
-    grid-template-columns: 1fr 1fr;   /* 1行に2科目 */
-    gap:6px 18px;
-    max-width:920px;
-    margin:0 auto;
-    border:2px solid #ffd0d0;
-    border-radius:10px;
-    padding:12px;
-    background:#fffdfd;
+    grid-template-columns: repeat(2, 1fr);
   }
+}
   .bal-item{
     display:flex;
     justify-content:space-between;
@@ -373,7 +375,7 @@
     <button class="control-btn" id="giveUpBtn" style="width:auto" onclick="giveUp()">ギブアップ（解答表示）</button>
   </div>
 
-  <div class="section-title">精算表（8桁）</div>
+  <div class="section-title" id="mainSectionTitle">精算表（8桁）</div>
   <div id="area_seisan">
     <table class="seisan8">
       <thead>
@@ -574,7 +576,17 @@ function showTab(t){
   document.getElementById("area_"+t)?.classList.remove("hidden");
   if(t==="seisan") document.getElementById("tabSeisan")?.classList.add("active");
   if(t==="pl") document.getElementById("tabPL")?.classList.add("active");
+
+  const title = document.getElementById("mainSectionTitle");
+  if(title){
+    title.textContent = (t==="seisan")
+      ? "精算表（8桁）"
+      : "損益計算書";
+  }
+
 }
+
+
 
 /* ---------- 問題選択 ---------- */
 function setupProblemSelect(){
@@ -736,8 +748,6 @@ function gradeAdjustments(){
   const adjMap = buildAdjMapFromInputs();
   renderSeisanTable(adjMap);
   lockAdjustmentInputs();
-
-    // ★PL側も更新（残高一覧を整理後へ・損益計算書作成欄を解放）
   renderPLBalanceList();
   renderPLWorksheet();
 

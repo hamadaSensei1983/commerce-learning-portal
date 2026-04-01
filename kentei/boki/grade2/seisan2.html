@@ -270,6 +270,54 @@
     text-align: center;
   }
 
+    /* ===== 残高一覧（例：現金 368,000 / 当座預金 2,540,000 みたいな2列表示） ===== */
+  .balance-grid{
+    display:grid;
+    grid-template-columns: 1fr 1fr;   /* 1行に2科目 */
+    gap:6px 18px;
+    max-width:920px;
+    margin:0 auto;
+    border:2px solid #ffd0d0;
+    border-radius:10px;
+    padding:12px;
+    background:#fffdfd;
+  }
+  .bal-item{
+    display:flex;
+    justify-content:space-between;
+    border-bottom:1px dotted #ddd;
+    padding:4px 0;
+    font-size:14px;
+  }
+  .bal-name{
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    padding-right:10px;
+  }
+  .bal-amt{ font-variant-numeric: tabular-nums; }
+
+  /* ===== 損益計算書テーブル（費用 左 / 収益 右） ===== */
+  table.pl-table{
+    width:100%;
+    border-collapse:collapse;
+    table-layout:fixed;
+    font-size:14px;
+    max-width:920px;
+    margin:0 auto;
+  }
+  table.pl-table th, table.pl-table td{
+    border:1px solid #e53935;
+    padding:6px;
+    vertical-align:middle;
+  }
+  table.pl-table th{ background:#ffebee; text-align:center; }
+  table.pl-table td{ text-align:right; }
+  table.pl-table td.name{ text-align:left; width:35%; }
+
+  @media (max-width: 720px){
+    .balance-grid{ grid-template-columns: 1fr; }
+  }
 
   @media (max-width: 720px){
     .jrnl{ grid-template-columns:1fr; }
@@ -348,7 +396,7 @@
 
     <div style="text-align:center;margin-top:10px;">
       <button class="control-btn" style="width:auto" onclick="applyAdjustments()">精算表に反映</button>
-      <button class="control-btn" style="width:auto" onclick="checkStub()">答え合わせ（準備中）</button>
+      <button class="control-btn" style="width:auto" onclick="checkStub()">答え合わせ</button>
     </div>
 
     <p id="result"></p>
@@ -356,10 +404,37 @@
 
   <div id="area_pl" class="hidden">
     <div class="pl-wrap">
-      <div class="pl-title">損益計算書（元帳残高形式）</div>
-      <div id="plBody"></div>
-      <div style="text-align:center;margin-top:8px;color:#666;font-size:13px;">
-        ※このサンプルではPLは表示のみ（次段階で自動計算に発展します）
+      <div class="pl-title">損益計算書（費用：左 / 収益：右）</div>
+
+      <!-- 残高一覧（TBの表は出さず、科目＋金額を並べる） -->
+      <div class="section-title" style="border-left-color:#e53935;">残高一覧（勘定科目の残高）</div>
+      <div id="plBalanceList" class="balance-grid"></div>
+
+      <!-- Phase1 正解後に表示（損益計算書の入力） -->
+      <div id="plWorksheetArea" class="hidden">
+        <div class="section-title" style="border-left-color:#e53935;">損益計算書（作成）</div>
+
+        <table class="pl-table">
+          <thead>
+            <tr>
+              <th colspan="2">費用（借方）</th>
+              <th colspan="2">収益（貸方）</th>
+            </tr>
+            <tr>
+              <th>科目</th><th>金額</th>
+              <th>科目</th><th>金額</th>
+            </tr>
+          </thead>
+          <tbody id="plWorksheetBody"></tbody>
+        </table>
+
+        <div style="text-align:center;margin-top:10px;">
+          <button class="control-btn" style="width:auto" onclick="checkPLWorksheet()">答え合わせ</button>
+        </div>
+      </div>
+
+      <div id="plHint" style="text-align:center;margin-top:8px;color:#666;font-size:13px;">
+        ※決算整理仕訳が全て正解すると、損益計算書の作成ができるようになります。
       </div>
     </div>
   </div>
@@ -539,6 +614,10 @@ function start(){
   renderPL();
 
   document.getElementById("result").textContent = "";
+
+  renderPLBalanceList();   // ★PLタブの残高一覧を初期表示
+  renderPLWorksheet();     // ★Phase1では隠れたまま
+
 }
 
 /* TB＋mapから分類辞書作成 */
@@ -556,7 +635,8 @@ function buildAcctDictionaries(){
     if(m.label) acctLabel[m.acct] = m.label;
   });
 
-  // 表示名置換：仕入→売上原価
+  // 表示名置換：売上→売上高、仕入→売上原価
+  acctLabel["売上"] = "売上高";
   acctLabel["仕入"] = "売上原価";
 }
 
@@ -657,6 +737,14 @@ function gradeAdjustments(){
   const adjMap = buildAdjMapFromInputs();
   renderSeisanTable(adjMap);
   lockAdjustmentInputs();
+
+    // ★PL側も更新（残高一覧を整理後へ・損益計算書作成欄を解放）
+  renderPLBalanceList();
+  renderPLWorksheet();
+
+  // ヒント文も更新（任意）
+  const hint = document.getElementById("plHint");
+  if(hint) hint.textContent = "〇 仕訳が全て正解！損益計算書の作成ができるようになりました（PLタブへどうぞ）。";
 
   // ★PLとBSを同時に入力できるよう、両方の入力欄を出す
   showOutputInputFields();
@@ -949,20 +1037,180 @@ function warnUnknownExtraAccounts(){
 }
 
 /* =========================================================
-   PL（元帳残高形式）
+   PL（損益計算書）用：残高一覧 + 作成表 + 採点
 ========================================================= */
-function renderPL(){
-  const pl=document.getElementById("plBody");
-  if(!pl) return;
-  pl.innerHTML="";
-  TB.filter(r=>r.id===currentId)
-    .filter(r=>r.cls==="費用" || r.cls==="収益")
-    .forEach(r=>{
-      const name = acctLabel[r.acct] || ((r.acct==="仕入") ? "売上原価" : r.acct);
-      const amt  = (r.cls==="費用") ? r.debit : r.credit;
-      if(amt===0) return;
-      pl.innerHTML += `<div class="pl-item"><span>${escapeHtml(name)}</span><span>${fmt(amt)}</span></div>`;
-    });
+
+// 整理後残高（借-貸 + 整理借-整理貸）
+function adjustedNetForPL(acct){
+  const tb = TB.find(x => x.id===currentId && x.acct===acct);
+  const base = tb ? (tb.debit - tb.credit) : 0;
+  const adj = currentAdjMap?.[acct] ?? {d:0, c:0};
+  return base + (adj.d - adj.c);
+}
+
+// 表示名（labelを優先し、売上/仕入の置換も反映）
+function displayNamePL(acct){
+  const name = acctLabel[acct] || acct;
+  if(name === "売上") return "売上高";
+  if(name === "仕入") return "売上原価";
+  return name;
+}
+
+// 残高一覧：TBの残高（Phase1）→ 整理後残高（Phase2）へ自動切替
+function renderPLBalanceList(){
+  const area = document.getElementById("plBalanceList");
+  if(!area) return;
+  area.innerHTML = "";
+
+  const allAccts = [...new Set([
+    ...baseAccounts,
+    ...[...extraAccounts]
+  ])];
+
+  const rows = allAccts
+    .map(acct => {
+      // Phase2（正解後）は整理後、Phase1はTB残高
+      const net = (phase>=2 && currentAdjMap) ? adjustedNetForPL(acct)
+                 : (TB.find(r=>r.id===currentId && r.acct===acct)?.debit ?? 0) - (TB.find(r=>r.id===currentId && r.acct===acct)?.credit ?? 0);
+      const amt = Math.abs(net);
+      return { acct, amt };
+    })
+    .filter(x => x.amt !== 0)
+    .sort((a,b)=> a.acct.localeCompare(b.acct, "ja"));
+
+  rows.forEach(x=>{
+    const div = document.createElement("div");
+    div.className = "bal-item";
+    div.innerHTML =
+      `<span class="bal-name">${escapeHtml(displayNamePL(x.acct))}</span>` +
+      `<span class="bal-amt">${fmt(x.amt)}</span>`;
+    area.appendChild(div);
+  });
+}
+
+// Phase2：損益計算書の入力表を生成（費用：左 / 収益：右）
+function renderPLWorksheet(){
+  const wrap = document.getElementById("plWorksheetArea");
+  const body = document.getElementById("plWorksheetBody");
+  if(!wrap || !body) return;
+
+  // Phase2になるまで隠す
+  if(phase < 2){
+    wrap.classList.add("hidden");
+    body.innerHTML = "";
+    return;
+  }
+  wrap.classList.remove("hidden");
+  body.innerHTML = "";
+
+  const allAccts = [...new Set([
+    ...baseAccounts,
+    ...[...extraAccounts]
+  ])];
+
+  const expenses = allAccts.filter(a => acctClass[a] === "費用").sort((a,b)=>a.localeCompare(b,"ja"));
+  const revenues = allAccts.filter(a => acctClass[a] === "収益").sort((a,b)=>a.localeCompare(b,"ja"));
+  const rows = Math.max(expenses.length, revenues.length, 1);
+
+  for(let i=0;i<rows;i++){
+    const e = expenses[i];
+    const r = revenues[i];
+
+    const tr = document.createElement("tr");
+
+    // 費用（左）
+    tr.innerHTML += `<td class="name">${e ? escapeHtml(displayNamePL(e)) : ""}</td>`;
+    tr.innerHTML += `<td>${e ? `<input class="money" data-role="pl" data-acct="${escapeHtml(e)}" data-kind="expense" inputmode="numeric">` : ""}</td>`;
+
+    // 収益（右）
+    tr.innerHTML += `<td class="name">${r ? escapeHtml(displayNamePL(r)) : ""}</td>`;
+    tr.innerHTML += `<td>${r ? `<input class="money" data-role="pl" data-acct="${escapeHtml(r)}" data-kind="revenue" inputmode="numeric">` : ""}</td>`;
+
+    body.appendChild(tr);
+  }
+
+  // 当期純利益（または純損失）：左右どちらにも入力欄（考えさせる）
+  const trNI = document.createElement("tr");
+  trNI.innerHTML = `
+    <td class="name">当期純利益（または純損失）</td>
+    <td><input class="money" id="plNI_left"  inputmode="numeric"></td>
+    <td class="name">当期純利益（または純損失）</td>
+    <td><input class="money" id="plNI_right" inputmode="numeric"></td>
+  `;
+  body.appendChild(trNI);
+
+  // 合計（表示だけ）
+  const trTotal = document.createElement("tr");
+  trTotal.innerHTML = `
+    <td class="name" style="text-align:right;font-weight:bold;">合計</td><td></td>
+    <td class="name" style="text-align:right;font-weight:bold;">合計</td><td></td>
+  `;
+  body.appendChild(trTotal);
+}
+
+// Phase2：損益計算書の答え合わせ（赤枠＋褒めちぎり）
+function checkPLWorksheet(){
+  if(phase < 2) return;
+
+  // 赤枠リセット
+  document.querySelectorAll("#area_pl input.wrong").forEach(x=>x.classList.remove("wrong"));
+
+  const inputs = [...document.querySelectorAll('#area_pl input[data-role="pl"]')];
+  let allOk = true;
+
+  let expE = 0, expR = 0; // 期待合計（費用・収益）
+
+  inputs.forEach(inp=>{
+    const acct = inp.dataset.acct;
+    const kind = inp.dataset.kind;
+    const v = num(inp.value);
+    const exp = Math.abs(adjustedNetForPL(acct));
+
+    if(v !== exp){
+      inp.classList.add("wrong");
+      allOk = false;
+    }
+    if(kind==="expense") expE += exp;
+    if(kind==="revenue") expR += exp;
+  });
+
+  // 期待の当期純利益（収益－費用）
+  const net = expR - expE;
+  const expectedNI = Math.abs(net);
+
+  const left  = document.getElementById("plNI_left");  // 費用側（借方）
+  const right = document.getElementById("plNI_right"); // 収益側（貸方）
+
+  function filled(el){ return el && String(el.value).trim() !== ""; }
+
+  // 利益なら左（借方）／損失なら右（貸方）に入れるルールで判定
+  if(net > 0){
+    if(num(left.value) !== expectedNI){ left.classList.add("wrong"); allOk=false; }
+    if(filled(right)){ right.classList.add("wrong"); allOk=false; }
+  }else if(net < 0){
+    if(num(right.value) !== expectedNI){ right.classList.add("wrong"); allOk=false; }
+    if(filled(left)){ left.classList.add("wrong"); allOk=false; }
+  }else{
+    if(filled(left)){ left.classList.add("wrong"); allOk=false; }
+    if(filled(right)){ right.classList.add("wrong"); allOk=false; }
+  }
+
+  // 結果表示（seisan2と同じresultを使う）
+  const res = document.getElementById("result");
+  if(!res) return;
+
+  if(allOk){
+    res.className = "praise";
+    res.innerHTML =
+      "🎉 損益計算書、全問正解！！ 🎉<br>" +
+      "費用・収益の分類も金額も完璧です。<br>" +
+      "この精度なら検定で安定して点が取れます！";
+  }else{
+    res.className = "";
+    res.textContent =
+      "× 間違いがあります。赤枠の欄を見直しましょう。\n" +
+      "ポイント：費用は左（借方）、収益は右（貸方）。当期純利益（損失）で左右が一致します。";
+  }
 }
 
 function clearWrong(){

@@ -254,6 +254,23 @@
     background:#ffebee;
   }
 
+  /* 間違い欄を赤枠に */
+  .wrong {
+    outline: 3px solid #e53935;
+    border-radius: 4px;
+  }
+
+  /* 正解メッセージ */
+  .praise {
+    background: #e8f5e9;
+    border: 2px solid #66bb6a;
+    padding: 12px;
+    border-radius: 10px;
+    font-weight: bold;
+    text-align: center;
+  }
+
+
   @media (max-width: 720px){
     .jrnl{ grid-template-columns:1fr; }
   }
@@ -372,6 +389,8 @@ let phase = 1;
 
 let acctClass = {}; // acct -> 分類
 let acctLabel = {}; // acct -> 表示名（任意）
+
+let currentAdjMap = null;
 
 /* ---------- CSV（クォート内改行OK） ---------- */
 function parseCSV(text){
@@ -779,6 +798,7 @@ function makeSeisanRow(acct,tbD,tbC,added){
 }
 
 function renderSeisanTable(adjMap){
+  currentAdjMap = adjMap;
   const tbody=document.getElementById("seisanBody");
   if(!tbody) return;
   tbody.innerHTML="";
@@ -847,42 +867,73 @@ function showOutputInputFields(){
   const tbody=document.getElementById("seisanBody");
   if(!tbody) return;
 
+  // 科目→正解の表（PL or BS）を決める
+  function correctStatementByClass(cls){
+    return (cls==="費用" || cls==="収益") ? "PL" : "BS";
+  }
+
+  // 科目→入力する側（借/貸）を決める（教育設計として“分類に従う”）
+  function normalSideByClass(cls){
+    if(cls==="資産" || cls==="費用") return "debit";
+    if(cls==="負債" || cls==="資本" || cls==="収益") return "credit";
+    // 控除資産等（例：減価償却累計額・貸倒引当金など）→貸方扱い
+    if(cls==="控除資産" || cls==="資産控除") return "credit";
+    // 不明は一旦借方（※本来はmapで埋める）
+    return "debit";
+  }
+
+  // input生成（data属性を付けてPhase2採点で使う）
+  function makeTransferInput(acct, statement, side){
+    return `<input class="money"
+      data-role="transfer"
+      data-acct="${escapeHtml(acct)}"
+      data-statement="${statement}"
+      data-side="${side}"
+      inputmode="numeric">`;
+  }
+
   tbody.querySelectorAll("tr").forEach(tr=>{
     const acct = tr.dataset.acct;
     const isProfit = tr.dataset.rowtype==="profit";
 
+    // 当期純利益行：要望どおり4か所すべてに入力欄（すでに実装済みだがdata-role付与）
     if(isProfit){
-      tr.querySelector(".plD").innerHTML = `<input class="money" id="plProfitD" inputmode="numeric">`;
-      tr.querySelector(".plC").innerHTML = `<input class="money" id="plProfitC" inputmode="numeric">`;
-      tr.querySelector(".bsD").innerHTML = `<input class="money" id="bsProfitD" inputmode="numeric">`;
-      tr.querySelector(".bsC").innerHTML = `<input class="money" id="bsProfitC" inputmode="numeric">`;
+      tr.querySelector(".plD").innerHTML = `<input class="money" id="plProfitD" data-role="netIncome" data-statement="PL" data-side="debit" inputmode="numeric">`;
+      tr.querySelector(".plC").innerHTML = `<input class="money" id="plProfitC" data-role="netIncome" data-statement="PL" data-side="credit" inputmode="numeric">`;
+      tr.querySelector(".bsD").innerHTML = `<input class="money" id="bsProfitD" data-role="netIncome" data-statement="BS" data-side="debit" inputmode="numeric">`;
+      tr.querySelector(".bsC").innerHTML = `<input class="money" id="bsProfitC" data-role="netIncome" data-statement="BS" data-side="credit" inputmode="numeric">`;
       return;
     }
 
     if(!acct) return;
 
     const cls = acctClass[acct];
+    const normalSide = normalSideByClass(cls);
+    const correctStatement = correctStatementByClass(cls);
 
-    // PL
-    if(cls==="費用"){
-      tr.querySelector(".plD").innerHTML = `<input class="money" id="plD_${escapeId(acct)}" inputmode="numeric">`;
-    }
-    if(cls==="収益"){
-      tr.querySelector(".plC").innerHTML = `<input class="money" id="plC_${escapeId(acct)}" inputmode="numeric">`;
+    // いったん空に（再描画時のゴミ防止）
+    tr.querySelector(".plD").innerHTML = "";
+    tr.querySelector(".plC").innerHTML = "";
+    tr.querySelector(".bsD").innerHTML = "";
+    tr.querySelector(".bsC").innerHTML = "";
+
+    // 要望：「資産なら BS借方 と PL借方 の両方にInput」
+    // →すべての科目で「normalSide側」を、BSとPLの両方に出す（片方がデコイ）
+    if(normalSide==="debit"){
+      tr.querySelector(".plD").innerHTML = makeTransferInput(acct, "PL", "debit");
+      tr.querySelector(".bsD").innerHTML = makeTransferInput(acct, "BS", "debit");
+    }else{
+      tr.querySelector(".plC").innerHTML = makeTransferInput(acct, "PL", "credit");
+      tr.querySelector(".bsC").innerHTML = makeTransferInput(acct, "BS", "credit");
     }
 
-    // BS
-    if(cls==="資産"){
-      tr.querySelector(".bsD").innerHTML = `<input class="money" id="bsD_${escapeId(acct)}" inputmode="numeric">`;
-    }
-    if(cls==="負債" || cls==="資本"){
-      tr.querySelector(".bsC").innerHTML = `<input class="money" id="bsC_${escapeId(acct)}" inputmode="numeric">`;
-    }
-
-    // 控除資産等が map にあれば、とりあえずBS貸方に出す（運用が安定）
-    if(cls==="控除資産" || cls==="資産控除"){
-      tr.querySelector(".bsC").innerHTML = `<input class="money" id="bsC_${escapeId(acct)}" inputmode="numeric">`;
-    }
+    // 正解セルかどうかをdata-correctで埋め込む（採点が楽）
+    // （同じsideの2つのうち、正解statement側だけ correct=1）
+    tr.querySelectorAll('input[data-role="transfer"]').forEach(inp=>{
+      if(inp.dataset.acct !== acct) return;
+      const st = inp.dataset.statement;
+      inp.dataset.correct = (st === correctStatement) ? "1" : "0";
+    });
   });
 }
 
@@ -914,8 +965,178 @@ function renderPL(){
     });
 }
 
+function clearWrong(){
+  document.querySelectorAll("input.wrong").forEach(inp => inp.classList.remove("wrong"));
+}
+
 function checkStub(){
-  alert("次段階：Phase2（PL/BS入力）の採点を実装します（当期純利益の一致チェックもここで）。");
+  // Phase2（PL/BS入力）採点
+  if(phase !== 2) return;
+
+  clearWrong();
+  const res = document.getElementById("result");
+  if(res){
+    res.className = "";
+    res.textContent = "";
+  }
+
+  if(!currentAdjMap){
+    if(res) res.textContent = "まだ整理記入が反映されていません。先に「仕訳採点」を完了してください。";
+    return;
+  }
+
+  // ---- ① 各科目の「整理後残高」を計算 ----
+  // 整理後残高 = (TB借 - TB貸) + (整理借 - 整理貸)
+  function adjustedNet(acct){
+    const tb = TB.find(x => x.id===currentId && x.acct===acct);
+    const base = tb ? (tb.debit - tb.credit) : 0;
+    const adj = currentAdjMap[acct] || {d:0, c:0};
+    return base + (adj.d - adj.c);
+  }
+
+  // 科目分類で「正解の表」を決める（費用/収益→PL、それ以外→BS）
+  function correctStatementByClass(cls){
+    return (cls==="費用" || cls==="収益") ? "PL" : "BS";
+  }
+
+  // 期待する金額（絶対値）。ゼロなら空欄が正解。
+  function expectedAmount(acct){
+    return Math.abs(adjustedNet(acct));
+  }
+
+  // ---- ② 入力欄の採点（デコイ含む）----
+  let allOk = true;
+
+  // 科目別に、正解statement側に金額が入っているか／デコイは空か
+  const transferInputs = [...document.querySelectorAll('input[data-role="transfer"]')];
+
+  // 期待値を使って判定
+  transferInputs.forEach(inp=>{
+    const acct = inp.dataset.acct;
+    const cls = acctClass[acct];
+    const correctStatement = correctStatementByClass(cls);
+    const exp = expectedAmount(acct);
+    const v = num(inp.value);
+
+    const isCorrectCell = (inp.dataset.correct === "1") && (inp.dataset.statement === correctStatement);
+
+    if(exp === 0){
+      // 残高0 → どこにも入れない（両方空が正解）
+      if(String(inp.value).trim() !== ""){
+        inp.classList.add("wrong");
+        allOk = false;
+      }
+      return;
+    }
+
+    if(isCorrectCell){
+      // 正解セル：期待金額が一致している必要
+      if(v !== exp){
+        inp.classList.add("wrong");
+        allOk = false;
+      }
+    }else{
+      // デコイセル：空欄が正解（入ってたら×）
+      if(String(inp.value).trim() !== ""){
+        inp.classList.add("wrong");
+        allOk = false;
+      }
+    }
+  });
+
+  // ---- ③ 当期純利益（PL:収益-費用 / BS:資産-(負債+資本)）で整合判定 ----
+  let sumRev = 0, sumExp = 0, sumAsset = 0, sumLE = 0;
+
+  // 表に存在する全科目を対象（TB + 追加科目）
+  const allAccts = [...new Set([
+    ...baseAccounts,
+    ...[...extraAccounts]
+  ])];
+
+  allAccts.forEach(acct=>{
+    const cls = acctClass[acct];
+    const net = adjustedNet(acct);
+    const amt = Math.abs(net);
+    if(amt === 0) return;
+
+    if(cls === "収益") sumRev += amt;
+    if(cls === "費用") sumExp += amt;
+    if(cls === "資産") sumAsset += amt;
+    if(cls === "負債" || cls === "資本" || cls === "控除資産" || cls === "資産控除") sumLE += amt;
+  });
+
+  const netFromPL = sumRev - sumExp;      // 収益－費用
+  const netFromBS = sumAsset - sumLE;     // 資産－（負債＋資本＋控除）
+
+  // 2つが一致しているか（内部整合）
+  const sameNet = (netFromPL === netFromBS);
+
+  // 当期純利益入力欄（4つ）の正解位置判定
+  const plProfitD = document.getElementById("plProfitD");
+  const plProfitC = document.getElementById("plProfitC");
+  const bsProfitD = document.getElementById("bsProfitD");
+  const bsProfitC = document.getElementById("bsProfitC");
+
+  const expectedNI = Math.abs(netFromPL);
+
+  function markWrong(el){
+    if(el){ el.classList.add("wrong"); allOk = false; }
+  }
+  function isFilled(el){
+    return el && String(el.value).trim() !== "";
+  }
+
+  if(!sameNet){
+    // 転記のどこかがズレていて利益が一致しない
+    allOk = false;
+    // 利益欄を全部赤にして「利益が一致しない」ことを意識させる
+    [plProfitD, plProfitC, bsProfitD, bsProfitC].forEach(el => el && el.classList.add("wrong"));
+  }else{
+    // 一致しているなら、利益欄の正しい位置＆金額を判定
+    if(netFromPL === 0){
+      // 0なら全て空が正解
+      [plProfitD, plProfitC, bsProfitD, bsProfitC].forEach(el=>{
+        if(isFilled(el)) markWrong(el);
+      });
+    }else if(netFromPL > 0){
+      // 利益：PL借方・BS貸方に入る
+      if(num(plProfitD?.value) !== expectedNI) markWrong(plProfitD);
+      if(isFilled(plProfitC)) markWrong(plProfitC);
+
+      if(num(bsProfitC?.value) !== expectedNI) markWrong(bsProfitC);
+      if(isFilled(bsProfitD)) markWrong(bsProfitD);
+    }else{
+      // 損失：PL貸方・BS借方に入る
+      if(num(plProfitC?.value) !== expectedNI) markWrong(plProfitC);
+      if(isFilled(plProfitD)) markWrong(plProfitD);
+
+      if(num(bsProfitD?.value) !== expectedNI) markWrong(bsProfitD);
+      if(isFilled(bsProfitC)) markWrong(bsProfitC);
+    }
+  }
+
+  // ---- ④ 結果表示（褒めちぎる/赤枠を見直し）----
+  if(res){
+    if(allOk){
+      res.className = "praise";
+      res.innerHTML =
+        "🎉🎉 全問正解！！すごすぎます！！ 🎉🎉\n" +
+        "分類→転記→利益確認まで完璧。\n" +
+        "この精算表、検定レベルで通用します！";
+    }else{
+      res.className = "";
+      if(!sameNet){
+        res.textContent =
+          "× まだどこか転記がズレています。\n" +
+          "（PLとBSで当期純利益が一致しません）\n" +
+          "赤枠の入力欄を中心に見直してみよう！";
+      }else{
+        res.textContent =
+          "× 間違いがあります。\n" +
+          "赤枠の入力欄を見直して、どこに転記すべきか考えてみよう！";
+      }
+    }
+  }
 }
 
 /* =========================================================

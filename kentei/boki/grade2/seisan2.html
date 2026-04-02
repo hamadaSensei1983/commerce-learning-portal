@@ -470,6 +470,8 @@ let acctLabel = {}; // acct -> 表示名（任意）
 
 let currentAdjMap = null;
 
+let startMode = "seisan"; // "seisan" or "pl"
+
 const loadStartTime = Date.now();
 
 /* ---------- CSV（クォート内改行OK） ---------- */
@@ -573,24 +575,36 @@ function hideApplyBtnAlways(){
 
 /* ---------- タブ切替 ---------- */
 function showTab(t){
+  // すべて一旦隠す
   document.getElementById("area_seisan")?.classList.add("hidden");
   document.getElementById("area_pl")?.classList.add("hidden");
+
   document.getElementById("tabSeisan")?.classList.remove("active");
   document.getElementById("tabPL")?.classList.remove("active");
 
-  document.getElementById("area_"+t)?.classList.remove("hidden");
-  if(t==="seisan") document.getElementById("tabSeisan")?.classList.add("active");
-  if(t==="pl") document.getElementById("tabPL")?.classList.add("active");
+  // タブの active
+  if(t==="seisan"){
+    document.getElementById("tabSeisan")?.classList.add("active");
+  }else{
+    document.getElementById("tabPL")?.classList.add("active");
+  }
 
+  // ★開始前（workAreaがhidden）の場合は、何も表示しない
+  if(document.getElementById("workArea")?.classList.contains("hidden")){
+    return;
+  }
+
+  // 開始後のみ中身を表示
+  document.getElementById("area_"+t)?.classList.remove("hidden");
+
+  // 見出し切替
   const title = document.getElementById("mainSectionTitle");
   if(title){
     title.textContent = (t==="seisan")
       ? "精算表（8桁）"
       : "損益計算書";
   }
-
 }
-
 
 
 /* ---------- 問題選択 ---------- */
@@ -631,6 +645,12 @@ function resetPhase(){
 function start(){
   if(!currentId) return;
 
+
+  // ★開始時のモードを記録
+  startMode = document.getElementById("tabPL")?.classList.contains("active")
+    ? "pl"
+    : "seisan";
+
   document.getElementById("workArea")?.classList.remove("hidden");
 
   document.getElementById("plBalanceArea")?.classList.remove("hidden");
@@ -670,9 +690,6 @@ function buildAcctDictionaries(){
     if(m.label) acctLabel[m.acct] = m.label;
   });
 
-  // 表示名置換：売上→売上高、仕入→売上原価
-  acctLabel["売上"] = "売上高";
-  acctLabel["仕入"] = "売上原価";
 }
 
 /* =========================================================
@@ -791,8 +808,11 @@ function gradeAdjustments(){
 
   warnUnknownExtraAccounts();
 
+  // ★開始時にPLを選んでいたなら、自動でPL表示
   if(startMode === "pl"){
     showTab("pl");
+  }else{
+    showTab("seisan");
   }
 
 }
@@ -1148,8 +1168,17 @@ function renderPLWorksheet(){
     ...[...extraAccounts]
   ])];
 
-  const expenses = allAccts.filter(a => acctClass[a] === "費用").sort((a,b)=>a.localeCompare(b,"ja"));
-  const revenues = allAccts.filter(a => acctClass[a] === "収益").sort((a,b)=>a.localeCompare(b,"ja"));
+  const ordered = TB
+    .filter(r => r.id === currentId)
+    .map(r => r.acct);
+
+  // 新規科目は後ろに追加
+  [...extraAccounts].forEach(a=>{
+    if(!ordered.includes(a)) ordered.push(a);
+  });
+
+  const expenses = ordered.filter(a => acctClass[a] === "費用");
+  const revenues = ordered.filter(a => acctClass[a] === "収益");
   const rows = Math.max(expenses.length, revenues.length, 1);
 
   for(let i=0;i<rows;i++){

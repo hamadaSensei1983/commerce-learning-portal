@@ -359,44 +359,48 @@
     <select id="problemSelect"></select>
     <button class="main-btn" style="width:auto" onclick="start()">開始</button>
   </div>
-  <h1>決算整理仕訳を入力し、表を完成しなさい。</h1>
-  <div class="section-title">決算整理仕訳（入力）</div>
-  <div class="adj-wrap" id="adjInputArea">
-    <!-- JSで付記事項ごとの入力欄を生成 -->
-  </div>
 
-  <div style="text-align:center;margin:10px 0 6px;">
-    <button class="main-btn" id="gradeAdjBtn" style="width:auto" onclick="gradeAdjustments()">仕訳採点</button>
-    <button class="control-btn" id="giveUpBtn" style="width:auto" onclick="giveUp()">ギブアップ（解答表示）</button>
-  </div>
+  <div id="workArea" class="hidden">
 
-  <div class="section-title" id="mainSectionTitle">精算表（8桁）</div>
-  <div id="area_seisan">
-    <table class="seisan8">
-      <thead>
-        <tr>
-          <th rowspan="2">勘定科目</th>
-          <th colspan="2">残高試算表</th>
-          <th colspan="2">整理記入</th>
-          <th colspan="2">損益計算書</th>
-          <th colspan="2">貸借対照表</th>
-        </tr>
-        <tr>
-          <th>借方</th><th>貸方</th>
-          <th>借方</th><th>貸方</th>
-          <th>借方</th><th>貸方</th>
-          <th>借方</th><th>貸方</th>
-        </tr>
-      </thead>
-      <tbody id="seisanBody"></tbody>
-    </table>
-
-    <div style="text-align:center;margin-top:10px;">
-      <button class="control-btn" style="width:auto" onclick="applyAdjustments()">精算表に反映</button>
-      <button class="control-btn" style="width:auto" onclick="checkStub()">答え合わせ</button>
+    <h1>決算整理仕訳を入力し、表を完成しなさい。</h1>
+    <div class="section-title">決算整理仕訳（入力）</div>
+    <div class="adj-wrap" id="adjInputArea">
+      <!-- JSで付記事項ごとの入力欄を生成 -->
     </div>
 
-    <p id="result"></p>
+    <div style="text-align:center;margin:10px 0 6px;">
+      <button class="main-btn" id="gradeAdjBtn" style="width:auto" onclick="gradeAdjustments()">仕訳採点</button>
+      <button class="control-btn" id="giveUpBtn" style="width:auto" onclick="giveUp()">ギブアップ（解答表示）</button>
+    </div>
+
+    <div class="section-title" id="mainSectionTitle">精算表（8桁）</div>
+    <div id="area_seisan">
+      <table class="seisan8">
+        <thead>
+          <tr>
+            <th rowspan="2">勘定科目</th>
+            <th colspan="2">残高試算表</th>
+            <th colspan="2">整理記入</th>
+            <th colspan="2">損益計算書</th>
+            <th colspan="2">貸借対照表</th>
+          </tr>
+          <tr>
+            <th>借方</th><th>貸方</th>
+            <th>借方</th><th>貸方</th>
+            <th>借方</th><th>貸方</th>
+            <th>借方</th><th>貸方</th>
+          </tr>
+        </thead>
+        <tbody id="seisanBody"></tbody>
+      </table>
+
+      <div style="text-align:center;margin-top:10px;">
+        <button class="control-btn" style="width:auto" onclick="applyAdjustments()">精算表に反映</button>
+        <button class="control-btn" style="width:auto" onclick="checkStub()">答え合わせ</button>
+      </div>
+
+      <p id="result"></p>
+    </div>
   </div>
 
   <div id="area_pl" class="hidden">
@@ -463,6 +467,8 @@ let acctClass = {}; // acct -> 分類
 let acctLabel = {}; // acct -> 表示名（任意）
 
 let currentAdjMap = null;
+
+const loadStartTime = Date.now();
 
 /* ---------- CSV（クォート内改行OK） ---------- */
 function parseCSV(text){
@@ -603,38 +609,46 @@ function setupProblemSelect(){
 function resetPhase(){
   phase = 1;
 
-  document.getElementById("gradeAdjBtn")?.removeAttribute("disabled");
-  document.getElementById("giveUpBtn")?.removeAttribute("disabled");
-  setPhase2CheckVisible(false);
+  document.getElementById("workArea")?.classList.add("hidden");
+  document.getElementById("area_seisan")?.classList.add("hidden");
+  document.getElementById("area_pl")?.classList.add("hidden");
 
-  // ★ 画面を初期化
   document.getElementById("adjInputArea").innerHTML = "";
   document.getElementById("seisanBody").innerHTML = "";
   document.getElementById("plBalanceList").innerHTML = "";
   document.getElementById("plWorksheetArea")?.classList.add("hidden");
   document.getElementById("result").textContent = "";
 
-  document.querySelectorAll(".note-block").forEach(b=>b.classList.remove("ok","ng"));
+  document.getElementById("gradeAdjBtn")?.removeAttribute("disabled");
+  document.getElementById("giveUpBtn")?.removeAttribute("disabled");
+
+  document.querySelectorAll(".note-block").forEach(b => b.classList.remove("ok","ng"));
 }
 
 /* ---------- 開始 ---------- */
 function start(){
   if(!currentId) return;
 
+  document.getElementById("workArea")?.classList.remove("hidden");
+
   const tbRows = TB.filter(x=>x.id===currentId);
   baseAccounts = tbRows.map(x=>x.acct);
   extraAccounts = new Set();
 
   buildAcctDictionaries();
-
   renderAdjInputs();
   renderSeisanTable(null);
+  renderPLBalanceList();
+  renderPLWorksheet();
+
+  // ★ 選択中のタブに応じて表示
+  if(document.getElementById("tabPL").classList.contains("active")){
+    showTab("pl");
+  }else{
+    showTab("seisan");
+  }
 
   document.getElementById("result").textContent = "";
-
-  renderPLBalanceList();   // ★PLタブの残高一覧を初期表示
-  renderPLWorksheet();     // ★Phase1では隠れたまま
-
 }
 
 /* TB＋mapから分類辞書作成 */
@@ -1480,9 +1494,20 @@ document.addEventListener("input", (e)=>{
   }catch(e){
     console.error(e);
     alert("CSV読み込みエラー：" + (e.message || e));
-  }finally{
-    document.getElementById("loadingScreen")?.style && (document.getElementById("loadingScreen").style.display="none");
-    document.getElementById("mainCard")?.classList.remove("hidden");
+  } finally {
+    const elapsed = Date.now() - loadStartTime;
+    const remain = 1000 - elapsed;
+
+    const show = () => {
+      document.getElementById("loadingScreen").style.display = "none";
+      document.getElementById("mainCard").classList.remove("hidden");
+    };
+
+    if (remain > 0) {
+      setTimeout(show, remain);
+    } else {
+      show();
+    }
   }
 })();
 </script>

@@ -408,8 +408,10 @@
       <div class="pl-title">損益計算書（費用：左 / 収益：右）</div>
 
       <!-- 残高一覧（TBの表は出さず、科目＋金額を並べる） -->
-      <div class="section-title" style="border-left-color:#e53935;">残高一覧（勘定科目の残高）</div>
-      <div id="plBalanceList" class="balance-grid"></div>
+      <div id="plBalanceArea" class="hidden">
+        <div class="section-title" style="border-left-color:#e53935;">残高一覧（勘定科目の残高）</div>
+        <div id="plBalanceList" class="balance-grid"></div>
+      </div>
 
       <!-- Phase1 正解後に表示（損益計算書の入力） -->
       <div id="plWorksheetArea" class="hidden">
@@ -612,7 +614,7 @@ function resetPhase(){
   document.getElementById("workArea")?.classList.add("hidden");
   document.getElementById("area_seisan")?.classList.add("hidden");
   document.getElementById("area_pl")?.classList.add("hidden");
-
+  document.getElementById("plBalanceArea")?.classList.add("hidden");
   document.getElementById("adjInputArea").innerHTML = "";
   document.getElementById("seisanBody").innerHTML = "";
   document.getElementById("plBalanceList").innerHTML = "";
@@ -630,6 +632,8 @@ function start(){
   if(!currentId) return;
 
   document.getElementById("workArea")?.classList.remove("hidden");
+
+  document.getElementById("plBalanceArea")?.classList.remove("hidden");
 
   const tbRows = TB.filter(x=>x.id===currentId);
   baseAccounts = tbRows.map(x=>x.acct);
@@ -787,9 +791,7 @@ function gradeAdjustments(){
 
   warnUnknownExtraAccounts();
 
-  // ★ いまPLを選んでいたら、自動でPLタブを表示
-  const plTabActive = document.getElementById("tabPL")?.classList.contains("active");
-  if(plTabActive){
+  if(startMode === "pl"){
     showTab("pl");
   }
 

@@ -360,47 +360,35 @@
     <button class="main-btn" style="width:auto" onclick="start()">開始</button>
   </div>
 
+  <!-- ★ 開始後に必ず表示する共通エリア -->
   <div id="workArea" class="hidden">
 
-    <h1>決算整理仕訳を入力し、表を完成しなさい。</h1>
+    <!-- ★ 残高試算表（共通） -->
+    <div class="section-title">残高試算表</div>
+    <div id="tbBalanceList" class="balance-grid"></div>
+
+    <!-- 決算整理仕訳 -->
+    <h2>下記の決算整理仕訳を示しなさい。</h2>
     <div class="section-title">決算整理仕訳（入力）</div>
-    <div class="adj-wrap" id="adjInputArea">
-      <!-- JSで付記事項ごとの入力欄を生成 -->
-    </div>
+    <div class="adj-wrap" id="adjInputArea"></div>
 
     <div style="text-align:center;margin:10px 0 6px;">
-      <button class="main-btn" id="gradeAdjBtn" style="width:auto" onclick="gradeAdjustments()">仕訳採点</button>
-      <button class="control-btn" id="giveUpBtn" style="width:auto" onclick="giveUp()">ギブアップ（解答表示）</button>
+      <button class="main-btn" id="gradeAdjBtn" onclick="gradeAdjustments()">仕訳採点</button>
+      <button class="control-btn" id="giveUpBtn" onclick="giveUp()">ギブアップ</button>
     </div>
 
-    <div class="section-title" id="mainSectionTitle">精算表（8桁）</div>
-    <div id="area_seisan">
-      <table class="seisan8">
-        <thead>
-          <tr>
-            <th rowspan="2">勘定科目</th>
-            <th colspan="2">残高試算表</th>
-            <th colspan="2">整理記入</th>
-            <th colspan="2">損益計算書</th>
-            <th colspan="2">貸借対照表</th>
-          </tr>
-          <tr>
-            <th>借方</th><th>貸方</th>
-            <th>借方</th><th>貸方</th>
-            <th>借方</th><th>貸方</th>
-            <th>借方</th><th>貸方</th>
-          </tr>
-        </thead>
-        <tbody id="seisanBody"></tbody>
-      </table>
+    <!-- モード別表示 -->
+    <div class="section-title" id="mainSectionTitle"></div>
 
-      <div style="text-align:center;margin-top:10px;">
-        <button class="control-btn" style="width:auto" onclick="applyAdjustments()">精算表に反映</button>
-        <button class="control-btn" style="width:auto" onclick="checkStub()">答え合わせ</button>
-      </div>
-
-      <p id="result"></p>
+    <div id="area_seisan" class="hidden">
+      <!-- 精算表 -->
     </div>
+
+    <div id="area_pl" class="hidden">
+      <!-- 損益計算書 -->
+    </div>
+
+    <p id="result"></p>
   </div>
 
   <div id="area_pl" class="hidden">
@@ -640,26 +628,30 @@ function resetPhase(){
 function start(){
   if(!currentId) return;
 
-  phase = 1; // PHASE1
+  phase = 1;
   startMode = document.getElementById("tabPL").classList.contains("active")
     ? "pl" : "seisan";
 
   document.getElementById("workArea").classList.remove("hidden");
 
   buildAcctDictionaries();
+
+  // ★ ここが今回の肝：必ずTBを表示
+  renderTBBalanceList();
+
+  // 決算整理仕訳
   renderAdjInputs();
 
   if(startMode === "seisan"){
     document.getElementById("area_seisan").classList.remove("hidden");
+    document.getElementById("area_pl").classList.add("hidden");
+    document.getElementById("mainSectionTitle").textContent = "精算表（8桁）";
     renderSeisanTable(null);
-  }
-
-  if(startMode === "pl"){
+  }else{
     document.getElementById("area_pl").classList.remove("hidden");
-    document.getElementById("plBalanceArea").classList.remove("hidden");
-
-    renderPLBalanceList();     // 残高試算表
-    renderPLWorksheet();       // ★ここで「整理前PL」が出る
+    document.getElementById("area_seisan").classList.add("hidden");
+    document.getElementById("mainSectionTitle").textContent = "損益計算書";
+    renderPLWorksheet();   // ← Phase1：整理前PL
   }
 
   document.getElementById("result").textContent = "";
@@ -680,6 +672,27 @@ function buildAcctDictionaries(){
     if(m.label) acctLabel[m.acct] = m.label;
   });
 
+}
+
+function renderTBBalanceList(){
+  const area = document.getElementById("tbBalanceList");
+  if(!area) return;
+  area.innerHTML = "";
+
+  TB
+    .filter(r => r.id === currentId)
+    .forEach(r => {
+      const net = r.debit - r.credit;
+      const amt = Math.abs(net);
+      if(amt === 0) return;
+
+      const div = document.createElement("div");
+      div.className = "bal-item";
+      div.innerHTML =
+        `<span class="bal-name">${escapeHtml(r.acct)}</span>` +
+        `<span class="bal-amt">${fmt(amt)}</span>`;
+      area.appendChild(div);
+    });
 }
 
 /* =========================================================
@@ -761,7 +774,7 @@ function gradeAdjustments(){
   const notes = SEIRI.filter(x => x.id === currentId);
   let allOk = true;
 
-  // 1) 各付記事項の採点（枠だけ色付け）
+  // ① 各付記事項の採点（正解/不正解を枠だけで表示）
   notes.forEach((n, idx) => {
     const correct = parseAnswerRaw(n.answerRaw);
     const rowCount = Math.max(correct.D.length, correct.C.length, 1);
@@ -769,11 +782,12 @@ function gradeAdjustments(){
 
     const ok = equalMulti(user.D, correct.D) && equalMulti(user.C, correct.C);
     markBlock(idx, ok);
-
     if(!ok) allOk = false;
   });
 
   const res = document.getElementById("result");
+
+  // 不正解があればここで終了
   if(!allOk){
     if(res){
       res.className = "";
@@ -782,48 +796,37 @@ function gradeAdjustments(){
     return;
   }
 
-  // 2) ここまで来たら「仕訳は全問正解」 → Phase2へ進める準備
-  //    整理記入マップを作って、精算表やPLに反映する
+  // ② 仕訳が全問正解 → 整理記入を集計
   const adjMap = buildAdjMapFromInputs();
+  currentAdjMap = adjMap; // Phase2表示（精算表/PL）で使う
 
-  // ★念のため：Phase2で使うために保持（renderSeisanTable内でもセットしているが二重でもOK）
-  currentAdjMap = adjMap;
-
-  // 3) 先に Phase2 にする（これが重要）
-  //    ※これより前に renderPLWorksheet() を呼ぶと、phase<2 判定で隠されたままになることがある
+  // ③ ★ここが重要：先にPhase2へ移行（この後の描画は“Phase2として”行う）
   phase = 2;
 
-  // 4) 決算整理仕訳入力はロック
+  // ④ 決算整理仕訳入力をロック
   lockAdjustmentInputs();
 
-  // 5) 精算表を整理記入反映で再描画
+  // ⑤ 精算表を整理記入反映で再描画
   renderSeisanTable(adjMap);
 
-  // 6) Phase2（精算表のPL/BS同時入力欄）を表示
-  //    ※あなたの精算表はここで Input が生成される設計
+  // ⑥ 精算表のPL/BS入力欄を表示（デコイ表示含む）
   showOutputInputFields();
 
-  // 7) PL側も「整理後」で再描画（PLタブを実装している場合）
-  //    これらの関数が存在しない構成もあり得るので、存在チェックして安全に呼ぶ
+  // ⑦ PL側の再描画（存在する場合のみ安全に呼ぶ）
+  //    ※あなたのPLは「残高一覧」「PL表」があるので、ここで整理後に更新されます
   if(typeof renderPLBalanceList === "function"){
-    renderPLBalanceList(); // 残高一覧を整理後に更新
+    renderPLBalanceList();
   }
   if(typeof renderPLWorksheet === "function"){
-    renderPLWorksheet();   // PL（整理後）を再描画（※あなたの実装に応じて）
+    renderPLWorksheet();
   }
 
-  // 8) ボタン状態
+  // ⑧ ボタン状態（Phase1操作を無効化）
   document.getElementById("gradeAdjBtn")?.setAttribute("disabled","disabled");
   document.getElementById("giveUpBtn")?.setAttribute("disabled","disabled");
   setPhase2CheckVisible(true);
 
-  // 9) ヒント文（任意）
-  const hint = document.getElementById("plHint");
-  if(hint){
-    hint.textContent = "〇 仕訳が全て正解！決算整理後の損益計算書／精算表を作成できます。";
-  }
-
-  // 10) メッセージ
+  // ⑨ 画面メッセージ
   if(res){
     res.className = "";
     res.textContent =
@@ -831,13 +834,19 @@ function gradeAdjustments(){
       "次は（精算表）PL/BSへ転記し、当期純利益が一致するか確認しましょう。";
   }
 
-  // 11) 新規科目の分類不足があれば注意喚起（あなたの既存関数）
-  warnUnknownExtraAccounts();
+  // ⑩ 新規科目の分類不足があれば注意（既存関数）
+  if(typeof warnUnknownExtraAccounts === "function"){
+    warnUnknownExtraAccounts();
+  }
 
-  // 12) もし「損益計算書タブが選択されている状態で開始していた」なら、正解後にPLへ自動表示
-  //     ※ startMode を持っていない場合でも、現在アクティブなタブで判断してOK
-  const plActive = document.getElementById("tabPL")?.classList.contains("active");
-  if(plActive && typeof showTab === "function"){
+  // ⑪ ★損益計算書（PL）で学習している場合は、自動でPLタブへ切替
+  //    startMode を持っていればそれを優先、無ければ現在のタブ状態で判断
+  const hasStartMode = (typeof startMode !== "undefined");
+  const plLearning = hasStartMode
+    ? (startMode === "pl")
+    : (document.getElementById("tabPL")?.classList.contains("active"));
+
+  if(plLearning && typeof showTab === "function"){
     showTab("pl");
   }
 }

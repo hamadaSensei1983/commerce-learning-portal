@@ -623,53 +623,43 @@ function setupProblemSelect(){
 }
 
 function resetPhase(){
-  phase = 1;
+  phase = 0; // INIT
 
   document.getElementById("workArea")?.classList.add("hidden");
+
   document.getElementById("area_seisan")?.classList.add("hidden");
   document.getElementById("area_pl")?.classList.add("hidden");
+
   document.getElementById("plBalanceArea")?.classList.add("hidden");
-  document.getElementById("adjInputArea").innerHTML = "";
-  document.getElementById("seisanBody").innerHTML = "";
-  document.getElementById("plBalanceList").innerHTML = "";
   document.getElementById("plWorksheetArea")?.classList.add("hidden");
+
   document.getElementById("result").textContent = "";
-
-  document.getElementById("gradeAdjBtn")?.removeAttribute("disabled");
-  document.getElementById("giveUpBtn")?.removeAttribute("disabled");
-
-  document.querySelectorAll(".note-block").forEach(b => b.classList.remove("ok","ng"));
 }
 
 /* ---------- 開始 ---------- */
 function start(){
   if(!currentId) return;
 
+  phase = 1; // PHASE1
+  startMode = document.getElementById("tabPL").classList.contains("active")
+    ? "pl" : "seisan";
 
-  // ★開始時のモードを記録
-  startMode = document.getElementById("tabPL")?.classList.contains("active")
-    ? "pl"
-    : "seisan";
-
-  document.getElementById("workArea")?.classList.remove("hidden");
-
-  document.getElementById("plBalanceArea")?.classList.remove("hidden");
-
-  const tbRows = TB.filter(x=>x.id===currentId);
-  baseAccounts = tbRows.map(x=>x.acct);
-  extraAccounts = new Set();
+  document.getElementById("workArea").classList.remove("hidden");
 
   buildAcctDictionaries();
   renderAdjInputs();
-  renderSeisanTable(null);
-  renderPLBalanceList();
-  renderPLWorksheet();
 
-  // ★ 選択中のタブに応じて表示
-  if(document.getElementById("tabPL").classList.contains("active")){
-    showTab("pl");
-  }else{
-    showTab("seisan");
+  if(startMode === "seisan"){
+    document.getElementById("area_seisan").classList.remove("hidden");
+    renderSeisanTable(null);
+  }
+
+  if(startMode === "pl"){
+    document.getElementById("area_pl").classList.remove("hidden");
+    document.getElementById("plBalanceArea").classList.remove("hidden");
+
+    renderPLBalanceList();     // 残高試算表
+    renderPLWorksheet();       // ★ここで「整理前PL」が出る
   }
 
   document.getElementById("result").textContent = "";
@@ -765,56 +755,91 @@ function buildSideRows(noteIndex, side, candidates, rowCount){
    Phase1：採点（答えは出さず枠のみ）
 ========================================================= */
 function gradeAdjustments(){
-  if(phase!==1) return;
+  // Phase1（決算整理仕訳）の採点だけを担当
+  if(phase !== 1) return;
 
-  const notes = SEIRI.filter(x=>x.id===currentId);
+  const notes = SEIRI.filter(x => x.id === currentId);
   let allOk = true;
 
-  notes.forEach((n, idx)=>{
+  // 1) 各付記事項の採点（枠だけ色付け）
+  notes.forEach((n, idx) => {
     const correct = parseAnswerRaw(n.answerRaw);
     const rowCount = Math.max(correct.D.length, correct.C.length, 1);
-    const user = collectUser(idx,rowCount);
+    const user = collectUser(idx, rowCount);
 
     const ok = equalMulti(user.D, correct.D) && equalMulti(user.C, correct.C);
     markBlock(idx, ok);
-    if(!ok) allOk=false;
+
+    if(!ok) allOk = false;
   });
 
   const res = document.getElementById("result");
   if(!allOk){
-    res.textContent = "× 仕訳に誤りがあります。赤枠の箇所を見直して、もう一度「仕訳採点」を押してください。";
+    if(res){
+      res.className = "";
+      res.textContent = "× 仕訳に誤りがあります。赤枠の箇所を見直して、もう一度「仕訳採点」を押してください。";
+    }
     return;
   }
 
+  // 2) ここまで来たら「仕訳は全問正解」 → Phase2へ進める準備
+  //    整理記入マップを作って、精算表やPLに反映する
   const adjMap = buildAdjMapFromInputs();
-  renderSeisanTable(adjMap);
-  lockAdjustmentInputs();
 
+  // ★念のため：Phase2で使うために保持（renderSeisanTable内でもセットしているが二重でもOK）
+  currentAdjMap = adjMap;
+
+  // 3) 先に Phase2 にする（これが重要）
+  //    ※これより前に renderPLWorksheet() を呼ぶと、phase<2 判定で隠されたままになることがある
   phase = 2;
 
-  renderPLBalanceList();
-  renderPLWorksheet();
+  // 4) 決算整理仕訳入力はロック
+  lockAdjustmentInputs();
 
-  // ヒント文も更新（任意）
-  const hint = document.getElementById("plHint");
-  if(hint) hint.textContent = "〇 仕訳が全て正解！損益計算書の作成ができるようになりました（PLタブへどうぞ）。";
+  // 5) 精算表を整理記入反映で再描画
+  renderSeisanTable(adjMap);
 
-  // ★PLとBSを同時に入力できるよう、両方の入力欄を出す
+  // 6) Phase2（精算表のPL/BS同時入力欄）を表示
+  //    ※あなたの精算表はここで Input が生成される設計
   showOutputInputFields();
 
+  // 7) PL側も「整理後」で再描画（PLタブを実装している場合）
+  //    これらの関数が存在しない構成もあり得るので、存在チェックして安全に呼ぶ
+  if(typeof renderPLBalanceList === "function"){
+    renderPLBalanceList(); // 残高一覧を整理後に更新
+  }
+  if(typeof renderPLWorksheet === "function"){
+    renderPLWorksheet();   // PL（整理後）を再描画（※あなたの実装に応じて）
+  }
+
+  // 8) ボタン状態
   document.getElementById("gradeAdjBtn")?.setAttribute("disabled","disabled");
   document.getElementById("giveUpBtn")?.setAttribute("disabled","disabled");
   setPhase2CheckVisible(true);
 
-  res.textContent = "〇 仕訳は全て正解です。整理記入に反映しました。次はPLとBSを同時に入力し、当期純利益が一致するか確認しましょう。";
-
-  warnUnknownExtraAccounts();
-
-  // ★開始時にPLを選んでいたなら、自動でPL表示
-  if(document.getElementById("tabPL")?.classList.contains("active")){
-    showTab("pl");
+  // 9) ヒント文（任意）
+  const hint = document.getElementById("plHint");
+  if(hint){
+    hint.textContent = "〇 仕訳が全て正解！決算整理後の損益計算書／精算表を作成できます。";
   }
 
+  // 10) メッセージ
+  if(res){
+    res.className = "";
+    res.textContent =
+      "〇 仕訳は全て正解です。整理記入に反映しました。\n" +
+      "次は（精算表）PL/BSへ転記し、当期純利益が一致するか確認しましょう。";
+  }
+
+  // 11) 新規科目の分類不足があれば注意喚起（あなたの既存関数）
+  warnUnknownExtraAccounts();
+
+  // 12) もし「損益計算書タブが選択されている状態で開始していた」なら、正解後にPLへ自動表示
+  //     ※ startMode を持っていない場合でも、現在アクティブなタブで判断してOK
+  const plActive = document.getElementById("tabPL")?.classList.contains("active");
+  if(plActive && typeof showTab === "function"){
+    showTab("pl");
+  }
 }
 
 function giveUp(){
@@ -1160,105 +1185,19 @@ function renderPLWorksheet(){
   const checkWrap = document.getElementById("plCheckWrap");
   if(!wrap || !body) return;
 
-  // Phase1でも表示する（開始後に出す想定）
   wrap.classList.remove("hidden");
   body.innerHTML = "";
 
-  // 並び順：TB.csv の順を維持（＋新規科目は後ろ）
-  const ordered = TB.filter(r => r.id === currentId).map(r => r.acct);
-  [...extraAccounts].forEach(a => { if(!ordered.includes(a)) ordered.push(a); });
-
-  const expenses = ordered.filter(a => acctClass[a] === "費用");
-  const revenues = ordered.filter(a => acctClass[a] === "収益");
-  const rows = Math.max(expenses.length, revenues.length, 1);
-
-  // ===== Phase1：決算整理前PL（表示専用）=====
-  if(phase < 2){
+  if(phase === 1){
     if(checkWrap) checkWrap.classList.add("hidden");
-
-    let sumE = 0, sumR = 0;
-
-    for(let i=0;i<rows;i++){
-      const e = expenses[i];
-      const r = revenues[i];
-
-      const eAmt = e ? (TB.find(x=>x.id===currentId && x.acct===e)?.debit ?? 0) : 0;
-      const rAmt = r ? (TB.find(x=>x.id===currentId && x.acct===r)?.credit ?? 0) : 0;
-
-      sumE += eAmt;
-      sumR += rAmt;
-
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td class="name">${e ? escapeHtml(displayNamePL(e)) : ""}</td>
-        <td>${eAmt ? fmt(eAmt) : ""}</td>
-        <td class="name">${r ? escapeHtml(displayNamePL(r)) : ""}</td>
-        <td>${rAmt ? fmt(rAmt) : ""}</td>
-      `;
-      body.appendChild(tr);
-    }
-
-    // 当期純利益（表示）
-    const net = sumR - sumE;
-    const ni = Math.abs(net);
-    const trNI = document.createElement("tr");
-    trNI.innerHTML = `
-      <td class="name">当期純利益（または純損失）</td>
-      <td>${net > 0 ? fmt(ni) : ""}</td>
-      <td class="name">当期純利益（または純損失）</td>
-      <td>${net < 0 ? fmt(ni) : ""}</td>
-    `;
-    body.appendChild(trNI);
-
-    // 合計
-    const total = Math.max(sumE, sumR) + ni;
-    const trTot = document.createElement("tr");
-    trTot.innerHTML = `
-      <td class="name" style="text-align:right;font-weight:bold;">合計</td>
-      <td style="font-weight:bold;">${fmt(total)}</td>
-      <td class="name" style="text-align:right;font-weight:bold;">合計</td>
-      <td style="font-weight:bold;">${fmt(total)}</td>
-    `;
-    body.appendChild(trTot);
-
+    renderPLBeforeAdjustment();   // ← 表示専用
     return;
   }
 
-  // ===== Phase2：決算整理後PL（入力して採点）=====
-  if(checkWrap) checkWrap.classList.remove("hidden");
-
-  for(let i=0;i<rows;i++){
-    const e = expenses[i];
-    const r = revenues[i];
-
-    const tr = document.createElement("tr");
-
-    tr.innerHTML += `<td class="name">${e ? escapeHtml(displayNamePL(e)) : ""}</td>`;
-    tr.innerHTML += `<td>${e ? `<input class="money" data-role="pl" data-acct="${escapeHtml(e)}" data-kind="expense" inputmode="numeric">` : ""}</td>`;
-
-    tr.innerHTML += `<td class="name">${r ? escapeHtml(displayNamePL(r)) : ""}</td>`;
-    tr.innerHTML += `<td>${r ? `<input class="money" data-role="pl" data-acct="${escapeHtml(r)}" data-kind="revenue" inputmode="numeric">` : ""}</td>`;
-
-    body.appendChild(tr);
+  if(phase === 2){
+    if(checkWrap) checkWrap.classList.remove("hidden");
+    renderPLAfterAdjustment();    // ← 入力＋採点
   }
-
-  // 当期純利益（入力欄：左右）
-  const trNI = document.createElement("tr");
-  trNI.innerHTML = `
-    <td class="name">当期純利益（または純損失）</td>
-    <td><input class="money" id="plNI_left" inputmode="numeric"></td>
-    <td class="name">当期純利益（または純損失）</td>
-    <td><input class="money" id="plNI_right" inputmode="numeric"></td>
-  `;
-  body.appendChild(trNI);
-
-  // 合計（表示だけ）
-  const trTot = document.createElement("tr");
-  trTot.innerHTML = `
-    <td class="name" style="text-align:right;font-weight:bold;">合計</td><td></td>
-    <td class="name" style="text-align:right;font-weight:bold;">合計</td><td></td>
-  `;
-  body.appendChild(trTot);
 }
 
 // Phase2：損益計算書の答え合わせ（赤枠＋褒めちぎり）

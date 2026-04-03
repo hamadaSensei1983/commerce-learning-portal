@@ -431,10 +431,10 @@
           <tbody id="plWorksheetBody"></tbody>
         </table>
 
-        <div style="text-align:center;margin-top:10px;">
-          <button class="control-btn" style="width:auto" onclick="checkPLWorksheet()">答え合わせ</button>
+        <div id="plCheckWrap" class="hidden" style="text-align:center;margin-top:10px;">
+          <button class="control-btn" style="width:auto" onclick="checkPLWorksheet()">答え合わせ
+          </button>
         </div>
-      </div>
 
       <div id="plHint" style="text-align:center;margin-top:8px;color:#666;font-size:13px;">
         ※決算整理仕訳が全て正解すると、損益計算書の作成ができるようになります。
@@ -789,6 +789,9 @@ function gradeAdjustments(){
   const adjMap = buildAdjMapFromInputs();
   renderSeisanTable(adjMap);
   lockAdjustmentInputs();
+
+  phase = 2;
+
   renderPLBalanceList();
   renderPLWorksheet();
 
@@ -799,7 +802,6 @@ function gradeAdjustments(){
   // ★PLとBSを同時に入力できるよう、両方の入力欄を出す
   showOutputInputFields();
 
-  phase = 2;
   document.getElementById("gradeAdjBtn")?.setAttribute("disabled","disabled");
   document.getElementById("giveUpBtn")?.setAttribute("disabled","disabled");
   setPhase2CheckVisible(true);
@@ -809,10 +811,8 @@ function gradeAdjustments(){
   warnUnknownExtraAccounts();
 
   // ★開始時にPLを選んでいたなら、自動でPL表示
-  if(startMode === "pl"){
+  if(document.getElementById("tabPL")?.classList.contains("active")){
     showTab("pl");
-  }else{
-    showTab("seisan");
   }
 
 }
@@ -1106,12 +1106,17 @@ function adjustedNetForPL(acct){
   return base + (adj.d - adj.c);
 }
 
+
+// 残高試算表（TB表示）用：売上・仕入は変換しない
+function displayNameTB(acct){
+  return acctLabel[acct] || acct;
+}
+
 // 表示名（labelを優先し、売上/仕入の置換も反映）
 function displayNamePL(acct){
-  const name = acctLabel[acct] || acct;
-  if(name === "売上") return "売上高";
-  if(name === "仕入") return "売上原価";
-  return name;
+  if(acct === "売上") return "売上高";
+  if(acct === "仕入") return "売上原価";
+  return acctLabel[acct] || acct;
 }
 
 // 残高一覧：TBの残高（Phase1）→ 整理後残高（Phase2）へ自動切替
@@ -1142,7 +1147,7 @@ function renderPLBalanceList(){
     const div = document.createElement("div");
     div.className = "bal-item";
     div.innerHTML =
-      `<span class="bal-name">${escapeHtml(displayNamePL(acct))}</span>` +
+      `<span class="bal-name">${escapeHtml(displayNamePL(x.acct))}</span>`
       `<span class="bal-amt">${fmt(amt)}</span>`;
     area.appendChild(div);
   });
@@ -1152,34 +1157,75 @@ function renderPLBalanceList(){
 function renderPLWorksheet(){
   const wrap = document.getElementById("plWorksheetArea");
   const body = document.getElementById("plWorksheetBody");
+  const checkWrap = document.getElementById("plCheckWrap");
   if(!wrap || !body) return;
 
-  // Phase2になるまで隠す
-  if(phase < 2){
-    wrap.classList.add("hidden");
-    body.innerHTML = "";
-    return;
-  }
+  // Phase1でも表示する（開始後に出す想定）
   wrap.classList.remove("hidden");
   body.innerHTML = "";
 
-  const allAccts = [...new Set([
-    ...baseAccounts,
-    ...[...extraAccounts]
-  ])];
-
-  const ordered = TB
-    .filter(r => r.id === currentId)
-    .map(r => r.acct);
-
-  // 新規科目は後ろに追加
-  [...extraAccounts].forEach(a=>{
-    if(!ordered.includes(a)) ordered.push(a);
-  });
+  // 並び順：TB.csv の順を維持（＋新規科目は後ろ）
+  const ordered = TB.filter(r => r.id === currentId).map(r => r.acct);
+  [...extraAccounts].forEach(a => { if(!ordered.includes(a)) ordered.push(a); });
 
   const expenses = ordered.filter(a => acctClass[a] === "費用");
   const revenues = ordered.filter(a => acctClass[a] === "収益");
   const rows = Math.max(expenses.length, revenues.length, 1);
+
+  // ===== Phase1：決算整理前PL（表示専用）=====
+  if(phase < 2){
+    if(checkWrap) checkWrap.classList.add("hidden");
+
+    let sumE = 0, sumR = 0;
+
+    for(let i=0;i<rows;i++){
+      const e = expenses[i];
+      const r = revenues[i];
+
+      const eAmt = e ? (TB.find(x=>x.id===currentId && x.acct===e)?.debit ?? 0) : 0;
+      const rAmt = r ? (TB.find(x=>x.id===currentId && x.acct===r)?.credit ?? 0) : 0;
+
+      sumE += eAmt;
+      sumR += rAmt;
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td class="name">${e ? escapeHtml(displayNamePL(e)) : ""}</td>
+        <td>${eAmt ? fmt(eAmt) : ""}</td>
+        <td class="name">${r ? escapeHtml(displayNamePL(r)) : ""}</td>
+        <td>${rAmt ? fmt(rAmt) : ""}</td>
+      `;
+      body.appendChild(tr);
+    }
+
+    // 当期純利益（表示）
+    const net = sumR - sumE;
+    const ni = Math.abs(net);
+    const trNI = document.createElement("tr");
+    trNI.innerHTML = `
+      <td class="name">当期純利益（または純損失）</td>
+      <td>${net > 0 ? fmt(ni) : ""}</td>
+      <td class="name">当期純利益（または純損失）</td>
+      <td>${net < 0 ? fmt(ni) : ""}</td>
+    `;
+    body.appendChild(trNI);
+
+    // 合計
+    const total = Math.max(sumE, sumR) + ni;
+    const trTot = document.createElement("tr");
+    trTot.innerHTML = `
+      <td class="name" style="text-align:right;font-weight:bold;">合計</td>
+      <td style="font-weight:bold;">${fmt(total)}</td>
+      <td class="name" style="text-align:right;font-weight:bold;">合計</td>
+      <td style="font-weight:bold;">${fmt(total)}</td>
+    `;
+    body.appendChild(trTot);
+
+    return;
+  }
+
+  // ===== Phase2：決算整理後PL（入力して採点）=====
+  if(checkWrap) checkWrap.classList.remove("hidden");
 
   for(let i=0;i<rows;i++){
     const e = expenses[i];
@@ -1187,34 +1233,32 @@ function renderPLWorksheet(){
 
     const tr = document.createElement("tr");
 
-    // 費用（左）
     tr.innerHTML += `<td class="name">${e ? escapeHtml(displayNamePL(e)) : ""}</td>`;
     tr.innerHTML += `<td>${e ? `<input class="money" data-role="pl" data-acct="${escapeHtml(e)}" data-kind="expense" inputmode="numeric">` : ""}</td>`;
 
-    // 収益（右）
     tr.innerHTML += `<td class="name">${r ? escapeHtml(displayNamePL(r)) : ""}</td>`;
     tr.innerHTML += `<td>${r ? `<input class="money" data-role="pl" data-acct="${escapeHtml(r)}" data-kind="revenue" inputmode="numeric">` : ""}</td>`;
 
     body.appendChild(tr);
   }
 
-  // 当期純利益（または純損失）：左右どちらにも入力欄（考えさせる）
+  // 当期純利益（入力欄：左右）
   const trNI = document.createElement("tr");
   trNI.innerHTML = `
     <td class="name">当期純利益（または純損失）</td>
-    <td><input class="money" id="plNI_left"  inputmode="numeric"></td>
+    <td><input class="money" id="plNI_left" inputmode="numeric"></td>
     <td class="name">当期純利益（または純損失）</td>
     <td><input class="money" id="plNI_right" inputmode="numeric"></td>
   `;
   body.appendChild(trNI);
 
   // 合計（表示だけ）
-  const trTotal = document.createElement("tr");
-  trTotal.innerHTML = `
+  const trTot = document.createElement("tr");
+  trTot.innerHTML = `
     <td class="name" style="text-align:right;font-weight:bold;">合計</td><td></td>
     <td class="name" style="text-align:right;font-weight:bold;">合計</td><td></td>
   `;
-  body.appendChild(trTotal);
+  body.appendChild(trTot);
 }
 
 // Phase2：損益計算書の答え合わせ（赤枠＋褒めちぎり）

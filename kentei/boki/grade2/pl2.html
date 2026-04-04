@@ -931,15 +931,6 @@ function checkPLWorksheet(){
     if(kind==="revenue") expR += exp;
   });
 
-// === プルダウン（新規費用・新規収益）の採点 ===
-  function buildExpectedPairs(list){
-    // 期待：各科目の整理後残高（絶対値）
-    return list.map(acct => ({
-      acct,
-      amt: Math.abs(adjustedNetForPL(acct))
-    }));
-  }
-
   function buildUserPairs(kind, list){
     // kind: "expense" or "revenue"
     const pairs = [];
@@ -1043,11 +1034,21 @@ function checkPLWorksheet(){
 
 
   // 当期純利益（収益-費用）
-  const net = expR - expE;
+
+  // 新規（プルダウン）科目の「期待金額」合計（=整理後残高の絶対値）
+  const extraExpSum = extraExpenses.reduce((s,a)=> s + Math.abs(adjustedNetForPL(a)), 0);
+  const extraRevSum = extraRevenues.reduce((s,a)=> s + Math.abs(adjustedNetForPL(a)), 0);
+
+  // 固定＋新規 を合算した「本来の費用合計・収益合計」
+  const totalExp = expE + extraExpSum;
+  const totalRev = expR + extraRevSum;
+
+  // 当期純利益（収益-費用）
+  const net = totalRev - totalExp;
   const expectedNI = Math.abs(net);
 
-  const left = document.getElementById("plNI_left");
-  const right = document.getElementById("plNI_right");
+  // 損益計算書の合計（左右は必ず一致）＝費用合計と収益合計の大きい方
+  const expectedTotal = Math.max(totalExp, totalRev);
 
   function filled(el){ return el && String(el.value).trim() !== ""; }
 

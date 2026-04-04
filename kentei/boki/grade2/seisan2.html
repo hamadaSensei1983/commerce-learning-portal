@@ -337,20 +337,13 @@ function normalizeText(s){
 
 function splitCandidates(s){
   return String(s ?? "")
-    .replace(/\\\r?\n/g,"\n")
-    .replace(/\r?\n/g,"\n")
-    .replace(/[|]/g, "\n")
-    .split("\n")
-    .map(x=>x.trim())
+    .split("|")          // ★ 半角 | を区切りに
+    .map(x => x.trim())
     .filter(Boolean);
 }
 
 function parseAnswerRaw(raw){
-  raw = String(raw ?? "")
-    .replace(/\\\r?\n/g,"\n")
-    .replace(/\r?\n/g,"\n")
-    .replace(/｜/g,"\n")
-    .trim();
+  raw = String(raw ?? "").trim();
 
   const parts = raw.split(";");
   const dPart = (parts[0] ?? "").trim();
@@ -358,16 +351,21 @@ function parseAnswerRaw(raw){
 
   function parseSide(str){
     if(!str) return [];
-    return str.split("\n")
-      .map(x=>x.trim())
+    return str
+      .split("|")              // ★ 行区切りは |
+      .map(x => x.trim())
       .filter(Boolean)
-      .map(line=>{
+      .map(line => {
         const [a,m] = line.split(":").map(z=>z.trim());
-        return {acct:a, amt:num(m)};
+        return { acct: a, amt: num(m) };
       })
-      .filter(x=>x.acct && x.amt>=0);
+      .filter(x => x.acct && x.amt >= 0);
   }
-  return { D: parseSide(dPart), C: parseSide(cPart) };
+
+  return {
+    D: parseSide(dPart),
+    C: parseSide(cPart)
+  };
 }
 
 /* =========================================================
@@ -466,7 +464,7 @@ function renderAdjInputs(){
     const rowCount = Math.max(
       correct.D.length,
       correct.C.length,
-      n.candidates.length >= 2 ? 2 : 1
+      1
     );
     const block = document.createElement("div");
     block.className = "note-block";

@@ -56,6 +56,79 @@
   font-size:14px;
 }
 
+/* ===== 決算整理仕訳入力エリア（seisan2.html と同一） ===== */
+.adj-wrap{
+  border:2px solid #d8ead8;
+  background:#f9fdf9;
+  border-radius:10px;
+  padding:10px;
+  max-width:900px;
+  margin:0 auto;
+}
+.note-block{
+  background:#fff;
+  border:1px solid #ddd;
+  border-radius:10px;
+  padding:8px;
+  margin:8px 0;
+}
+.note-q{
+  font-weight:bold;
+  margin-bottom:8px;
+  white-space:pre-line;
+}
+
+/* 左右仕訳入力 */
+.jrnl{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px;
+  margin-top:8px;
+}
+.jrnl-side{
+  background:#fff;
+  border:1px solid #ddd;
+  border-radius:10px;
+  padding:10px;
+}
+.jrnl-title{
+  font-size:11px;
+  padding:1px 0;
+  margin-bottom:4px;
+  line-height:1.0;
+}
+.jrnl-row{
+  display:grid;
+  grid-template-columns:1fr 95px;
+  gap:6px;
+  margin:3px 0;
+}
+.jrnl-row select{
+  width:100%;
+  min-width:0;
+}
+.jrnl-row input{
+  width:95px;
+  text-align:right;
+}
+.jrnl-row select,
+.jrnl-row input{
+  padding:3px 4px;
+  font-size:12.5px;
+  height:28px;
+  box-sizing:border-box;
+}
+
+/* 採点表示 */
+.note-block.ok{
+  border:2px solid #2e7d32 !important;
+  background:#e8f5e9;
+}
+.note-block.ng{
+  border:2px solid #c62828 !important;
+  background:#ffebee;
+}
+
 /* PL */
 table.pl-table{
   width:100%;
@@ -77,9 +150,6 @@ table.pl-table td.name{ text-align:left; }
   width:100%;
   text-align:right;
 }
-
-.note-block.ok{ border:2px solid #2e7d32; background:#e8f5e9; }
-.note-block.ng{ border:2px solid #c62828; background:#ffebee; }
 
 .wrong{ outline:3px solid #e53935; }
 .praise{
@@ -652,17 +722,12 @@ function renderPLBefore(){
   const revenues = ordered.filter(a=>acctClass[a]==="収益");
   const rows = Math.max(expenses.length, revenues.length, 1);
 
-  let sumE=0, sumR=0;
-
   for(let i=0;i<rows;i++){
     const e = expenses[i];
     const r = revenues[i];
 
     const eAmt = e ? (TB.find(x=>x.id===currentId && x.acct===e)?.debit ?? 0) : 0;
     const rAmt = r ? (TB.find(x=>x.id===currentId && x.acct===r)?.credit ?? 0) : 0;
-
-    sumE += eAmt;
-    sumR += rAmt;
 
     const tr = document.createElement("tr");
     tr.innerHTML = `
@@ -674,27 +739,7 @@ function renderPLBefore(){
     body.appendChild(tr);
   }
 
-  const net = sumR - sumE;
-  const ni = Math.abs(net);
-
-  const trNI = document.createElement("tr");
-  trNI.innerHTML = `
-    <td class="name">当期純利益（または純損失）</td>
-    <td>${net>0 ? fmt(ni) : ""}</td>
-    <td class="name">当期純利益（または純損失）</td>
-    <td>${net<0 ? fmt(ni) : ""}</td>
-  `;
-  body.appendChild(trNI);
-
-  const total = Math.max(sumE, sumR) + ni;
-  const trTot = document.createElement("tr");
-  trTot.innerHTML = `
-    <td class="name" style="text-align:right;font-weight:bold;">合計</td>
-    <td style="font-weight:bold;">${fmt(total)}</td>
-    <td class="name" style="text-align:right;font-weight:bold;">合計</td>
-    <td style="font-weight:bold;">${fmt(total)}</td>
-  `;
-  body.appendChild(trTot);
+  // ✅ Phase1では「当期純利益・合計」は表示しない
 }
 
 /* Phase2：整理後PL（入力） */

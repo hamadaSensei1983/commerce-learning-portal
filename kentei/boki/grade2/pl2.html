@@ -124,7 +124,30 @@
 
 /* PL */
 /* PL列幅：科目列も固定して“広がりすぎ”を防ぐ */
-table.pl-table{ table-layout:fixed; }
+/* ===== PLテーブルを“表”として見せる（罫線復活） ===== */
+table.pl-table{
+  width:100%;
+  border-collapse:collapse;
+  table-layout:fixed;
+  font-size:14px;
+  max-width:920px;
+  margin:0 auto;
+}
+table.pl-table th, table.pl-table td{
+  border:1px solid #e53935;
+  padding:6px;
+  vertical-align:middle;
+}
+table.pl-table th{
+  background:#ffebee;
+  text-align:center;
+}
+table.pl-table td{
+  text-align:right;
+}
+table.pl-table td.name{
+  text-align:left;
+}
 
 table.pl-table .col-amt{ width:120px; }  /* 金額列 */
 table.pl-table .col-name{ width:260px; } /* 科目列（←ここを好みで 220〜280 に調整） */
@@ -878,7 +901,7 @@ function renderPLAfter(){
   Phase2：PL答え合わせ（赤枠＋褒め）
 ========================================================= */
 function clearWrong(){
-  document.querySelectorAll("input.wrong").forEach(x=>x.classList.remove("wrong"));
+  document.querySelectorAll(".wrong").forEach(el => el.classList.remove("wrong"));
 }
 
 function checkPLWorksheet(){

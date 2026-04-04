@@ -756,8 +756,10 @@ function renderSeisanTable(adjMap){
   trTotal.className = "total-row";
   trTotal.innerHTML = `
     <td style="text-align:right;">合計</td>
-    <td></td><td></td>
-    <td></td><td></td>
+    <td>${fmt(tbSumD)}</td>
+    <td>${fmt(tbSumC)}</td>
+    <td>${fmt(adjSumD)}</td>
+    <td>${fmt(adjSumC)}</td>
     <td></td><td></td>
     <td></td><td></td>
   `;

@@ -258,6 +258,12 @@ table.pl-table select.pl-extra-select{
       <button class="control-btn" onclick="checkPLWorksheet()">答え合わせ</button>
     </div>
 
+    <div style="text-align:center;margin-top:10px;">
+      <button class="main-btn hidden" id="nextProblemBtn" onclick="nextProblem()">
+        次の問題へ
+      </button>
+    </div>
+
     <p id="result"></p>
   </div>
 </div>
@@ -1087,14 +1093,35 @@ function checkPLWorksheet(){
   if(allOk){
     res.className = "praise";
     res.innerHTML =
-      "🎉 損益計算書、全問正解！！ 🎉<br>" +
-      "決算整理の影響まで理解できています。最高です！";
+      "🎉🎉 全問正解！！おめでとう！！ 🎉🎉<br>" +
+      "決算整理 → 損益計算書の流れが完璧に理解できています。<br>" +
+      "このレベルなら検定でも安心です！";
+
+    // ★ 次の問題へボタンを表示
+    document.getElementById("nextProblemBtn")?.classList.remove("hidden");
+
   }else{
     res.className = "";
     res.textContent =
       "× 間違いがあります。赤枠の欄を見直しましょう。\n" +
-      "ポイント：費用は左（借方）、収益は右（貸方）。当期純利益（損失）で左右が一致します。";
+      "ポイント：費用は左（借方）、収益は右（貸方）。当期純利益と合計が一致します。";
+
+    // ★ 不正解時は次の問題へを隠す
+    document.getElementById("nextProblemBtn")?.classList.add("hidden");
   }
+}
+
+function nextProblem(){
+  const sel = document.getElementById("problemSelect");
+  if(!sel) return;
+
+  const idx = sel.selectedIndex;
+  const nextIdx = (idx + 1 < sel.options.length) ? idx + 1 : 0;
+  sel.selectedIndex = nextIdx;
+  currentId = sel.value;
+
+  resetView();
+  start();
 }
 
 /* =========================================================

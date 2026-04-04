@@ -123,42 +123,26 @@
 }
 
 /* PL */
-table.pl-table{
-  width:100%;
-  border-collapse:collapse;
-  table-layout:fixed;
-  font-size:14px;
-  max-width:920px;
-  margin:0 auto;
-}
-table.pl-table th, table.pl-table td{
-  border:1px solid #e53935;
-  padding:6px;
-}
-table.pl-table th{ background:#ffebee; text-align:center; }
-table.pl-table td{ text-align:right; }
-table.pl-table td.name{ text-align:left; }
+/* PL列幅：科目列も固定して“広がりすぎ”を防ぐ */
+table.pl-table{ table-layout:fixed; }
 
-/* PL：金額列を細くする（td表示もinputも） */
-table.pl-table .col-amt{ width:120px; }
-table.pl-table .col-name{ width:auto; }
+table.pl-table .col-amt{ width:120px; }  /* 金額列 */
+table.pl-table .col-name{ width:260px; } /* 科目列（←ここを好みで 220〜280 に調整） */
 
-/* 金額セルを詰める */
+/* 余白も詰める（見た目が締まる） */
+table.pl-table td.name{ padding-left:6px; padding-right:6px; }
 table.pl-table td:nth-child(2),
-table.pl-table td:nth-child(4){
-  padding-left:4px;
-  padding-right:4px;
+table.pl-table td:nth-child(4){ padding-left:4px; padding-right:4px; }
+
+.money{
+  width:100%;
+  text-align:right;
 }
 
 /* 入力も細く（表より広くならないように） */
 table.pl-table input.money{
   width:110px;
   max-width:110px;
-}
-
-.money{
-  width:100%;
-  text-align:right;
 }
 
 .wrong{ outline:3px solid #e53935; }
@@ -798,8 +782,8 @@ function renderPLAfter(){
   const extraRevenues = [...extraAccounts].filter(a => acctClass[a] === "収益");
 
   // プルダウン<option>
-  const expOpt = extraExpenses.map(a => `<option value="${escapeHtml(a)}">${escapeHtml(a)}</option>`).join("");
-  const revOpt = extraRevenues.map(a => `<option value="${escapeHtml(a)}">${escapeHtml(a)}</option>`).join("");
+  const expOpt = extraExpenses.map(a => `<option value="${a}">${escapeHtml(a)}</option>`).join("");
+  const revOpt = extraRevenues.map(a => `<option value="${a}">${escapeHtml(a)}</option>`).join("");
 
   // === 表示モデル（左：費用）を作る ===
   // まず固定費用
@@ -955,21 +939,69 @@ function checkPLWorksheet(){
     return pairs;
   }
 
-  function multisetEqual(expected, user){
-    const m = new Map();
-    expected.forEach(x=>{
-      const k = x.acct + "\n" + x.amt;
-      m.set(k, (m.get(k) ?? 0) + 1);
-    });
-    user.forEach(x=>{
-      const k = x.acct + "\n" + x.amt;
-      m.set(k, (m.get(k) ?? 0) - 1);
-    });
-    for(const v of m.values()){
-      if(v !== 0) return false;
+  // === プルダウン（新規費用・新規収益）の採点：集合一致＋金額一致方式 ===
+  function gradeExtra(kind, extraList){
+    // kind: "expense" or "revenue"
+    // extraList: 期待する新規科目の配列（例：["減価償却費","貸倒引当金繰入"]）
+    const expected = new Map();
+    extraList.forEach(acct => expected.set(acct, Math.abs(adjustedNetForPL(acct))));
+
+    const seen = new Set();
+
+    for(let i=0;i<extraList.length;i++){
+      const selId = (kind==="expense") ? `expExtraSel_${i}` : `revExtraSel_${i}`;
+      const amtId = (kind==="expense") ? `expExtraAmt_${i}` : `revExtraAmt_${i}`;
+
+      const sel = document.getElementById(selId);
+      const amt = document.getElementById(amtId);
+
+      const a = (sel?.value ?? "").trim();
+      const v = num(amt?.value);
+
+      // 未選択・未入力
+      if(!a || v === 0){
+        if(sel) sel.classList.add("wrong");
+        if(amt) amt.classList.add("wrong");
+        allOk = false;
+        continue;
+      }
+
+      // 候補外
+      if(!expected.has(a)){
+        sel.classList.add("wrong"); amt.classList.add("wrong");
+        allOk = false;
+        continue;
+      }
+
+      // 重複選択
+      if(seen.has(a)){
+        sel.classList.add("wrong"); amt.classList.add("wrong");
+        allOk = false;
+        continue;
+      }
+      seen.add(a);
+
+      // 金額一致
+      const expAmt = expected.get(a);
+      if(v !== expAmt){
+        sel.classList.add("wrong"); amt.classList.add("wrong");
+        allOk = false;
+      }
     }
-    return true;
+
+    // 「全て選ばれているか」（漏れチェック）
+    if(seen.size !== extraList.length){
+      allOk = false;
+    }
   }
+
+  // 期待する新規（プルダウン）科目
+  const extraExpenses = [...extraAccounts].filter(a => acctClass[a] === "費用");
+  const extraRevenues = [...extraAccounts].filter(a => acctClass[a] === "収益");
+
+  // 実際にプルダウン行が出ているときだけ採点
+  if(extraExpenses.length > 0) gradeExtra("expense", extraExpenses);
+  if(extraRevenues.length > 0) gradeExtra("revenue", extraRevenues);
 
   // 期待とユーザーを作る
   const expectedExp = buildExpectedPairs(extraExpenses);

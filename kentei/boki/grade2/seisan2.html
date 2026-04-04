@@ -339,7 +339,7 @@ function splitCandidates(s){
   return String(s ?? "")
     .replace(/\\\r?\n/g,"\n")
     .replace(/\r?\n/g,"\n")
-    .replace(/｜/g,"\n")
+    .replace(/[|]/g, "\n")
     .split("\n")
     .map(x=>x.trim())
     .filter(Boolean);
@@ -463,8 +463,11 @@ function renderAdjInputs(){
 
   notes.forEach((n, idx)=>{
     const correct = parseAnswerRaw(n.answerRaw);
-    const rowCount = Math.max(correct.D.length, correct.C.length, 1);
-
+    const rowCount = Math.max(
+      correct.D.length,
+      correct.C.length,
+      n.candidates.length >= 2 ? 2 : 1
+    );
     const block = document.createElement("div");
     block.className = "note-block";
     block.dataset.noteIndex = String(idx);

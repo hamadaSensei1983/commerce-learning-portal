@@ -1062,13 +1062,13 @@ function checkPLWorksheet(){
     if(filled(right)){ right.classList.add("wrong"); allOk=false; }
   }
 
-  // === 合計金額の判定 ===
+
+  // === 合計金額の判定（左右は必ず一致） ===
   const plTotalLeft  = document.getElementById("plTotalLeft");
   const plTotalRight = document.getElementById("plTotalRight");
 
-  // 期待合計
-  const expectedLeftTotal  = expE + (net > 0 ? expectedNI : 0);
-  const expectedRightTotal = expR + (net < 0 ? expectedNI : 0);
+  // 損益計算書の合計 = 費用合計と収益合計の大きい方
+  const expectedTotal = Math.max(expE, expR);
 
   function checkTotal(el, expected){
     if(!el) return;
@@ -1078,8 +1078,8 @@ function checkPLWorksheet(){
     }
   }
 
-  checkTotal(plTotalLeft,  expectedLeftTotal);
-  checkTotal(plTotalRight, expectedRightTotal);
+  checkTotal(plTotalLeft,  expectedTotal);
+  checkTotal(plTotalRight, expectedTotal);
 
   const res = document.getElementById("result");
   if(!res) return;

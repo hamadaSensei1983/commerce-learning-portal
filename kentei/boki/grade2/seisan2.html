@@ -561,7 +561,7 @@ function lockAdjustmentInputs(){
 /* =========================================================
   Phase1：仕訳採点
 ========================================================= */
-function gradeAdjustments(){
+function gradeAdjustments(fromGiveUp=false){
   if(phase !== 1) return;
 
   const notes = SEIRI.filter(x=>x.id===currentId);
@@ -589,7 +589,12 @@ function gradeAdjustments(){
   currentAdjMap = adjMap;
   phase = 2;
 
-  alert("✅ 決算整理仕訳はすべて正解です！\n\n整理記入を精算表に反映しました。\n次は精算表を完成させましょう。");
+  // ★ここ：アラート切替（ギブアップ経由かどうか）
+  if(fromGiveUp){
+    alert("📌 決算整理仕訳の正解を表示しました。\nこの仕訳をもとにして、精算表は自力で解いてみましょう！");
+  }else{
+    alert("✅ 決算整理仕訳はすべて正解です！\n\n整理記入を精算表に反映しました。\n次は精算表を完成させましょう。");
+  }
 
   // 仕訳入力をロック
   lockAdjustmentInputs();
@@ -640,7 +645,7 @@ function giveUp(){
     }
   });
 
-  gradeAdjustments();
+  gradeAdjustments(true);
 }
 
 /* 整理記入mapを入力欄から作成 */
@@ -765,17 +770,20 @@ function renderSeisanTable(adjMap){
   `;
   tbody.appendChild(trProfit);
 
-  // ★合計行（TB・整理記入の合計を表示）
+  // ★合計行（PL/BSは生徒入力）
   const trTotal = document.createElement("tr");
   trTotal.className = "total-row";
+  trTotal.dataset.rowtype = "total";
   trTotal.innerHTML = `
     <td style="text-align:right;">合計</td>
     <td>${fmt(tbSumD)}</td>
     <td>${fmt(tbSumC)}</td>
     <td>${fmt(adjSumD)}</td>
     <td>${fmt(adjSumC)}</td>
-    <td></td><td></td>
-    <td></td><td></td>
+    <td><input class="money" id="plTotalD" inputmode="numeric"></td>
+    <td><input class="money" id="plTotalC" inputmode="numeric"></td>
+    <td><input class="money" id="bsTotalD" inputmode="numeric"></td>
+    <td><input class="money" id="bsTotalC" inputmode="numeric"></td>
   `;
   tbody.appendChild(trTotal);
 }
@@ -968,6 +976,35 @@ function checkSeisan(){
       if(isFilled(bsProfitC)) markWrong(bsProfitC);
     }
   }
+
+// ②-追加：PL/BS 合計（生徒入力）を採点
+  const plTotalD = document.getElementById("plTotalD");
+  const plTotalC = document.getElementById("plTotalC");
+  const bsTotalD = document.getElementById("bsTotalD");
+  const bsTotalC = document.getElementById("bsTotalC");
+
+  // 期待合計（収益・費用・資産・負債資本 と 当期純利益/損失 を使う）
+  const expectedPLDebitTotal  = sumExp + (netFromPL > 0 ? expectedNI : 0);
+  const expectedPLCreditTotal = sumRev + (netFromPL < 0 ? expectedNI : 0);
+
+  const expectedBSDebitTotal  = sumAsset + (netFromPL < 0 ? expectedNI : 0);
+  const expectedBSCreditTotal = sumLE   + (netFromPL > 0 ? expectedNI : 0);
+
+  function checkTotalInput(el, expected){
+    if(!el) { allOk = false; return; }
+    const v = num(el.value);
+    if(v !== expected){
+      el.classList.add("wrong");
+      allOk = false;
+    }
+  }
+
+  // sameNet が崩れている場合は合計も当然合わないので、ここは一括で赤枠でもOK
+  // ただし今回は「意識させる」ため、期待値で採点します
+  checkTotalInput(plTotalD, expectedPLDebitTotal);
+  checkTotalInput(plTotalC, expectedPLCreditTotal);
+  checkTotalInput(bsTotalD, expectedBSDebitTotal);
+  checkTotalInput(bsTotalC, expectedBSCreditTotal);
 
   // ③ 結果
   if(allOk){

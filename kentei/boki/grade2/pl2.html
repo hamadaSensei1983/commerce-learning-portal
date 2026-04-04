@@ -111,13 +111,6 @@
   width:95px;
   text-align:right;
 }
-.jrnl-row select,
-.jrnl-row input{
-  padding:3px 4px;
-  font-size:12.5px;
-  height:28px;
-  box-sizing:border-box;
-}
 
 /* 採点表示 */
 .note-block.ok{
@@ -146,7 +139,18 @@ table.pl-table th{ background:#ffebee; text-align:center; }
 table.pl-table td{ text-align:right; }
 table.pl-table td.name{ text-align:left; }
 
-/* PL用 金額入力をコンパクトに */
+/* PL：金額列を細くする（td表示もinputも） */
+table.pl-table .col-amt{ width:120px; }
+table.pl-table .col-name{ width:auto; }
+
+/* 金額セルを詰める */
+table.pl-table td:nth-child(2),
+table.pl-table td:nth-child(4){
+  padding-left:4px;
+  padding-right:4px;
+}
+
+/* 入力も細く（表より広くならないように） */
 table.pl-table input.money{
   width:110px;
   max-width:110px;
@@ -219,6 +223,10 @@ table.pl-table input.money{
 
     <div class="section-title">損益計算書</div>
     <table class="pl-table">
+      <colgroup>
+        <col class="col-name"><col class="col-amt">
+        <col class="col-name"><col class="col-amt">
+      </colgroup>      
       <thead>
         <tr>
           <th colspan="2">費用（借方）</th>
@@ -311,6 +319,7 @@ function escapeHtml(s){
 
 function normalizeText(s){
   return String(s ?? "")
+    .replace(/[|]/g, "\n")
     .replace(/\\\r?\n/g,"\n")
     .replace(/\r?\n/g,"\n")
     .replace(/\\/g,"\n")

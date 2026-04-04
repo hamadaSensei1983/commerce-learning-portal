@@ -178,6 +178,17 @@ table.pl-table input.money{
   gap:12px;
   max-width:400px;
   margin:10px auto;
+
+}
+
+/* PL表の科目プルダウン（はみ出し防止） */
+table.pl-table select.pl-extra-select{
+  width:100%;
+  max-width:100%;
+  min-width:0;
+  box-sizing:border-box;
+  padding:4px;
+  font-size:14px;
 }
 
 </style>
@@ -777,25 +788,88 @@ function renderPLAfter(){
   if(!body) return;
   body.innerHTML = "";
 
-  const ordered = orderedAccounts();
-  const expenses = ordered.filter(a=>acctClass[a]==="費用");
-  const revenues = ordered.filter(a=>acctClass[a]==="収益");
-  const rows = Math.max(expenses.length, revenues.length, 1);
+  // === 固定（TBに元からある）費用・収益 ===
+  const orderedTB = TB.filter(r => r.id === currentId).map(r => r.acct);
+  const fixedExpenses = orderedTB.filter(a => acctClass[a] === "費用");
+  const fixedRevenues  = orderedTB.filter(a => acctClass[a] === "収益");
+
+  // === 新規（決算整理仕訳で初登場）費用・収益：プルダウン候補 ===
+  const extraExpenses = [...extraAccounts].filter(a => acctClass[a] === "費用");
+  const extraRevenues = [...extraAccounts].filter(a => acctClass[a] === "収益");
+
+  // プルダウン<option>
+  const expOpt = extraExpenses.map(a => `<option value="${escapeHtml(a)}">${escapeHtml(a)}</option>`).join("");
+  const revOpt = extraRevenues.map(a => `<option value="${escapeHtml(a)}">${escapeHtml(a)}</option>`).join("");
+
+  // === 表示モデル（左：費用）を作る ===
+  // まず固定費用
+  let expenseModels = fixedExpenses.map(a => ({ type:"fixed", acct:a }));
+
+  // 「給料」の直後に、新規費用プルダウン行を挿入（パターン1：数だけ増やす）
+  // 給料が無い問題もあり得るので、その場合は先頭直後に挿入
+  let insertPos = expenseModels.findIndex(x => x.type==="fixed" && x.acct === "給料");
+  if(insertPos < 0) insertPos = 0;          // 給料がなければ上のほうへ
+  else insertPos = insertPos + 1;           // 給料の「直後」
+
+  const expExtraModels = extraExpenses.map((_, i) => ({ type:"extra", idx:i }));
+  expenseModels.splice(insertPos, 0, ...expExtraModels);
+
+  // === 表示モデル（右：収益） ===
+  // 収益は「既存収益の次にそのまま追加」でOK（末尾に追加）
+  let revenueModels = fixedRevenues.map(a => ({ type:"fixed", acct:a }));
+  const revExtraModels = extraRevenues.map((_, i) => ({ type:"extra", idx:i }));
+  revenueModels = revenueModels.concat(revExtraModels);
+
+  const rows = Math.max(expenseModels.length, revenueModels.length, 1);
 
   for(let i=0;i<rows;i++){
-    const e = expenses[i];
-    const r = revenues[i];
+    const e = expenseModels[i] || null;
+    const r = revenueModels[i] || null;
 
     const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td class="name">${e ? escapeHtml(displayNamePL(e)) : ""}</td>
-      <td>${e ? `<input class="money" data-role="pl" data-acct="${escapeHtml(e)}" data-kind="expense" inputmode="numeric">` : ""}</td>
-      <td class="name">${r ? escapeHtml(displayNamePL(r)) : ""}</td>
-      <td>${r ? `<input class="money" data-role="pl" data-acct="${escapeHtml(r)}" data-kind="revenue" inputmode="numeric">` : ""}</td>
-    `;
+
+    // -------- 左：費用 --------
+    if(!e){
+      tr.innerHTML += `<td class="name"></td><td></td>`;
+    }else if(e.type === "fixed"){
+      tr.innerHTML += `<td class="name">${escapeHtml(displayNamePL(e.acct))}</td>`;
+      tr.innerHTML += `<td><input class="money" data-role="pl" data-acct="${escapeHtml(e.acct)}" data-kind="expense" inputmode="numeric"></td>`;
+    }else{
+      // extra expense dropdown
+      tr.innerHTML += `
+        <td class="name">
+          <select class="pl-extra-select" id="expExtraSel_${e.idx}">
+            <option value=""></option>
+            ${expOpt}
+          </select>
+        </td>
+      `;
+      tr.innerHTML += `<td><input class="money" id="expExtraAmt_${e.idx}" data-role="plExtra" data-kind="expense" inputmode="numeric"></td>`;
+    }
+
+    // -------- 右：収益 --------
+    if(!r){
+      tr.innerHTML += `<td class="name"></td><td></td>`;
+    }else if(r.type === "fixed"){
+      tr.innerHTML += `<td class="name">${escapeHtml(displayNamePL(r.acct))}</td>`;
+      tr.innerHTML += `<td><input class="money" data-role="pl" data-acct="${escapeHtml(r.acct)}" data-kind="revenue" inputmode="numeric"></td>`;
+    }else{
+      // extra revenue dropdown
+      tr.innerHTML += `
+        <td class="name">
+          <select class="pl-extra-select" id="revExtraSel_${r.idx}">
+            <option value=""></option>
+            ${revOpt}
+          </select>
+        </td>
+      `;
+      tr.innerHTML += `<td><input class="money" id="revExtraAmt_${r.idx}" data-role="plExtra" data-kind="revenue" inputmode="numeric"></td>`;
+    }
+
     body.appendChild(tr);
   }
 
+  // 当期純利益（左右入力）
   const trNI = document.createElement("tr");
   trNI.innerHTML = `
     <td class="name">当期純利益（または純損失）</td>
@@ -805,14 +879,15 @@ function renderPLAfter(){
   `;
   body.appendChild(trNI);
 
-const trTot = document.createElement("tr");
-trTot.innerHTML = `
-  <td class="name" style="text-align:right;font-weight:bold;">合計</td>
-  <td><input class="money" id="plTotalLeft" inputmode="numeric"></td>
-  <td class="name" style="text-align:right;font-weight:bold;">合計</td>
-  <td><input class="money" id="plTotalRight" inputmode="numeric"></td>
-`;
-body.appendChild(trTot);
+  // 合計（入力）
+  const trTot = document.createElement("tr");
+  trTot.innerHTML = `
+    <td class="name" style="text-align:right;font-weight:bold;">合計</td>
+    <td><input class="money" id="plTotalLeft" inputmode="numeric"></td>
+    <td class="name" style="text-align:right;font-weight:bold;">合計</td>
+    <td><input class="money" id="plTotalRight" inputmode="numeric"></td>
+  `;
+  body.appendChild(trTot);
 }
 
 /* =========================================================
@@ -831,6 +906,10 @@ function checkPLWorksheet(){
 
   let expE = 0, expR = 0;
 
+  // 新規（プルダウン）候補
+  const extraExpenses = [...extraAccounts].filter(a => acctClass[a] === "費用");
+  const extraRevenues = [...extraAccounts].filter(a => acctClass[a] === "収益");
+
   inputs.forEach(inp=>{
     const acct = inp.dataset.acct;
     const kind = inp.dataset.kind;
@@ -844,6 +923,81 @@ function checkPLWorksheet(){
     if(kind==="expense") expE += exp;
     if(kind==="revenue") expR += exp;
   });
+
+// === プルダウン（新規費用・新規収益）の採点 ===
+  function buildExpectedPairs(list){
+    // 期待：各科目の整理後残高（絶対値）
+    return list.map(acct => ({
+      acct,
+      amt: Math.abs(adjustedNetForPL(acct))
+    }));
+  }
+
+  function buildUserPairs(kind, list){
+    // kind: "expense" or "revenue"
+    const pairs = [];
+    for(let i=0;i<list.length;i++){
+      const sel = document.getElementById(kind==="expense" ? `expExtraSel_${i}` : `revExtraSel_${i}`);
+      const amt = document.getElementById(kind==="expense" ? `expExtraAmt_${i}` : `revExtraAmt_${i}`);
+
+      const a = (sel?.value ?? "").trim();
+      const v = num(amt?.value);
+
+      // 未選択や未入力は×（新規科目は「数だけ行が出る」ので、埋めるのが前提）
+      if(!a || v===0){
+        if(sel) sel.classList.add("wrong");
+        if(amt) amt.classList.add("wrong");
+        allOk = false;
+        continue;
+      }
+      pairs.push({acct:a, amt:v, sel, amtEl:amt});
+    }
+    return pairs;
+  }
+
+  function multisetEqual(expected, user){
+    const m = new Map();
+    expected.forEach(x=>{
+      const k = x.acct + "\n" + x.amt;
+      m.set(k, (m.get(k) ?? 0) + 1);
+    });
+    user.forEach(x=>{
+      const k = x.acct + "\n" + x.amt;
+      m.set(k, (m.get(k) ?? 0) - 1);
+    });
+    for(const v of m.values()){
+      if(v !== 0) return false;
+    }
+    return true;
+  }
+
+  // 期待とユーザーを作る
+  const expectedExp = buildExpectedPairs(extraExpenses);
+  const expectedRev = buildExpectedPairs(extraRevenues);
+
+  const userExp = buildUserPairs("expense", extraExpenses);
+  const userRev = buildUserPairs("revenue", extraRevenues);
+
+  // 候補外を選んだ場合も×
+  userExp.forEach(x=>{
+    if(!extraExpenses.includes(x.acct)){
+      x.sel.classList.add("wrong"); x.amtEl.classList.add("wrong"); allOk=false;
+    }
+  });
+  userRev.forEach(x=>{
+    if(!extraRevenues.includes(x.acct)){
+      x.sel.classList.add("wrong"); x.amtEl.classList.add("wrong"); allOk=false;
+    }
+  });
+
+  // マルチセット一致（科目＋金額が全て一致しているか）
+  if(!multisetEqual(expectedExp, userExp) || !multisetEqual(expectedRev, userRev)){
+    // どれが違うか意識させるため、入力行を赤枠に
+    userExp.forEach(x=>{ x.sel.classList.add("wrong"); x.amtEl.classList.add("wrong"); });
+    userRev.forEach(x=>{ x.sel.classList.add("wrong"); x.amtEl.classList.add("wrong"); });
+    allOk = false;
+  }
+
 
   // 当期純利益（収益-費用）
   const net = expR - expE;

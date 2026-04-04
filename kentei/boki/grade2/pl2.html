@@ -995,10 +995,6 @@ function checkPLWorksheet(){
     }
   }
 
-  // 期待する新規（プルダウン）科目
-  const extraExpenses = [...extraAccounts].filter(a => acctClass[a] === "費用");
-  const extraRevenues = [...extraAccounts].filter(a => acctClass[a] === "収益");
-
   // 実際にプルダウン行が出ているときだけ採点
   if(extraExpenses.length > 0) gradeExtra("expense", extraExpenses);
   if(extraRevenues.length > 0) gradeExtra("revenue", extraRevenues);

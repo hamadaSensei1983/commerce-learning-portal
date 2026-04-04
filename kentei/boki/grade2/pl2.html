@@ -146,6 +146,12 @@ table.pl-table th{ background:#ffebee; text-align:center; }
 table.pl-table td{ text-align:right; }
 table.pl-table td.name{ text-align:left; }
 
+/* PL用 金額入力をコンパクトに */
+table.pl-table input.money{
+  width:110px;
+  max-width:110px;
+}
+
 .money{
   width:100%;
   text-align:right;
@@ -160,6 +166,16 @@ table.pl-table td.name{ text-align:left; }
   font-weight:bold;
   text-align:center;
 }
+
+/* 仕訳操作ボタン（2列） */
+.action-row{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+  max-width:400px;
+  margin:10px auto;
+}
+
 </style>
 </head>
 
@@ -193,7 +209,7 @@ table.pl-table td.name{ text-align:left; }
     <h2>下記の決算整理仕訳を示しなさい。</h2>
     <div id="adjInputArea"></div>
 
-    <div style="text-align:center;margin:10px 0;">
+    <div class="action-row">
       <button class="main-btn" onclick="gradeAdjustments()">仕訳採点</button>
       <button class="control-btn" onclick="giveUp()">ギブアップ</button>
     </div>
@@ -776,12 +792,14 @@ function renderPLAfter(){
   `;
   body.appendChild(trNI);
 
-  const trTot = document.createElement("tr");
-  trTot.innerHTML = `
-    <td class="name" style="text-align:right;font-weight:bold;">合計</td><td></td>
-    <td class="name" style="text-align:right;font-weight:bold;">合計</td><td></td>
-  `;
-  body.appendChild(trTot);
+const trTot = document.createElement("tr");
+trTot.innerHTML = `
+  <td class="name" style="text-align:right;font-weight:bold;">合計</td>
+  <td><input class="money" id="plTotalLeft" inputmode="numeric"></td>
+  <td class="name" style="text-align:right;font-weight:bold;">合計</td>
+  <td><input class="money" id="plTotalRight" inputmode="numeric"></td>
+`;
+body.appendChild(trTot);
 }
 
 /* =========================================================
@@ -833,6 +851,25 @@ function checkPLWorksheet(){
     if(filled(left)){ left.classList.add("wrong"); allOk=false; }
     if(filled(right)){ right.classList.add("wrong"); allOk=false; }
   }
+
+  // === 合計金額の判定 ===
+  const plTotalLeft  = document.getElementById("plTotalLeft");
+  const plTotalRight = document.getElementById("plTotalRight");
+
+  // 期待合計
+  const expectedLeftTotal  = expE + (net > 0 ? expectedNI : 0);
+  const expectedRightTotal = expR + (net < 0 ? expectedNI : 0);
+
+  function checkTotal(el, expected){
+    if(!el) return;
+    if(num(el.value) !== expected){
+      el.classList.add("wrong");
+      allOk = false;
+    }
+  }
+
+  checkTotal(plTotalLeft,  expectedLeftTotal);
+  checkTotal(plTotalRight, expectedRightTotal);
 
   const res = document.getElementById("result");
   if(!res) return;

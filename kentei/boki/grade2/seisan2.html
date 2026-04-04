@@ -708,21 +708,31 @@ function renderSeisanTable(adjMap){
   currentAdjMap = adjMap;
 
   const tbody = document.getElementById("seisanBody");
+  if(!tbody) return;
   tbody.innerHTML = "";
 
-  // TB行
+  // ★合計（ここが欠けていてエラーになっていました）
+  let tbSumD = 0, tbSumC = 0;
+  let adjSumD = 0, adjSumC = 0;
+
+  // TB行（CSVの順）
   baseAccounts.forEach(acct=>{
     const r = TB.find(x=>x.id===currentId && x.acct===acct);
     if(!r) return;
 
+    tbSumD += r.debit;
+    tbSumC += r.credit;
+
     const tr = makeSeisanRow(acct, r.debit, r.credit, false);
 
-    // Phase2（adjMapあり）なら整理記入を表示
     if(adjMap){
       const adj = adjMap[acct] ?? {d:0,c:0};
       tr.querySelector(".adjD").textContent = fmt(adj.d);
       tr.querySelector(".adjC").textContent = fmt(adj.c);
+      adjSumD += adj.d;
+      adjSumC += adj.c;
     }
+
     tbody.appendChild(tr);
   });
 
@@ -733,14 +743,16 @@ function renderSeisanTable(adjMap){
       const adj = adjMap[acct] ?? {d:0,c:0};
       tr.querySelector(".adjD").textContent = fmt(adj.d);
       tr.querySelector(".adjC").textContent = fmt(adj.c);
+      adjSumD += adj.d;
+      adjSumC += adj.c;
       tbody.appendChild(tr);
     });
   }
 
-  // Phase1では「当期純利益・合計・採点」は出さない（仕様）
+  // Phase1（adjMapなし）はここまで
   if(!adjMap) return;
 
-  // 当期純利益行（4か所入力）
+  // 当期純利益行（入力欄は showOutputInputFields() が作る）
   const trProfit = document.createElement("tr");
   trProfit.className = "profit-row";
   trProfit.dataset.rowtype = "profit";
@@ -753,7 +765,7 @@ function renderSeisanTable(adjMap){
   `;
   tbody.appendChild(trProfit);
 
-  // 合計行（空でもOK。採点後の見直しで使うなら将来拡張）
+  // ★合計行（TB・整理記入の合計を表示）
   const trTotal = document.createElement("tr");
   trTotal.className = "total-row";
   trTotal.innerHTML = `

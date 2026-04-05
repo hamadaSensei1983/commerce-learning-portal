@@ -914,18 +914,25 @@ function checkPLWorksheet(){
   if(phase !== 2) return;
   clearWrong();
 
-  const inputs = [...document.querySelectorAll('input[data-role="pl"]')];
+  const res = document.getElementById("result");
+  if(res){ res.className = ""; res.textContent = ""; }
+  document.getElementById("nextProblemBtn")?.classList.add("hidden");
+
   let allOk = true;
 
-  let expE = 0, expR = 0;
-
-  // 新規（プルダウン）候補
+  // --- 期待：新規（プルダウン）候補 ---
   const extraExpenses = [...extraAccounts].filter(a => acctClass[a] === "費用");
   const extraRevenues = [...extraAccounts].filter(a => acctClass[a] === "収益");
 
+  // --- ① 固定行（data-role="pl"）の採点＆期待合計（expE/expR） ---
+  const inputs = [...document.querySelectorAll('input[data-role="pl"]')];
+
+  let expE = 0; // 固定費用の期待合計
+  let expR = 0; // 固定収益の期待合計
+
   inputs.forEach(inp=>{
-    const acct = inp.dataset.acct;
-    const kind = inp.dataset.kind;
+    const acct = (inp.dataset.acct ?? "").trim();
+    const kind = inp.dataset.kind; // "expense" / "revenue"
     const v = num(inp.value);
     const exp = Math.abs(adjustedNetForPL(acct));
 
@@ -933,36 +940,13 @@ function checkPLWorksheet(){
       inp.classList.add("wrong");
       allOk = false;
     }
-    if(kind==="expense") expE += exp;
-    if(kind==="revenue") expR += exp;
+    if(kind === "expense") expE += exp;
+    if(kind === "revenue") expR += exp;
   });
 
-  function buildUserPairs(kind, list){
-    // kind: "expense" or "revenue"
-    const pairs = [];
-    for(let i=0;i<list.length;i++){
-      const sel = document.getElementById(kind==="expense" ? `expExtraSel_${i}` : `revExtraSel_${i}`);
-      const amt = document.getElementById(kind==="expense" ? `expExtraAmt_${i}` : `revExtraAmt_${i}`);
-
-      const a = (sel?.value ?? "").trim();
-      const v = num(amt?.value);
-
-      // 未選択や未入力は×（新規科目は「数だけ行が出る」ので、埋めるのが前提）
-      if(!a || v===0){
-        if(sel) sel.classList.add("wrong");
-        if(amt) amt.classList.add("wrong");
-        allOk = false;
-        continue;
-      }
-      pairs.push({acct:a, amt:v, sel, amtEl:amt});
-    }
-    return pairs;
-  }
-
-  // === プルダウン（新規費用・新規収益）の採点：集合一致＋金額一致方式 ===
+  // --- ② プルダウン行（新規費用・新規収益）の採点（集合一致＋金額一致） ---
   function gradeExtra(kind, extraList){
-    // kind: "expense" or "revenue"
-    // extraList: 期待する新規科目の配列（例：["減価償却費","貸倒引当金繰入"]）
+    // extraListの科目は「必ず全部選んで入力する」仕様（行数＝新規科目数）
     const expected = new Map();
     extraList.forEach(acct => expected.set(acct, Math.abs(adjustedNetForPL(acct))));
 
@@ -978,7 +962,7 @@ function checkPLWorksheet(){
       const a = (sel?.value ?? "").trim();
       const v = num(amt?.value);
 
-      // 未選択・未入力
+      // 未選択 or 未入力
       if(!a || v === 0){
         if(sel) sel.classList.add("wrong");
         if(amt) amt.classList.add("wrong");
@@ -988,14 +972,16 @@ function checkPLWorksheet(){
 
       // 候補外
       if(!expected.has(a)){
-        sel.classList.add("wrong"); amt.classList.add("wrong");
+        sel.classList.add("wrong");
+        amt.classList.add("wrong");
         allOk = false;
         continue;
       }
 
       // 重複選択
       if(seen.has(a)){
-        sel.classList.add("wrong"); amt.classList.add("wrong");
+        sel.classList.add("wrong");
+        amt.classList.add("wrong");
         allOk = false;
         continue;
       }
@@ -1004,110 +990,93 @@ function checkPLWorksheet(){
       // 金額一致
       const expAmt = expected.get(a);
       if(v !== expAmt){
-        sel.classList.add("wrong"); amt.classList.add("wrong");
+        sel.classList.add("wrong");
+        amt.classList.add("wrong");
         allOk = false;
       }
     }
 
-    // 「全て選ばれているか」（漏れチェック）
+    // 漏れ（全部選べていない）
     if(seen.size !== extraList.length){
       allOk = false;
     }
   }
 
-  // 実際にプルダウン行が出ているときだけ採点
   if(extraExpenses.length > 0) gradeExtra("expense", extraExpenses);
   if(extraRevenues.length > 0) gradeExtra("revenue", extraRevenues);
 
-  // 期待とユーザーを作る
-  const expectedExp = buildExpectedPairs(extraExpenses);
-  const expectedRev = buildExpectedPairs(extraRevenues);
-
-  const userExp = buildUserPairs("expense", extraExpenses);
-  const userRev = buildUserPairs("revenue", extraRevenues);
-
-  // 候補外を選んだ場合も×
-  userExp.forEach(x=>{
-    if(!extraExpenses.includes(x.acct)){
-      x.sel.classList.add("wrong"); x.amtEl.classList.add("wrong"); allOk=false;
-    }
-  });
-  userRev.forEach(x=>{
-    if(!extraRevenues.includes(x.acct)){
-      x.sel.classList.add("wrong"); x.amtEl.classList.add("wrong"); allOk=false;
-    }
-  });
-
-
-  // 当期純利益（収益-費用）
-
-  // 新規（プルダウン）科目の「期待金額」合計（=整理後残高の絶対値）
+  // --- ③ 利益・合計は「固定＋新規」で計算する（これが重要） ---
   const extraExpSum = extraExpenses.reduce((s,a)=> s + Math.abs(adjustedNetForPL(a)), 0);
   const extraRevSum = extraRevenues.reduce((s,a)=> s + Math.abs(adjustedNetForPL(a)), 0);
 
-  // 固定＋新規 を合算した「本来の費用合計・収益合計」
   const totalExp = expE + extraExpSum;
   const totalRev = expR + extraRevSum;
 
-  // 当期純利益（収益-費用）
   const net = totalRev - totalExp;
   const expectedNI = Math.abs(net);
-
-  // 損益計算書の合計（左右は必ず一致）＝費用合計と収益合計の大きい方
   const expectedTotal = Math.max(totalExp, totalRev);
+
+  // --- ④ 当期純利益（左右）採点：空欄は×（net=0のみ両方空欄OK） ---
+  const left = document.getElementById("plNI_left");
+  const right = document.getElementById("plNI_right");
 
   function filled(el){ return el && String(el.value).trim() !== ""; }
 
   if(net > 0){
-    if(num(left.value) !== expectedNI){ left.classList.add("wrong"); allOk=false; }
-    if(filled(right)){ right.classList.add("wrong"); allOk=false; }
+    // 利益：左に必須
+    if(!filled(left) || num(left.value) !== expectedNI){
+      left.classList.add("wrong");
+      allOk = false;
+    }
+    if(filled(right)){
+      right.classList.add("wrong");
+      allOk = false;
+    }
   }else if(net < 0){
-    if(num(right.value) !== expectedNI){ right.classList.add("wrong"); allOk=false; }
-    if(filled(left)){ left.classList.add("wrong"); allOk=false; }
+    // 損失：右に必須
+    if(!filled(right) || num(right.value) !== expectedNI){
+      right.classList.add("wrong");
+      allOk = false;
+    }
+    if(filled(left)){
+      left.classList.add("wrong");
+      allOk = false;
+    }
   }else{
-    if(filled(left)){ left.classList.add("wrong"); allOk=false; }
-    if(filled(right)){ right.classList.add("wrong"); allOk=false; }
+    // net=0：両方空欄が正解
+    if(filled(left)){ left.classList.add("wrong"); allOk = false; }
+    if(filled(right)){ right.classList.add("wrong"); allOk = false; }
   }
 
-
-  // === 合計金額の判定（左右は必ず一致） ===
+  // --- ⑤ 合計（左右同額）採点：空欄は×（必ず入力させる仕様） ---
   const plTotalLeft  = document.getElementById("plTotalLeft");
   const plTotalRight = document.getElementById("plTotalRight");
 
-  // 損益計算書の合計 = 費用合計と収益合計の大きい方
-
-  function checkTotal(el, expected){
+  function checkTotal(el){
     if(!el) return;
-
-    if(!filled(el) || num(el.value) !== expected){
+    if(!filled(el) || num(el.value) !== expectedTotal){
       el.classList.add("wrong");
       allOk = false;
     }
   }
+  checkTotal(plTotalLeft);
+  checkTotal(plTotalRight);
 
-  checkTotal(plTotalLeft,  expectedTotal);
-  checkTotal(plTotalRight, expectedTotal);
-
-  const res = document.getElementById("result");
+  // --- ⑥ 結果表示＆次へボタン ---
   if(!res) return;
 
   if(allOk){
     res.className = "praise";
     res.innerHTML =
       "🎉🎉 全問正解！！おめでとう！！ 🎉🎉<br>" +
-      "決算整理 → 損益計算書の流れが完璧に理解できています。<br>" +
-      "このレベルなら検定でも安心です！";
-
-    // ★ 次の問題へボタンを表示
+      "決算整理 → 損益計算書の流れが完璧です。<br>" +
+      "この調子で次の問題もいこう！";
     document.getElementById("nextProblemBtn")?.classList.remove("hidden");
-
   }else{
     res.className = "";
     res.textContent =
       "× 間違いがあります。赤枠の欄を見直しましょう。\n" +
       "ポイント：費用は左（借方）、収益は右（貸方）。当期純利益と合計が一致します。";
-
-    // ★ 不正解時は次の問題へを隠す
     document.getElementById("nextProblemBtn")?.classList.add("hidden");
   }
 }

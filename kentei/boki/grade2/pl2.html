@@ -1078,7 +1078,8 @@ function checkPLWorksheet(){
 
   function checkTotal(el, expected){
     if(!el) return;
-    if(num(el.value) !== expected){
+
+    if(!filled(el) || num(el.value) !== expected){
       el.classList.add("wrong");
       allOk = false;
     }

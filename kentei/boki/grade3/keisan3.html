@@ -49,6 +49,7 @@
       font-size:18px;
       line-height:1.7;
       margin-bottom:15px;
+      white-space:pre-line;
     }
 
     /* 資料型テーブル（幅60%中央寄せ） */
@@ -252,8 +253,8 @@ function parseCSV(text){
     cols.push(cur);
 
     const kind  = cols[0]?.trim() ?? "";
-    const textQ = cols[1]?.trim() ?? "";
-    const label1= cols[2]?.trim() ?? "";
+    const textQ = (cols[1]?.trim() ?? "")
+      .replace(/\|/g,"\n");    const label1= cols[2]?.trim() ?? "";
     const ans1  = cols[3]?.trim() ?? "";
     const label2= cols[4]?.trim() ?? "";
     const ans2  = cols[5]?.trim() ?? "";

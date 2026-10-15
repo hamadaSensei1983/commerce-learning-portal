@@ -282,7 +282,6 @@ let current;
 let accountMaster = {};
 let streak = 0;
 let bestStreak = 0;
-let autoNextTimer = null;
 let fieldStats = {};
 let quizOrder = [];
 let quizIndex = 0;
@@ -416,10 +415,6 @@ Promise.all([
    共通：セッションリセット
 ===================== */
 function resetSession(){
-  if(autoNextTimer !== null){
-    clearTimeout(autoNextTimer);
-    autoNextTimer = null;
-  }
   current = null;
   quizOrder = [];
   quizIndex = 0;
@@ -774,10 +769,6 @@ function start(){
 
 /* 次の問題（練習・復習） */
 function next(){
-  if(autoNextTimer !== null){
-    clearTimeout(autoNextTimer);
-    autoNextTimer = null;
-  }
 
   if(mode === "exam"){
     return;
@@ -993,52 +984,24 @@ function check(){
 
   if(ok){
     result.innerHTML = "〇 正解！";
+
     streak++;
     if(streak > bestStreak){
       bestStreak = streak;
       saveBestStreak();
     }
+
     fieldStats[current.field].correct++;
     updateStreakDisplay();
 
     lockInputs();
     showFieldStats();
 
-    autoNextTimer = setTimeout(() =>{
-      autoNextTimer = null;
-      next();
-    }, 1000);
-
-  }else{
-    let html =
-      "× 不正解<br><br>" +
-      "<b>正解</b>" +
-      "<div class='answer-journal'>" +
-        "<div class='answer-side'>" +
-          "<b>借方</b><br>" +
-          current.d1 + " " + current.dm1.toLocaleString() + "<br>" +
-          (current.d2 ? current.d2 + " " + current.dm2.toLocaleString() : "") +
-        "</div>" +
-        "<div class='answer-side'>" +
-          "<b>貸方</b><br>" +
-          current.c1 + " " + current.cm1.toLocaleString() + "<br>" +
-          (current.c2 ? current.c2 + " " + current.cm2.toLocaleString() : "") +
-        "</div>" +
-      "</div><br>" +
-      "解説：" + (current.desc || "");
-
-    result.innerHTML = html;
-
-    wrongPool.push(current);
-
-    streak = 0;
-    updateStreakDisplay();
-
-    lockInputs();
-    showFieldStats();
-
+    // ★ 正解時も自分で進む
     const nextBtn = document.getElementById("nextBtn");
-    if(nextBtn) nextBtn.classList.remove("hidden");
+    if(nextBtn){
+      nextBtn.classList.remove("hidden");
+    }
   }
 }
 

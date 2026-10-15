@@ -458,14 +458,26 @@ function showBusinessQuestion(q){
   result.innerText="";
   document.getElementById("bizNextBtn").classList.add("hidden");
 
-  unit.innerHTML="";
-  q.units.split("|").map(u=>u.trim()).filter(u=>u).forEach(u=>{
-    const opt=document.createElement("option");
-    opt.value=u;
-    opt.textContent=u;
-    unit.appendChild(opt);
-  });
+  unit.innerHTML = "";
 
+  // ▼ 先頭に空欄を追加
+  const blank = document.createElement("option");
+  blank.value = "";
+  blank.textContent = "単位を選択";
+  unit.appendChild(blank);
+
+  q.units.split("|")
+    .map(u=>u.trim())
+    .filter(u=>u)
+    .forEach(u=>{
+      const opt=document.createElement("option");
+      opt.value=u;
+      opt.textContent=u;
+      unit.appendChild(opt);
+    });
+
+// ▼ 初期表示は空欄
+unit.selectedIndex = 0;
   row.innerHTML="";
   if(q.pos==="1"){
     row.appendChild(unit);
@@ -494,6 +506,12 @@ function showBusinessQuestion(q){
 
 /* ▼ 答え合わせ */
 function checkBusinessAnswer(){
+
+  if(unit === ""){
+    alert("単位を選択してください");
+    return;
+  }
+    
   if (!bizCurrentQ) return;
 
   const raw    = document.getElementById("bizAnswerNumber").value;

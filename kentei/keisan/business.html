@@ -544,17 +544,57 @@ function checkBusinessAnswer(){
     totalCorrect++;
     bestStreak = Math.max(bestStreak, bizStreak);
 
-  } else {
-    // ▼ 不正解時
+  }else{
+
     bizStreak = 0;
 
-    const formatted  = Number(correctValue).toLocaleString();
-    const correctStr = (bizCurrentQ.pos === "1")
-      ? correctUnit + formatted   // 単位が前
-      : formatted + correctUnit;  // 単位が後
+    const formatted =
+      Number(correctValue).toLocaleString();
+
+    const correctStr =
+      (bizCurrentQ.pos === "1")
+        ? correctUnit + formatted
+        : formatted + correctUnit;
+
+    const unitOK  = (unit === correctUnit);
+    const valueOK = (userValue === correctValue);
+
+    let detail = "";
+    let encouragement = "";
+
+    if(unitOK){
+      detail += "単位：〇 正しい<br>";
+    }else{
+      detail += "単位：× 違います<br>";
+    }
+
+    if(valueOK){
+      detail += "数字：〇 正しい<br>";
+    }else{
+      detail += "数字：× 違います<br>";
+    }
+
+    /* ===== モチベーション維持用メッセージ ===== */
+
+    if(valueOK && !unitOK){
+      encouragement =
+        "<span style='color:#2e7d32;font-weight:bold;'>惜しい！数字は正しいです。単位だけ確認しましょう。</span><br><br>";
+    }
+    else if(!valueOK && unitOK){
+      encouragement =
+        "<span style='color:#2e7d32;font-weight:bold;'>惜しい！単位は正しいです。計算を見直してみましょう。</span><br><br>";
+    }
+    else if(!valueOK && !unitOK){
+      encouragement =
+        "<span style='color:#c62828;font-weight:bold;'>数字と単位の両方を見直してみましょう。</span><br><br>";
+    }
 
     result.innerHTML =
-      `× 不正解<br>正解：${correctStr}<br><br>解説：${descHtml}`;
+      `× 不正解<br><br>
+      ${encouragement}
+      ${detail}<br>
+      正解：${correctStr}<br><br>
+      解説：${descHtml}`;
   }
 
   totalAnswered++;

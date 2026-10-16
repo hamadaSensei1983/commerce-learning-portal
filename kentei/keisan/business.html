@@ -463,7 +463,7 @@ function showBusinessQuestion(q){
   // ▼ 先頭に空欄を追加
   const blank = document.createElement("option");
   blank.value = "";
-  blank.textContent = "単位を選択";
+  blank.textContent = "▼選択";
   unit.appendChild(blank);
 
   q.units.split("|")
@@ -507,60 +507,92 @@ unit.selectedIndex = 0;
 /* ▼ 答え合わせ */
 function checkBusinessAnswer(){
 
+  if(!bizCurrentQ) return;
+
+  const raw =
+    document.getElementById("bizAnswerNumber").value;
+
+  const unit =
+    document.getElementById("bizUnitSelect").value;
+
+  const result =
+    document.getElementById("bizResult");
+
+  const checkBtn =
+    document.getElementById("bizCheckBtn");
+
+  // ▼ 単位未選択
   if(unit === ""){
-    alert("単位を選択してください");
+    result.innerHTML =
+      "<span style='color:#c62828;'>単位を選択してください。</span>";
     return;
   }
-    
-  if (!bizCurrentQ) return;
 
-  const raw    = document.getElementById("bizAnswerNumber").value;
-  const unit   = document.getElementById("bizUnitSelect").value;
-  const result = document.getElementById("bizResult");
-  const checkBtn = document.getElementById("bizCheckBtn");
-
-  if (!raw) {
+  // ▼ 未入力
+  if(!raw){
     alert("答えを入力してください");
     return;
   }
 
   const normalized = normalizeNumber(raw);
 
-  // 3桁区切り＋小数の形式チェック
-  if (!/^\d{1,3}(,\d{3})*(\.\d+)?$/.test(normalized)) {
-    result.innerText = "コンマで3桁区切りにしてください。";
+  if(!/^\d{1,3}(,\d{3})*(\.\d+)?$/.test(normalized)){
+    result.innerText =
+      "コンマで3桁区切りにしてください。";
     return;
   }
 
-  // ここまで来たら「答え合わせ」ボタンは無効化（1問1回限定）
-  if (checkBtn) checkBtn.disabled = true;
+  if(checkBtn){
+    checkBtn.disabled = true;
+  }
 
-  const userValue    = normalized.replace(/,/g, "");
-  const correctValue = String(bizCurrentQ.answer);
-  const correctUnit  = bizCurrentQ.correctUnit;
+  const userValue =
+    normalized.replace(/,/g,"");
+
+  const correctValue =
+    String(bizCurrentQ.answer);
+
+  const correctUnit =
+    bizCurrentQ.correctUnit;
 
   const lv = bizCurrentQ.level;
-  let bestStreak    = Number(localStorage.getItem(`biz_bestStreak_${lv}`)    || 0);
-  let totalCorrect  = Number(localStorage.getItem(`biz_totalCorrect_${lv}`)  || 0);
-  let totalAnswered = Number(localStorage.getItem(`biz_totalAnswered_${lv}`) || 0);
 
-  const ok       = (userValue === correctValue && unit === correctUnit);
-  const descHtml = (bizCurrentQ.desc || "").replace(/\n/g, "<br>");
+  let bestStreak =
+    Number(localStorage.getItem(`biz_bestStreak_${lv}`) || 0);
 
-  if (ok) {
-    // ▼ 正解時
-    result.innerHTML = `〇 正解！<br><br>${descHtml}`;
+  let totalCorrect =
+    Number(localStorage.getItem(`biz_totalCorrect_${lv}`) || 0);
 
-    // 正解アニメーション
-    const qElem = document.getElementById("bizQuestion");
+  let totalAnswered =
+    Number(localStorage.getItem(`biz_totalAnswered_${lv}`) || 0);
+
+  const ok =
+    (userValue === correctValue) &&
+    (unit === correctUnit);
+
+  const descHtml =
+    (bizCurrentQ.desc || "")
+      .replace(/\n/g,"<br>");
+
+  if(ok){
+
+    result.innerHTML =
+      `〇 正解！<br><br>${descHtml}`;
+
+    const qElem =
+      document.getElementById("bizQuestion");
+
     qElem.classList.remove("correct-anim");
-    void qElem.offsetWidth; // 再生リセット
+    void qElem.offsetWidth;
     qElem.classList.add("correct-anim");
 
     bizCorrectCount++;
     bizStreak++;
+
     totalCorrect++;
-    bestStreak = Math.max(bestStreak, bizStreak);
+
+    bestStreak =
+      Math.max(bestStreak,bizStreak);
 
   }else{
 
@@ -574,8 +606,11 @@ function checkBusinessAnswer(){
         ? correctUnit + formatted
         : formatted + correctUnit;
 
-    const unitOK  = (unit === correctUnit);
-    const valueOK = (userValue === correctValue);
+    const unitOK =
+      (unit === correctUnit);
+
+    const valueOK =
+      (userValue === correctValue);
 
     let detail = "";
     let encouragement = "";
@@ -592,17 +627,18 @@ function checkBusinessAnswer(){
       detail += "数字：× 違います<br>";
     }
 
-    /* ===== モチベーション維持用メッセージ ===== */
-
     if(valueOK && !unitOK){
+
       encouragement =
         "<span style='color:#2e7d32;font-weight:bold;'>惜しい！数字は正しいです。単位だけ確認しましょう。</span><br><br>";
-    }
-    else if(!valueOK && unitOK){
+
+    }else if(!valueOK && unitOK){
+
       encouragement =
         "<span style='color:#2e7d32;font-weight:bold;'>惜しい！単位は正しいです。計算を見直してみましょう。</span><br><br>";
-    }
-    else if(!valueOK && !unitOK){
+
+    }else{
+
       encouragement =
         "<span style='color:#c62828;font-weight:bold;'>数字と単位の両方を見直してみましょう。</span><br><br>";
     }
@@ -617,16 +653,27 @@ function checkBusinessAnswer(){
 
   totalAnswered++;
 
-  // ▼ 成績保存
-  localStorage.setItem(`biz_bestStreak_${lv}`,    bestStreak);
-  localStorage.setItem(`biz_totalCorrect_${lv}`,  totalCorrect);
-  localStorage.setItem(`biz_totalAnswered_${lv}`, totalAnswered);
+  localStorage.setItem(
+    `biz_bestStreak_${lv}`,
+    bestStreak
+  );
 
-  // ▼ ステータス更新
+  localStorage.setItem(
+    `biz_totalCorrect_${lv}`,
+    totalCorrect
+  );
+
+  localStorage.setItem(
+    `biz_totalAnswered_${lv}`,
+    totalAnswered
+  );
+
   updateBizStatus();
 
-  // ▼ 次の問題ボタン表示
-  document.getElementById("bizNextBtn").classList.remove("hidden");
+  document
+    .getElementById("bizNextBtn")
+    .classList
+    .remove("hidden");
 }
 
 /* ▼ シャッフル */
